@@ -176,18 +176,18 @@ const pageSize = 12;
 
 export const Home: React.FC = () => {
   /* Collection Info */
-  const [collectionInfo, setCollectionInfo] = React.useState<any>(null);
-  useEffect(() => {
-    try {
-      axios
-        .get(`https://test-voi.api.highforge.io/projects`)
-        .then((res: any) => res.data.results)
-        .then(setCollectionInfo);
-    } catch (e) {
-      console.log(e);
-    }
-  }, []);
-  console.log({ collectionInfo });
+  // const [collectionInfo, setCollectionInfo] = React.useState<any>(null);
+  // useEffect(() => {
+  //   try {
+  //     axios
+  //       .get(`https://prod-voi.api.highforge.io/projects`)
+  //       .then((res: any) => res.data.results)
+  //       .then(setCollectionInfo);
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  // }, []);
+  // console.log({ collectionInfo });
 
   const [showing, setShowing] = useState<number>(pageSize);
 

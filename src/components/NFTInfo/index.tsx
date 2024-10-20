@@ -20,7 +20,7 @@ import algosdk from "algosdk";
 //import { MarketplaceContext } from "../../store/MarketplaceContext";
 import { decodePrice, decodeTokenId } from "../../utils/mp";
 import NftCard from "../../components/NFTCard";
-import BuySaleModal from "../../components/modals/BuySaleModal";
+import BuySaleModal, { multiplier } from "../../components/modals/BuySaleModal";
 // @ts-ignore
 import { CONTRACT, arc72, arc200, mp, abi, swap } from "ulujs";
 import { getAlgorandClients } from "../../wallets";
@@ -43,6 +43,7 @@ import { decodeRoyalties } from "../../utils/hf";
 import { useWallet } from "@txnlab/use-wallet-react";
 import { TOKEN_WVOI } from "@/contants/tokens";
 import { useAccountInfo } from "../Navbar/hooks";
+import { useStakingContract } from "@/hooks/staking";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -267,6 +268,8 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
   loading,
   exchangeRate,
 }) => {
+  console.log({ nft, collection, collectionInfo, loading, exchangeRate });
+
   /* Wallet */
   const { activeAccount, signTransactions } = useWallet();
   /* Modal */
@@ -1292,12 +1295,14 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
     );
   }, [activeAccount, manager, nft.listing]);
 
-  // EFFECT: get voi account info
   const {
     data: accInfo,
     isLoading: isBalanceLoading,
     refetch: refetchBalance,
   } = useAccountInfo();
+
+  const { data: stakingAccountData, isLoading: isLoadingStakingAccountData } =
+    useStakingContract(nft.tokenId);
 
   // handleBuy
   const handleBuyClick = async (pool: any, discount: any) => {
@@ -1310,69 +1315,92 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
       // -------------------------------------
       // SIM HERE
       // -------------------------------------
+      const { algodClient, indexerClient } = getAlgorandClients();
       let customR;
-      console.log({ pool });
-      if (pool) {
-        const { algodClient, indexerClient } = getAlgorandClients();
-        const { contractId: poolId, tokAId, tokBId } = pool;
-
-        const ciTokA = new arc200(Number(tokAId), algodClient, indexerClient);
-        const ciTokB = new arc200(Number(tokBId), algodClient, indexerClient);
-        const arc200_balanceOfTokA = await ciTokA.arc200_balanceOf(
-          activeAccount.address
-        );
-        const arc200_balanceOfTokB = await ciTokB.arc200_balanceOf(
-          activeAccount.address
-        );
-        console.log({ arc200_balanceOfTokA, arc200_balanceOfTokB });
-        // -------------------------------------
-        const tokA: TokenType = smartTokens.find(
-          (el: any) => `${el.contractId}` === tokAId
-        );
-        const tokB: TokenType = smartTokens.find(
-          (el: any) => `${el.contractId}` === tokBId
-        );
-        const inToken = tokA?.tokenId === "0" ? tokA : tokB;
-        const outToken = tokA?.tokenId !== "0" ? tokA : tokB;
-        console.log({ tokA, tokB });
-        // figure out how much to swap
-        const swapR: any = await new swap(
-          poolId,
-          algodClient,
-          indexerClient
-        ).swap(
-          activeAccount.address,
-          poolId,
-          {
-            amount: new BigNumber(currency.price)
-              .times(priceBn.minus(new BigNumber(discount || 0)))
-              .times(1.03)
-              .toFixed(6),
-            contractId: inToken?.contractId,
-            tokenId: "0",
-            symbol: "VOI",
-          },
-          {
-            contractId: outToken?.contractId,
-            symbol: outToken?.symbol,
-            decimals: `${outToken?.decimals}`,
-          }
-        );
-        if (!swapR.success) throw new Error("swap failed");
-        console.log({ swapR });
-        const returnValue = swapR.response.txnGroups[0].txnResults
-          .slice(-1)[0]
-          .txnResult.logs.slice(-1)[0];
-        const selector = returnValue.slice(0, 4).toString("hex");
-        const outA = algosdk.bytesToBigInt(returnValue.slice(4, 36));
-        const outB = algosdk.bytesToBigInt(returnValue.slice(36, 68));
-        customR = await handleBuy(
-          activeAccount.address,
-          nft.listing,
-          swapR.objs
-        );
-      } else {
-        customR = await handleBuy(activeAccount.address, nft.listing);
+      for (const skipEnsure of [true, false]) {
+        if (pool) {
+          // -------------------------------------
+          const {
+            contractId: poolId,
+            tokAId,
+            tokBId,
+            poolBalA,
+            poolBalB,
+          } = pool;
+          // -------------------------------------
+          const tokA: TokenType = smartTokens.find(
+            (el: any) => `${el.contractId}` === tokAId
+          );
+          const tokB: TokenType = smartTokens.find(
+            (el: any) => `${el.contractId}` === tokBId
+          );
+          const inToken = tokA?.tokenId === "0" ? tokA : tokB;
+          const outToken = tokA?.tokenId !== "0" ? tokA : tokB;
+          const ratio =
+            inToken === tokA
+              ? new BigNumber(poolBalA).div(poolBalB).toNumber()
+              : new BigNumber(poolBalB).div(poolBalA).toNumber();
+          // figure out how much to swap
+          const swapR: any = await new swap(
+            poolId,
+            algodClient,
+            indexerClient
+          ).swap(
+            activeAccount.address,
+            poolId,
+            {
+              amount: new BigNumber(ratio)
+                .times(priceBn.minus(new BigNumber(discount || 0)))
+                .times(multiplier)
+                .toFixed(6),
+              contractId: inToken?.contractId,
+              tokenId: "0",
+              symbol: "VOI",
+            },
+            {
+              contractId: outToken?.contractId,
+              symbol: outToken?.symbol,
+              decimals: `${outToken?.decimals}`,
+            }
+          );
+          if (!swapR.success) throw new Error("swap failed");
+          const returnValue = swapR.response.txnGroups[0].txnResults
+            .slice(-1)[0]
+            .txnResult.logs.slice(-1)[0];
+          const selector = returnValue.slice(0, 4).toString("hex");
+          const outA = algosdk.bytesToBigInt(returnValue.slice(4, 36));
+          const outB = algosdk.bytesToBigInt(returnValue.slice(36, 68));
+          customR = await mp.buy(activeAccount.address, nft.listing, currency, {
+            paymentTokenId:
+              nft.listing.currency === 0 ? TOKEN_WVOI : nft.listing.currency,
+            wrappedNetworkTokenId: TOKEN_WVOI,
+            extraTxns: swapR.objs,
+            algodClient,
+            indexerClient,
+            skipEnsure,
+          });
+        } else {
+          // no pool
+          const paymentToken = smartTokens.find(
+            (el: any) => `${el.contractId}` === `${nft.listing.currency}`
+          );
+          console.log({ paymentToken });
+          customR = await mp.buy(
+            activeAccount.address,
+            nft.listing,
+            paymentToken,
+            {
+              paymentTokenId:
+                nft.listing.currency === 0 ? TOKEN_WVOI : nft.listing.currency,
+              wrappedNetworkTokenId: TOKEN_WVOI,
+              extraTxns: [],
+              algodClient,
+              indexerClient,
+              skipEnsure,
+            }
+          );
+        }
+        if (customR.success) break;
       }
       console.log({ customR });
       if (!customR.success) throw new Error("custed failed at end"); // abort
@@ -1534,6 +1562,50 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
 
   console.log({ currency, currencySymbol, currencyDecimals, price, nft });
 
+  const displayImage =
+    (nft.metadata?.image || "").indexOf("ipfs://") >= 0
+      ? `https://ipfs.io/ipfs/${nft.metadata?.image?.replace("ipfs://", "")}`
+      : nft.metadata?.image;
+
+  const displayCoverImage =
+    (collection[0]?.metadata?.image || "").indexOf("ipfs://") >= 0
+      ? `https://ipfs.io/ipfs/${collection[0].metadata.image?.replace(
+          "ipfs://",
+          ""
+        )}`
+      : collection[0]?.metadata?.image;
+
+  const displayName = (nft.metadata?.name || "").match(/[0-9]/)
+    ? nft.metadata?.name
+    : nft.metadata?.name + " #" + nft.tokenId;
+
+  const [owner, setOwner] = useState<string | undefined>(nft.owner);
+  useEffect(() => {
+    if (!nft) return;
+    const ci = new arc72(nft.contractId, algodClient, indexerClient);
+    ci.arc72_ownerOf(nft.tokenId).then((res: any) => {
+      console.log({ res });
+      if (res.success) {
+        setOwner(res.returnValue);
+      }
+    });
+  }, [nft]);
+
+  const discount = useMemo(() => {
+    if (
+      !nft.listing ||
+      !priceAU ||
+      !stakingAccountData ||
+      isLoadingStakingAccountData ||
+      stakingAccountData.length === 0
+    )
+      return 0;
+    const [stakingAccount] = stakingAccountData;
+    const priceN = new BigNumber(priceAU).div(1e6).toNumber();
+    const totalN = Number(stakingAccount?.global_total);
+    return formatter.format(totalN);
+  }, [nft, priceAU, stakingAccountData, isLoadingStakingAccountData]);
+
   return !loading ? (
     <>
       <Grid
@@ -1547,7 +1619,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
         <Grid item xs={12} md={6}>
           {!loading ? (
             <img
-              src={nft.metadata?.image}
+              src={displayImage}
               style={{ width: "100%", borderRadius: "16px" }}
             />
           ) : (
@@ -1578,9 +1650,10 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                       width: "45px",
                       background: `url(${
                         collectionInfo?.project?.coverImageURL ||
-                        collection[0].metadata.image
+                        displayCoverImage
                       })`,
-                      backgroundSize: "contain",
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
                     }}
                   >
                     &nbsp;
@@ -1597,9 +1670,8 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                   </span>
                 </AvatarWithName>
               ))(algosdk.getApplicationAddress(nft?.contractId || 0))}
-
               <NFTName style={{ color: isDarkTheme ? "#FFFFFF" : undefined }}>
-                {nft.metadata?.name || ""}
+                {displayName}
               </NFTName>
               {nft.owner ? (
                 <AvatarWithOwnerName direction="row" style={{ gap: "6px" }}>
@@ -1713,6 +1785,17 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                       alt={`${nft.listing.currency}` === "0" ? "VOI" : "VIA"}
                     />
                   ) : null}
+                  {discount ? (
+                    <div
+                      className="price-value"
+                      style={{
+                        color: "#FF5733",
+                        textDecoration: "line-through",
+                      }}
+                    >
+                      {discount} {currencySymbol}
+                    </div>
+                  ) : null}
                   <div
                     className="price-value"
                     style={{
@@ -1779,14 +1862,15 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                         </Button>
                       </>
                     )
-                  ) : nft.owner === activeAccount?.address ? (
+                  ) : nft.owner === activeAccount?.address ? null : /*
                     <Button
                       variant="text"
                       onClick={() => setOpenListSale(true)}
                     >
                       List for Sale
                     </Button>
-                  ) : null}
+                    */
+                  null}
                   {false && (
                     <OfferButton src={ButtonOffer} alt="Offer Button" />
                   )}
@@ -1846,6 +1930,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
       />
       {nft.listing ? (
         <BuySaleModal
+          token={nft}
           listing={nft.listing}
           seller={nft.listing.seller}
           image={nft?.metadata?.image}

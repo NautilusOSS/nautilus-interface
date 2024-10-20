@@ -678,6 +678,7 @@ export const Listings: React.FC = () => {
     () => !listings || !smartTokens || listingsStatus !== "success",
     [listings, smartTokens, listingsStatus]
   );
+
   const renderSidebar = (
     <SidebarFilterRoot
       className={`${isDarkTheme ? "dark" : "light"} p-3  md:!block `}

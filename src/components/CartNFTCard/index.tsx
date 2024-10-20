@@ -389,6 +389,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
       toast.info(e.message);
     }
   };
+  
   const handleCartIconClick = async (pool: any, discount: any) => {
     if (!activeAccount || !listing) {
       toast.info("Please connect wallet!");
@@ -402,7 +403,6 @@ const CartNftCard: React.FC<NFTCardProps> = ({
       const { algodClient, indexerClient } = getAlgorandClients();
       let customR;
       for (const skipEnsure of [true, false]) {
-        console.log({ pool });
         if (pool) {
           const {
             contractId: poolId,
@@ -451,6 +451,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
           const returnValue = swapR.response.txnGroups[0].txnResults
             .slice(-1)[0]
             .txnResult.logs.slice(-1)[0];
+
           const selector = returnValue.slice(0, 4).toString("hex");
           const outA = algosdk.bytesToBigInt(returnValue.slice(4, 36));
           const outB = algosdk.bytesToBigInt(returnValue.slice(36, 68));
@@ -469,7 +470,6 @@ const CartNftCard: React.FC<NFTCardProps> = ({
           const paymentToken = smartTokens.find(
             (el: any) => `${el.contractId}` === `${listing.currency}`
           );
-          console.log({ paymentToken });
           customR = await mp.buy(activeAccount.address, listing, paymentToken, {
             paymentTokenId:
               listing.currency === 0 ? TOKEN_WVOI : listing.currency,
@@ -480,10 +480,9 @@ const CartNftCard: React.FC<NFTCardProps> = ({
             skipEnsure,
           });
         }
-        console.log({ customR });
-
         if (customR.success) break;
       }
+      console.log({ customR });
       if (!customR.success) throw new Error("custom failed at end"); // abort
       // -------------------------------------
       // SIGM HERE
@@ -531,6 +530,11 @@ const CartNftCard: React.FC<NFTCardProps> = ({
   const url = !collectionsMissingImage.includes(Number(token.contractId))
     ? `${HIGHFORGE_CDN}/i/${encodeURIComponent(token.metadataURI)}?w=400`
     : metadata.image;
+
+  const displayName = (metadata.name || "").match(/[0-9]/)
+    ? metadata.name
+    : `${metadata.name} #${token.tokenId}`;
+
   return display ? (
     <Box
       style={{
@@ -575,7 +579,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
             }}
           >
             <Stack gap={1}>
-              <CollectionName>{metadata.name}</CollectionName>
+              <CollectionName>{displayName}</CollectionName>
               <CollectionVolume>
                 {price !== "0" ? (
                   <Stack direction="row" gap={1} sx={{ alignItems: "center" }}>
@@ -596,7 +600,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
             </Stack>
             {price !== "0" ? (
               <img
-                style={{ zIndex: 1000 }}
+                style={{ zIndex: 2 }}
                 height="40"
                 width="40"
                 src="/static/icon-cart.png"
@@ -612,6 +616,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
       </Box>
       {activeAccount && openBuyModal && listing ? (
         <BuySaleModal
+          token={token}
           listing={listing}
           seller={listing.seller}
           open={openBuyModal}

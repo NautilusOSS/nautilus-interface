@@ -50,7 +50,6 @@ export function SideBar() {
         </SheetHeader>
         <NavLinks className="!flex !flex-col !items-start !justify-start !gap-2 !my-8">
           {navlinks.map((item, key) => {
-
             return linkLabels[location.pathname] === item.label ? (
               <SheetClose asChild>
                 <ActiveNavLink

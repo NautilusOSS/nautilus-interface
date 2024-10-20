@@ -11,6 +11,9 @@ import { RootState } from "../../store/store";
 import { getSmartTokens } from "../../store/smartTokenSlice";
 import { UnknownAction } from "@reduxjs/toolkit";
 import { BigNumber } from "bignumber.js";
+import { stakingRewards } from "@/static/staking/staking";
+import { useStakingContract } from "@/hooks/staking";
+import StakingInformation from "../StakingInformation/StakingInformation";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -85,6 +88,9 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
     return tokenSales;
   }, [sales, nft]);
 
+  const { data: stakingAccountData, isLoading: loadingStakingAccountData } =
+    useStakingContract(nft.tokenId);
+
   return !loading ? (
     <Box sx={{ width: "100%" }}>
       <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
@@ -120,6 +126,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
             label="History"
             {...a11yProps(0)}
           />
+          <Tab label="Staking Information" {...a11yProps(1)} />
           {/*<Tab label="Information" {...a11yProps(1)} />
           <Tab label="Attributes" {...a11yProps(2)} />*/}
         </Tabs>
@@ -171,6 +178,9 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
             No sales found
           </Typography>
         )}
+      </CustomTabPanel>
+      <CustomTabPanel value={value} index={1}>
+        <StakingInformation contractId={nft.tokenId} />
       </CustomTabPanel>
       {/*<CustomTabPanel value={value} index={1}>
         Information

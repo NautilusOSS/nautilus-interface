@@ -76,7 +76,7 @@ const ListSaleModal: React.FC<ListSaleModalProps> = ({
   const [tokens, setTokens] = useState<any[]>([]);
   useEffect(() => {
     axios
-      .get(`https://arc72-idx.nautilus.sh/nft-indexer/v1/arc200/tokens`)
+      .get(`https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/tokens`)
       .then(({ data }) => setTokens(data.tokens));
   }, []);
 
@@ -96,7 +96,7 @@ const ListSaleModal: React.FC<ListSaleModalProps> = ({
   useEffect(() => {
     axios
       .get(
-        `https://arc72-idx.nautilus.sh/nft-indexer/v1/mp/sales?collectionId=${nft.contractId}&tokenId=${nft.tokenId}`
+        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales?collectionId=${nft.contractId}&tokenId=${nft.tokenId}`
       )
       .then(({ data }) => {
         const highestSale = data.sales

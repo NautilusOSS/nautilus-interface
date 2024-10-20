@@ -33,7 +33,11 @@ import TransferModal from "../../components/modals/TransferModal";
 import ListSaleModal from "../../components/modals/ListSaleModal";
 import ListAuctionModal from "../../components/modals/ListAuctionModal";
 import algosdk from "algosdk";
-import { ListingBoxCost, CTCINFO_MP206 } from "../../contants/mp";
+import {
+  ListingBoxCost,
+  CTCINFO_MP206,
+  CTCINFO_MP206_2,
+} from "../../contants/mp";
 import { decodeRoyalties } from "../../utils/hf";
 import NFTListingTable from "../../components/NFTListingTable";
 import { ListingI, MListedNFTTokenI, Token, TokenType } from "../../types";
@@ -60,6 +64,7 @@ import {
 } from "@/components/Navbar/hooks/collections";
 import { GridLoader } from "react-spinners";
 import { useWallet } from "@txnlab/use-wallet-react";
+import InfoIcon from "@mui/icons-material/Info";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -376,8 +381,19 @@ export const Account: React.FC = () => {
             }
           : token;
 
+      const nautilusVoiStaking = 421076;
+
+      console.log({ selectedNfts });
+
       for (let i = 0; i < selectedNfts.length; i++) {
         const nft = selectedNfts[i];
+        const metadata = JSON.parse(nft.metadata);
+        const royalties = decodeRoyalties(metadata.royalties);
+        console.log({ nft, metadata, royalties });
+        const whichMP206 = CTCINFO_MP206;
+        // [nautilusVoiStaking].includes(nft.contractId)
+        //   ? CTCINFO_MP206_2
+        //   : CTCINFO_MP206;
         const customR = await mp.list(
           activeAccount.address,
           nft,
@@ -389,8 +405,8 @@ export const Account: React.FC = () => {
             paymentTokenId,
             wrappedNetworkTokenId: TOKEN_WVOI,
             extraTxns: [],
-            enforceRoyalties: false,
-            mpContractId: CTCINFO_MP206,
+            enforceRoyalties: true,
+            mpContractId: whichMP206,
             listingBoxPaymentOverride: ListingBoxCost + i,
             skipEnsure: true,
           }
@@ -407,6 +423,8 @@ export const Account: React.FC = () => {
       const chunkSize = 3;
       for (let i = 0; i < buildN.length; i += chunkSize) {
         const extraTxns = buildN.slice(i, i + chunkSize).flat();
+        console.log({ extraTxns });
+
         const ci = new CONTRACT(
           CTCINFO_MP206,
           algodClient,
@@ -457,12 +475,9 @@ export const Account: React.FC = () => {
       const paymentTokenId =
         token.contractId === 0 ? Number(token.tokenId) : token.contractId;
 
-      console.log(nft, nft.listing);
-
       const buildN: any[][] = [];
 
-      for (const skipEnsure of [true, false]) {
-        console.log({ skipEnsure });
+      for (const skipEnsure of [false, true]) {
         const customR = await mp.list(
           activeAccount.address,
           {
@@ -478,7 +493,7 @@ export const Account: React.FC = () => {
             paymentTokenId,
             wrappedNetworkTokenId: TOKEN_WVOI,
             extraTxns: [],
-            enforceRoyalties: false,
+            enforceRoyalties: true,
             mpContractId: CTCINFO_MP206,
             listingBoxPaymentOverride: ListingBoxCost,
             listingsToDelete: nft.listing ? [nft.listing] : [],
@@ -726,7 +741,7 @@ export const Account: React.FC = () => {
               );
               buildN.push({
                 ...txnO.obj,
-                payment: 28500 + i,
+                payment: 28501 + i,
                 paymentNote: new TextEncoder().encode(`
                 payment to application to satisfy min balance for creating future boxes
                 `),
@@ -736,7 +751,6 @@ export const Account: React.FC = () => {
           }
         }
         for await (const nft of chunk) {
-          console.log({ nft });
           const ci = new arc72(nft.contractId, algodClient, indexerClient, {
             acc: { addr: activeAccount?.address || "", sk: new Uint8Array(0) },
           });
@@ -801,7 +815,6 @@ export const Account: React.FC = () => {
           abi.custom,
           { addr: activeAccount?.address || "", sk: new Uint8Array(0) }
         );
-        console.log({ buildN });
         ciCustom.setExtraTxns(buildN);
         // ------------------------------------------
         // Add payment if necessary
@@ -835,28 +848,30 @@ export const Account: React.FC = () => {
         );
         //.then(sendTransactions);
 
+        await algodClient.sendRawTransaction(res as Uint8Array[]).do();
+
         // ---------------------------------------
         // QUEST HERE
         // list nft for sale
         // ---------------------------------------
-        do {
-          const address = activeAccount.address;
-          const actions: string[] = [QUEST_ACTION.NFT_TRANSFER];
-          const {
-            data: { results },
-          } = await getActions(address);
-          for (const action of actions) {
-            const address = activeAccount.address;
-            const key = `${action}:${address}`;
-            const completedAction = results.find((el: any) => el.key === key);
-            if (!completedAction) {
-              await submitAction(action, address, {
-                contractId,
-              });
-            }
-            // TODO notify quest completion here
-          }
-        } while (0);
+        // do {
+        //   const address = activeAccount.address;
+        //   const actions: string[] = [QUEST_ACTION.NFT_TRANSFER];
+        //   const {
+        //     data: { results },
+        //   } = await getActions(address);
+        //   for (const action of actions) {
+        //     const address = activeAccount.address;
+        //     const key = `${action}:${address}`;
+        //     const completedAction = results.find((el: any) => el.key === key);
+        //     if (!completedAction) {
+        //       await submitAction(action, address, {
+        //         contractId,
+        //       });
+        //     }
+        //     // TODO notify quest completion here
+        //   }
+        // } while (0);
         // ---------------------------------------
       }
       toast.success(`NFT Transfer successful!`);
@@ -879,6 +894,50 @@ export const Account: React.FC = () => {
       setIsTransferring(false);
       setOpenTransferBatch(false);
       setSelected([]);
+    }
+  };
+
+  const handleBurnStaking = async () => {
+    if (!activeAccount) return;
+    const ci = new CONTRACT(
+      Number(nfts[selected[0]].contractId),
+      algodClient,
+      indexerClient,
+      {
+        name: "OSARC72Token",
+        methods: [
+          {
+            name: "burn",
+            args: [
+              {
+                type: "uint64",
+                name: "tokenId",
+              },
+            ],
+            readonly: false,
+            returns: {
+              type: "void",
+            },
+            desc: "Burn an NFT",
+          },
+        ],
+        events: [],
+      },
+      {
+        addr: activeAccount.address,
+        sk: new Uint8Array(0),
+      }
+    );
+    ci.setFee(3000);
+    const burnR = await ci.burn(BigInt(nfts[selected[0]].tokenId));
+    if (burnR.success) {
+      signTransactions(
+        burnR.txns.map(
+          (txn: string) => new Uint8Array(Buffer.from(txn, "base64"))
+        )
+      ).then((txns) => {
+        algodClient.sendRawTransaction(txns as Uint8Array[]).do();
+      });
     }
   };
 
@@ -1310,7 +1369,7 @@ export const Account: React.FC = () => {
                     >
                       List
                     </Button>
-                    {false && selected.length === 1 ? (
+                    {selected.length === 1 ? (
                       <Button
                         onClick={() => {
                           setOpenTransferBatch(true);
@@ -1319,8 +1378,25 @@ export const Account: React.FC = () => {
                         Transfer
                       </Button>
                     ) : null}
+                    {selected.length === 1 &&
+                    nfts[selected[0]].contractId === 421076 ? (
+                      <Button onClick={handleBurnStaking}>
+                        Burn Staking NFT{` `}
+                        <Tooltip
+                          title={
+                            <div>
+                              Burn staking NFT to regain ownership of the
+                              staking contract.
+                            </div>
+                          }
+                        >
+                          <InfoIcon />
+                        </Tooltip>
+                      </Button>
+                    ) : null}
                   </>
                 ) : null}
+
                 <Button
                   onClick={() => {
                     setSelected([]);

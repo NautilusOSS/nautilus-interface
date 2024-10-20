@@ -214,13 +214,21 @@ export const getRankings = (
       ? `${HIGHFORGE_CDN}/i/${stripTrailingZeroBytes(
           encodeURIComponent(token.metadataURI)
         )}?w=240`
-      : stripTrailingZeroBytes(token.metadata.image);
+      : stripTrailingZeroBytes(token.metadata?.image);
+
+    const image = stripTrailingZeroBytes(token?.metadata?.image || "");
+
+    const name = `${token?.metadata?.name?.replace(/[0-9 #]*$/, "")}`;
+
     return {
       collectionId: kv[0],
-      image: stripTrailingZeroBytes(token.metadata.image),
+      image:
+        kv[0] === 421076
+          ? "https://prod.cdn.highforge.io/i/ipfs%3A%2F%2FQmVbGFgCgeW9mMBHHRmTY5TPA3kVLxFHpb2ztP3GArzzEQ%23arc3?w=400"
+          : image,
       floorPrice,
       volume,
-      name: `${token?.metadata?.name?.replace(/[0-9 #]*$/, "")}`,
+      name: kv[0] === 421076 ? "Nautilus Voi Staking" : name,
       score: `${Math.round(volume).toLocaleString()}`,
       rank: volume,
       scoreUnit: "VOI",
@@ -238,7 +246,7 @@ export const getRankings = (
       return b.rank - a.rank;
     }
   });
-  return rankings;
+  return rankings; //.filter((r: RankingI) => r.name != "undefined");
 };
 
 export const compactAddress = (address: string) =>

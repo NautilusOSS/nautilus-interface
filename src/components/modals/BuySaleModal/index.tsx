@@ -14,17 +14,24 @@ import { getAlgorandClients } from "../../../wallets";
 import { useDispatch, useSelector } from "react-redux";
 import { UnknownAction } from "@reduxjs/toolkit";
 import { getSmartTokens } from "../../../store/smartTokenSlice";
-import { NFTIndexerListingI, TokenType } from "../../../types";
+import {
+  ListingTokenI,
+  NFTIndexerListingI,
+  NFTIndexerTokenI,
+  TokenType,
+} from "../../../types";
 import { BigNumber } from "bignumber.js";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useWallet } from "@txnlab/use-wallet-react";
+import StakingInformation from "@/components/StakingInformation/StakingInformation";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
 export const multiplier = 1.02;
 
 interface BuySaleModalProps {
+  token: ListingTokenI | NFTIndexerTokenI;
   listing: NFTIndexerListingI;
   open: boolean;
   loading: boolean;
@@ -43,6 +50,7 @@ interface BuySaleModalProps {
 }
 
 const BuySaleModal: React.FC<BuySaleModalProps> = ({
+  token,
   listing,
   seller,
   open,
@@ -68,7 +76,7 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
   useEffect(() => {
     axios
       .get(
-        `https://arc72-idx.nautilus.sh/nft-indexer/v1/mp/sales?collectionId=${listing.collectionId}&tokenId=${listing.tokenId}`
+        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales?collectionId=${listing.collectionId}&tokenId=${listing.tokenId}`
       )
       .then(({ data }) => {
         console.log({ data });
@@ -103,7 +111,7 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
     if (currency === "VOI") return;
     axios
       .get(
-        `https://arc72-idx.nautilus.sh/nft-indexer/v1/dex/pools?tokenId=${paymentTokenId}`
+        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/dex/pools?tokenId=${paymentTokenId}`
       )
       .then(({ data }) => {
         const pool = data.pools
@@ -270,6 +278,11 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
     }
   };
 
+  const displayImage =
+    image.indexOf("ipfs://") === -1
+      ? image
+      : `https://ipfs.io/ipfs/${image.slice(7)}`;
+
   return (
     <Modal
       open={open}
@@ -297,7 +310,7 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <img
-                  src={image}
+                  src={displayImage}
                   alt="NFT"
                   style={{ width: "100%", borderRadius: "25px" }}
                 />
@@ -379,6 +392,11 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
                   </Box>
                 ) : null}
               </Grid>
+              {[421076].includes(Number(token.contractId)) ? (
+                <Grid item xs={12}>
+                  <StakingInformation contractId={Number(token.tokenId)} />
+                </Grid>
+              ) : null}
               <Grid item xs={12}>
                 <Stack sx={{ mt: 3 }} gap={2}>
                   {pool?.contractId ? (

@@ -27,6 +27,11 @@ import { formatter } from "../../../utils/number";
 import CartNftCard from "../../CartNFTCard";
 import { TOKEN_WVOI } from "../../../contants/tokens";
 import { useSmartTokens } from "@/components/Navbar/hooks/collections";
+import StakingInformation from "@/components/StakingInformation/StakingInformation";
+import { decode } from "punycode";
+import { decodeRoyalties } from "@/utils/hf";
+import CostBreakdown from "@/components/CostBreakdown";
+import { mp } from "ulujs";
 
 // function to split array into chunks
 
@@ -108,6 +113,21 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
     setShowDefaultButton(true);
     handleClose();
   };
+
+  const royaltyInfo = useMemo(() => {
+    if (!nfts.length) return null;
+    const metadata = JSON.parse(nfts[0]?.metadata || "{}");
+    const royalties = metadata.royalties || {};
+    return decodeRoyalties(royalties);
+  }, [nfts]);
+
+  const [mpFee, royaltyFee] = useMemo(() => {
+    const mpFee = 500 / 10000;
+    const royaltyFee = (royaltyInfo?.royaltyPoints || 0) / 10000;
+    return [mpFee, royaltyFee];
+  }, [price, royaltyInfo]);
+
+  console.log({ mpFee, royaltyFee, royaltyInfo });
 
   return (
     <Modal
@@ -199,27 +219,42 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
                   }}
                 />
               </Box>*/}
-              <Box>
-                <Typography variant="caption">
-                  {price ? (
-                    <>
-                      <span>
-                        Listing {nfts.length} assets for sale at price {price}{" "}
-                        {token?.contractId === TOKEN_WVOI
-                          ? "VOI"
-                          : token?.symbol}
-                        .
-                      </span>{" "}
-                      {royalties ? (
+              {nfts.length === 1 && [421076].includes(nfts[0].contractId) ? (
+                <Box>
+                  <StakingInformation contractId={nfts[0].tokenId} />
+                </Box>
+              ) : null}
+              {nfts.length > 1 ? (
+                <Box>
+                  <Typography variant="caption">
+                    {price ? (
+                      <>
                         <span>
-                          Royalties will be applied. Proceeds of sales may vary.
-                        </span>
-                      ) : null}{" "}
-                      <span>Reject transaction in wallet to cancel.</span>
-                    </>
-                  ) : null}
-                </Typography>
-              </Box>
+                          Listing {nfts.length} assets for sale at price {price}{" "}
+                          {token?.contractId === TOKEN_WVOI
+                            ? "VOI"
+                            : token?.symbol}
+                          .
+                        </span>{" "}
+                        {royalties ? (
+                          <span>
+                            Royalties will be applied. Proceeds of sales may
+                            vary.
+                          </span>
+                        ) : null}{" "}
+                        <span>Reject transaction in wallet to cancel.</span>
+                      </>
+                    ) : null}
+                  </Typography>
+                </Box>
+              ) : (
+                <CostBreakdown
+                  price={Number(price)}
+                  marketplaceFeeRate={mpFee}
+                  royaltyFeeRate={royaltyFee}
+                  symbol="VOI"
+                />
+              )}
               {showDefaultButton ? (
                 <Button
                   disabled={loading}

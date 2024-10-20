@@ -442,7 +442,7 @@ export const Token: React.FC = () => {
   useEffect(() => {
     if (
       !collection ||
-      !collectionInfo ||
+      //!collectionInfo ||
       !tid ||
       !collectionListings ||
       !listings
@@ -545,7 +545,14 @@ export const Token: React.FC = () => {
       console.log(e);
       toast.error(e.message);
     });
-  }, [id, tid, collection, collectionInfo, collectionListings, activeAccount]);
+  }, [
+    id,
+    tid,
+    collection,
+    //collectionInfo,
+    collectionListings,
+    activeAccount,
+  ]);
   console.log({ nft });
 
   /* NFT Navigator Listings */
@@ -610,10 +617,16 @@ export const Token: React.FC = () => {
       !prices ||
       !nft ||
       !listings ||
-      !collectionInfo ||
+      //!collectionInfo ||
       !tokens ||
       !collection,
-    [nft, listings, collectionInfo, tokens, collection]
+    [
+      nft,
+      listings,
+      //collectionInfo,
+      tokens,
+      collection,
+    ]
   );
 
   return (

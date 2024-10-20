@@ -67,7 +67,7 @@ export const useCollectionInfo = () => {
   const data = useQuery({
     queryFn: () => {
       return axios
-        .get(`https://test-voi.api.highforge.io/projects`)
+        .get(`https://prod-voi.api.highforge.io/projects`)
         .then((res: any) => res.data.results);
     },
     queryKey: ["collection-collection-info"],
@@ -87,7 +87,7 @@ export const useListings = (options?: { seller?: string[] }) => {
         })
         .then((res) => res?.data?.listings);
     },
-    queryKey: ["collection-listings",JSON.stringify(options??{})],
+    queryKey: ["collection-listings", JSON.stringify(options ?? {})],
     staleTime: 60 * 1000 * 2,
   });
   return data;

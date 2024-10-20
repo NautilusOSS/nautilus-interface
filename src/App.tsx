@@ -56,10 +56,10 @@ const queryClient = new QueryClient();
 const App: React.FC = () => {
   const { ALGO_SERVER, ALGO_INDEXER_SERVER } = getCurrentNodeEnv();
 
-  // let walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
-  // if (!walletConnectProjectId) {
-  //   walletConnectProjectId = "e2fef7cf17012eaba443b7cf615f7815";
-  // }
+  let walletConnectProjectId; // = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
+  if (!walletConnectProjectId) {
+    walletConnectProjectId = "cd7fe0125d88d239da79fa286e6de2a8";
+  }
 
   const walletManager = new WalletManager({
     wallets: [
@@ -68,19 +68,19 @@ const App: React.FC = () => {
         id: WalletId.LUTE,
         options: { siteName: "VoiX" },
       },
-      // {
-      //   id: WalletId.WALLETCONNECT,
-      //   options: {
-      //     projectId: walletConnectProjectId,
-      //     metadata: {
-      //       name: "VoiX",
-      //       url: "https://staking.voi.network",
-      //       description: "Voi Staking Platform",
-      //       icons: ["https://staking.voi.network/favicon.ico"],
-      //     },
-      //     themeMode: "light",
-      //   },
-      // },
+      {
+        id: WalletId.WALLETCONNECT,
+        options: {
+          projectId: walletConnectProjectId,
+          metadata: {
+            name: "Nautilus",
+            url: "https://nautilus.sh",
+            description: "Nautilus NFT Marketplace",
+            icons: ["https://nautilus.sh/favicon.ico"],
+          },
+          themeMode: "light",
+        },
+      },
     ],
     algod: {
       baseServer: ALGO_SERVER,
