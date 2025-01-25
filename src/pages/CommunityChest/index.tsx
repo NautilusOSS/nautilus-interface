@@ -36,6 +36,8 @@ import InfoIcon from "@mui/icons-material/Info";
 import RewardDistributionModal from "./components/RewardDistributionModal";
 import LEDCountdown from "./components/LEDCountdown";
 import { useSearchParams } from "react-router-dom";
+import SwapModal from "./components/SwapModal";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
 const findCommonRatio = (a: number, totalSum: number, n: number) => {
   // Using numerical method (binary search) to find r
@@ -908,6 +910,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
   const [nftAssets, setNftAssets] = useState<
     (NFTAsset & { parsedMetadata: NFTMetadata })[]
   >([]);
+  const [swapModalOpen, setSwapModalOpen] = useState(false);
 
   interface TokenStats {
     contractId: number;
@@ -1272,6 +1275,67 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
 
     fetchNFTs();
   }, []);
+
+  // Add handleSwap function
+  const handleSwap = async (fromToken: number, toToken: number, amount: string) => {
+    if (!connected) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { algodClient } = getAlgorandClients();
+      
+      // Create contract instances
+      const fromContract = new CONTRACT(fromToken, algodClient, null, abi.nt200, {
+        addr: address,
+        sk: Uint8Array.from([]),
+      });
+      
+      const toContract = new CONTRACT(toToken, algodClient, null, abi.nt200, {
+        addr: address,
+        sk: Uint8Array.from([]),
+      });
+
+      const amountBI = BigInt(
+        new BigNumber(amount).multipliedBy(10 ** 6).toFixed(0)
+      );
+
+      // First withdraw from the source contract
+      const withdrawR = await fromContract.withdraw(amountBI);
+      if (!withdrawR.success) {
+        toast.error("Failed to withdraw from source contract");
+        return;
+      }
+
+      // Then deposit to the destination contract
+      const depositR = await toContract.deposit(amountBI);
+      if (!depositR.success) {
+        toast.error("Failed to deposit to destination contract");
+        return;
+      }
+
+      // Combine transactions
+      const combinedTxns = [...withdrawR.txns, ...depositR.txns];
+      
+      // Sign and send transactions
+      const stxns = await signTransactions(
+        combinedTxns.map((txn) => new Uint8Array(Buffer.from(txn, "base64")))
+      );
+      
+      await algodClient.sendRawTransaction(stxns as Uint8Array[]).do();
+      await algosdk.waitForConfirmation(algodClient, txId, 4);
+
+      toast.success("Swap successful!");
+      fetchData();
+    } catch (error) {
+      console.error("Error swapping:", error);
+      toast.error("Failed to swap tokens");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -2181,7 +2245,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
               </Button>
             </Box>
 
-            <Box>
+            <Box sx={{ mb: 3 }}>
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Withdraw
               </Typography>
@@ -2192,6 +2256,21 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                 fullWidth
               >
                 Withdraw VOI
+              </Button>
+            </Box>
+
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Swap
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => setSwapModalOpen(true)}
+                disabled={!connected}
+                fullWidth
+                startIcon={<SwapHorizIcon />}
+              >
+                Swap Tokens
               </Button>
             </Box>
           </ActionCard>
@@ -2205,6 +2284,16 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           process. Past performance does not guarantee future results. Always
           invest responsibly and never commit more than you can afford to lose.
         </Disclaimer>
+
+        {/* Add SwapModal */}
+        <SwapModal
+          open={swapModalOpen}
+          onClose={() => setSwapModalOpen(false)}
+          isDarkTheme={isDarkTheme}
+          fromBalance={userBalance}
+          onSwap={handleSwap}
+          isLoading={isLoading}
+        />
 
         <DepositModal
           open={depositModalOpen}
