@@ -49,7 +49,9 @@ const Section = styled(Box)<{ $isDarkTheme: boolean }>`
 const PercentageBox = styled(Box)<{ $isDarkTheme: boolean }>`
   display: inline-block;
   background-color: ${(props) =>
-    props.$isDarkTheme ? "rgba(144, 202, 249, 0.2)" : "rgba(25, 118, 210, 0.1)"};
+    props.$isDarkTheme
+      ? "rgba(144, 202, 249, 0.2)"
+      : "rgba(25, 118, 210, 0.1)"};
   padding: 2px 8px;
   border-radius: 4px;
   margin-left: 8px;
@@ -61,13 +63,36 @@ interface RewardDistributionModalProps {
   open: boolean;
   onClose: () => void;
   isDarkTheme: boolean;
+  selectedContract: number;
 }
 
 const RewardDistributionModal: React.FC<RewardDistributionModalProps> = ({
   open,
   onClose,
   isDarkTheme,
+  selectedContract,
 }) => {
+  const distributions = {
+    664258: {
+      weeklyDrawWinner: 45,
+      holders: 30,
+      team: 15,
+      treasury: 0,
+      nodeOperator: 10,
+    },
+    913147: {
+      weeklyDrawWinner: 50,
+      holders: 35,
+      team: 0,
+      treasury: 25,
+      nodeOperator: 5,
+    },
+  };
+
+  const currentDistribution =
+    distributions[selectedContract as keyof typeof distributions] ||
+    distributions[664258];
+
   return (
     <StyledDialog
       open={open}
@@ -87,79 +112,120 @@ const RewardDistributionModal: React.FC<RewardDistributionModalProps> = ({
       <DialogContent>
         <Section $isDarkTheme={isDarkTheme}>
           <Typography paragraph>
-            Block rewards from the Community Chest participation node are distributed as follows:
+            Block rewards from the Community Chest participation node are
+            distributed as follows:
           </Typography>
 
           <List>
-            <ListItem>
-              <ListItemIcon>
-                <EmojiEventsIcon
-                  sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
+            {currentDistribution.weeklyDrawWinner > 0 && (
+              <ListItem>
+                <ListItemIcon>
+                  <EmojiEventsIcon
+                    sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      Weekly Draw Winner
+                      <PercentageBox $isDarkTheme={isDarkTheme}>
+                        {currentDistribution.weeklyDrawWinner}%
+                      </PercentageBox>
+                    </Box>
+                  }
+                  secondary="Allocated to a single winner, selected after each epoch"
                 />
-              </ListItemIcon>
-              <ListItemText
-                primary={
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    Weekly Draw Winner
-                    <PercentageBox $isDarkTheme={isDarkTheme}>45%</PercentageBox>
-                  </Box>
-                }
-                secondary="Allocated to a single lottery winner, selected after each epoch"
-              />
-            </ListItem>
+              </ListItem>
+            )}
 
-            <ListItem>
-              <ListItemIcon>
-                <GroupIcon sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }} />
-              </ListItemIcon>
-              <ListItemText
-                primary={
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    CCV Holders
-                    <PercentageBox $isDarkTheme={isDarkTheme}>30%</PercentageBox>
-                  </Box>
-                }
-                secondary="Distributed to all CCV holders proportional to their holdings"
-              />
-            </ListItem>
-
-            <ListItem>
-              <ListItemIcon>
-                <AccountBalanceIcon
-                  sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
+            {currentDistribution.holders > 0 && (
+              <ListItem>
+                <ListItemIcon>
+                  <GroupIcon
+                    sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      Holders
+                      <PercentageBox $isDarkTheme={isDarkTheme}>
+                        {currentDistribution.holders}%
+                      </PercentageBox>
+                    </Box>
+                  }
+                  secondary="Distributed to all holders proportional to their holdings"
                 />
-              </ListItemIcon>
-              <ListItemText
-                primary={
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    Team
-                    <PercentageBox $isDarkTheme={isDarkTheme}>15%</PercentageBox>
-                  </Box>
-                }
-                secondary="Reserved for development and maintenance"
-              />
-            </ListItem>
+              </ListItem>
+            )}
 
-            <ListItem>
-              <ListItemIcon>
-                <EngineeringIcon
-                  sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
+            {currentDistribution.team > 0 && (
+              <ListItem>
+                <ListItemIcon>
+                  <AccountBalanceIcon
+                    sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      Team
+                      <PercentageBox $isDarkTheme={isDarkTheme}>
+                        {currentDistribution.team}%
+                      </PercentageBox>
+                    </Box>
+                  }
+                  secondary="Reserved for development and maintenance"
                 />
-              </ListItemIcon>
-              <ListItemText
-                primary={
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    Node Operator
-                    <PercentageBox $isDarkTheme={isDarkTheme}>10%</PercentageBox>
-                  </Box>
-                }
-                secondary="For maintaining and operating the participation node"
-              />
-            </ListItem>
+              </ListItem>
+            )}
+
+            {currentDistribution.treasury > 0 && (
+              <ListItem>
+                <ListItemIcon>
+                  <AccountBalanceIcon
+                    sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      Treasury
+                      <PercentageBox $isDarkTheme={isDarkTheme}>
+                        {currentDistribution.treasury}%
+                      </PercentageBox>
+                    </Box>
+                  }
+                  secondary="Reserved for protocol sustainability and future development"
+                />
+              </ListItem>
+            )}
+
+            {currentDistribution.nodeOperator > 0 && (
+              <ListItem>
+                <ListItemIcon>
+                  <EngineeringIcon
+                    sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      Node Operator
+                      <PercentageBox $isDarkTheme={isDarkTheme}>
+                        {currentDistribution.nodeOperator}%
+                      </PercentageBox>
+                    </Box>
+                  }
+                  secondary="For maintaining and operating the participation node"
+                />
+              </ListItem>
+            )}
           </List>
 
           <Typography variant="body2" sx={{ mt: 2, fontStyle: "italic" }}>
-            Note: Rewards are calculated at the end of each epoch and distributed in the following epoch.
+            Note: Rewards are calculated at the end of each epoch and
+            distributed in the following epoch.
           </Typography>
         </Section>
       </DialogContent>
@@ -177,4 +243,4 @@ const RewardDistributionModal: React.FC<RewardDistributionModalProps> = ({
   );
 };
 
-export default RewardDistributionModal; 
+export default RewardDistributionModal;

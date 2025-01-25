@@ -10,6 +10,10 @@ import {
   Link,
   Tooltip,
   MenuItem,
+  ImageList,
+  ImageListItem,
+  ImageListItemBar,
+  Modal,
 } from "@mui/material";
 import styled, { keyframes } from "styled-components";
 import { toast } from "react-toastify";
@@ -31,7 +35,7 @@ import BlockProductionGraph from "./components/BlockProductionGraph";
 import InfoIcon from "@mui/icons-material/Info";
 import RewardDistributionModal from "./components/RewardDistributionModal";
 import LEDCountdown from "./components/LEDCountdown";
-import { useEnvoiResolver } from "@/hooks/useEnvoiResolver";
+import { useSearchParams } from "react-router-dom";
 
 const findCommonRatio = (a: number, totalSum: number, n: number) => {
   // Using numerical method (binary search) to find r
@@ -268,11 +272,13 @@ const HeaderContainer = styled.div`
   flex-direction: column;
   align-items: center;
   margin-bottom: 48px;
+  margin-top: 48px; // Added margin-top for spacing
 
   @media (min-width: 768px) {
     flex-direction: row;
     justify-content: center;
     gap: 32px;
+    margin-top: 64px; // Slightly larger margin on desktop
   }
 `;
 
@@ -384,6 +390,7 @@ interface Notification {
   date: string;
   message: string;
   type: "info" | "warning" | "success";
+  contractId: number;
 }
 
 // Update the NotificationSection styled component
@@ -440,38 +447,52 @@ const NotificationItem = styled(Box)<{ $isDarkTheme: boolean; $type: string }>`
   }
 `;
 
-// Add this constant with the notifications data
+// Update notifications with contract IDs
 const notifications: Notification[] = [
   {
     date: "2024-11-14",
     message:
       "Update: Weekly rewards now available to CCV holder according to reward distribution",
     type: "info",
+    contractId: 664258,
   },
   {
     date: "2024-11-13",
     message:
       "Community Chest v1.0 launched no-loss lottery with Community Chest Voi (CCV)",
     type: "success",
+    contractId: 664258,
   },
-
-  /*
   {
     date: "2024-03-20",
-    message: "Community Chest v2.0 launched with improved reward distribution system",
-    type: "success"
+    message: "Wrapped VOI is now available for DeFi integrations",
+    type: "success",
+    contractId: 390001,
   },
   {
     date: "2024-03-15",
-    message: "Upcoming maintenance scheduled for March 25th. Service may be temporarily unavailable.",
-    type: "warning"
+    message: "Fountain VOI launched with enhanced reward distribution",
+    type: "success",
+    contractId: 770561,
   },
   {
     date: "2024-03-10",
-    message: "New feature: Weekly rewards now automatically distributed to participants",
-    type: "info"
-  }
-  */
+    message: "En VOI now supports name registrations and renewals",
+    type: "info",
+    contractId: 828295,
+  },
+  {
+    date: "2024-03-05",
+    message: "Womp VOI integration with WompCrew ecosystem complete",
+    type: "success",
+    contractId: 888305,
+  },
+  {
+    date: "2025-01-24",
+    message: "NFT VOI now live for digital collectibles",
+    type: "success",
+    contractId: 913147,
+  },
 ];
 
 // Add these near the top with other interfaces
@@ -507,9 +528,40 @@ const CONTRACT_OPTIONS: ContractOption[] = [
     name: "WV",
     description: "Womp VOI",
   },
+  {
+    id: 913147,
+    name: "NFV",
+    description: "NFT VOI",
+  },
 ];
 
-// Add this styled component with other styled components
+// Update the RewardBadge styled component
+const RewardBadge = styled("span")<{
+  $isDarkTheme: boolean;
+  $variant?: string;
+}>`
+  background-color: ${(props) => {
+    if (props.$variant === "ecosystem") {
+      return props.$isDarkTheme ? "#2e7d32" : "#4caf50";
+    }
+    return props.$isDarkTheme ? "#1976d2" : "#90caf9";
+  }};
+  color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-left: 8px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  @media (max-width: 600px) {
+    font-size: 10px;
+    padding: 2px 6px;
+    margin-left: 4px;
+  }
+`;
+
+// Update the ContractSelect styled component
 const ContractSelect = styled(TextField)<{ $isDarkTheme: boolean }>`
   margin-bottom: 24px;
 
@@ -534,6 +586,69 @@ const ContractSelect = styled(TextField)<{ $isDarkTheme: boolean }>`
     color: ${(props) =>
       props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
   }
+
+  // Responsive menu item styling
+  .MuiMenuItem-root {
+    padding: 16px;
+    border-bottom: 1px solid
+      ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    @media (max-width: 600px) {
+      padding: 12px;
+    }
+  }
+`;
+
+// Update ContractStats for responsiveness
+const ContractStats = styled(Box)`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+
+  @media (max-width: 600px) {
+    gap: 8px;
+    margin-top: 8px;
+  }
+`;
+
+const StatBox = styled(Box)<{ $isDarkTheme: boolean }>`
+  text-align: center;
+  padding: 8px 4px;
+  border-radius: 4px;
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.2)"};
+
+  .stat-value {
+    font-weight: 600;
+    color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @media (max-width: 600px) {
+      font-size: 12px;
+    }
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    @media (max-width: 600px) {
+      font-size: 10px;
+    }
+  }
 `;
 
 // Add this styled component with other styled components
@@ -551,11 +666,227 @@ const CautionBox = styled(Box)<{ $isDarkTheme: boolean }>`
   gap: 12px;
 `;
 
+const getContractInfo = (contractId: number) => {
+  switch (contractId) {
+    case 390001:
+      return {
+        title: "Wrapped VOI",
+        iconPath:
+          "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+      };
+    case 770561:
+      return {
+        title: "Fountain VOI",
+        iconPath:
+          "M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zM12 20c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2z",
+      };
+    case 828295:
+      return {
+        title: "En VOI",
+        iconPath:
+          "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0-6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 7c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4zm6 5H6v-.99c.2-.72 3.3-2.01 6-2.01s5.8 1.29 6 2v1z",
+      };
+    case 888305:
+      return {
+        title: "Womp VOI",
+        iconPath:
+          "M4 2C2.9 2 2 2.9 2 4v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2H4zm0 2h16v16H4V4zm4 4h8v8H8V8zm0 4h10v2H7v-2z",
+      };
+    case 913147:
+      return {
+        title: "NFT VOI",
+        iconPath:
+          "M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 2c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 1c3.87 0 7 3.13 7 7 0 1.93-.78 3.68-2.05 4.95L9.05 8.05C10.32 6.78 12.07 6 14 5zm-7 7c0-1.93.78-3.68 2.05-4.95l7.9 7.9C15.68 18.22 13.93 19 12 19c-3.87 0-7-3.13-7-7z",
+      };
+    default:
+      return {
+        title: "Community Chest",
+        iconPath:
+          "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v12h14V6H5zm2 2h10v2H7V8zm0 4h10v2H7v-2z",
+      };
+  }
+};
+
+// Update the function signature to accept isDarkTheme
+const getContractDescription = (
+  contractId: number,
+  isDarkTheme: boolean
+): React.ReactNode => {
+  switch (contractId) {
+    case 664258:
+      return "Welcome to the Community Chest - a collaborative pool where members can deposit VOI for a chance to win big! Every deposit increases the chest's value, and weekly draws give participants the opportunity to win exciting rewards. Your deposit remains fully accessible - you can withdraw your entire contribution at any time without restrictions. Join us in building this treasure trove of possibilities!";
+    case 390001:
+      return "Welcome to Wrapped VOI (wVOI) - a wrapped version of the native VOI token that enables seamless integration with DeFi protocols and smart contracts. wVOI maintains perfect 1:1 parity with VOI, allowing users to easily participate in decentralized finance while retaining the full value of their VOI holdings.";
+    case 770561:
+      return "Welcome to Fountain VOI (FV) - your gateway to the Voi Fountain ecosystem. By holding FV, you're not just participating in the network - you're supporting the growth of the Voi Fountain project while earning additional rewards through the Fountain's innovative reward distribution system.";
+    case 828295:
+      return "Welcome to En VOI (EV) - the backbone of the enVoi Naming Service. EV represents staked VOI that secures name registrations and renewals in the enVoi ecosystem. While holding EV, you're contributing to the development of Voi's decentralized naming infrastructure.";
+    case 888305:
+      return "Welcome to Womp VOI (WV) - the token that powers the WompCrew ecosystem. WV represents staked VOI in the WompCrew project, enabling users to participate in various WompCrew activities and support the growing WompCrew community.";
+    case 913147:
+      return "Welcome to NFT VOI (NFV) - the token that bridges the gap between VOI and NFTs. NFV enables unique interactions with digital collectibles while maintaining the security and value of the VOI ecosystem. Join us in exploring the intersection of DeFi and NFTs!";
+    default:
+      return "";
+  }
+};
+
+// Add this styled component with other styled components
+const NFTPrizeCard = styled(Box)<{ $isDarkTheme: boolean }>`
+  padding: 24px;
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.1)"};
+  border-radius: 16px;
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+  margin-bottom: 24px;
+  text-align: center;
+`;
+
+const NFTImage = styled.img`
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  margin: 16px auto;
+  display: block;
+  object-fit: cover;
+  border: 2px solid ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+`;
+
+// Add these interfaces with other interfaces
+interface NFTMetadata {
+  name: string;
+  description: string;
+  image: string;
+  properties: Record<string, string>;
+}
+
+interface NFTAsset {
+  contractId: number;
+  tokenId: string;
+  metadata: string;
+  collectionName: string;
+}
+
+// Add this styled component with other styled components
+const NFTVaultSection = styled(Box)<{ $isDarkTheme: boolean }>`
+  margin: 24px 0;
+  padding: 24px;
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.1)"};
+  border-radius: 16px;
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+`;
+
+// Add these styled components near the other styled components
+const HeroSection = styled(Box)<{ $isDarkTheme: boolean }>`
+  background: ${(props) =>
+    props.$isDarkTheme
+      ? "linear-gradient(180deg, rgba(25, 118, 210, 0.2) 0%, rgba(0, 0, 0, 0) 100%)"
+      : "linear-gradient(180deg, rgba(144, 202, 249, 0.2) 0%, rgba(255, 255, 255, 0) 100%)"};
+  padding: 48px 24px;
+  text-align: center;
+  margin-bottom: 32px;
+`;
+
+const HeroTitle = styled(Typography)<{ $isDarkTheme: boolean }>`
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  background: ${(props) =>
+    props.$isDarkTheme
+      ? "linear-gradient(45deg, #90caf9 30%, #64b5f6 90%)"
+      : "linear-gradient(45deg, #1976d2 30%, #1565c0 90%)"};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  @media (max-width: 600px) {
+    font-size: 2rem;
+  }
+`;
+
+const HeroSubtitle = styled(Typography)<{ $isDarkTheme: boolean }>`
+  font-size: 1.25rem;
+  color: ${(props) =>
+    props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+  margin: 0 auto;
+  line-height: 1.6;
+  text-align: center;
+  padding: 0 24px;
+  max-width: 800px;
+
+  @media (max-width: 600px) {
+    font-size: 1rem;
+  }
+`;
+
+// Update StatsHighlight styled component
+const StatsHighlight = styled(Box)`
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+  max-width: 1200px; // Match Container max-width
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 24px; // Match Container padding
+`;
+
+const StatItem = styled(Box)<{ $isDarkTheme: boolean }>`
+  text-align: center;
+
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+`;
+
+// Add this helper function near other utility functions
+const formatLargeNumber = (value: string): string => {
+  const num = parseFloat(value) / 1e6; // Convert to VOI units
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1)}M`;
+  } else if (num >= 1_000) {
+    return `${(num / 1_000).toFixed(1)}k`;
+  }
+  return num.toFixed(1);
+};
+
 const CommunityChest: React.FC<CommunityChestProps> = ({
   isDarkTheme,
   connected,
   address,
 }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const contractParam = searchParams.get("contract");
+
+  // Update state initialization to use URL parameter if available
+  const [selectedContract, setSelectedContract] = useState<number>(
+    CONTRACT_OPTIONS.some((opt) => opt.id === Number(contractParam))
+      ? Number(contractParam)
+      : 664258
+  );
+
+  // Update the contract selection handler to modify URL
+  const handleContractChange = (newContract: number) => {
+    setSelectedContract(newContract);
+    setSearchParams({ contract: newContract.toString() });
+  };
+
   const { signTransactions } = useWallet();
   const [totalInChest, setTotalInChest] = useState<string>("0");
   const [holders, setHolders] = useState<number>(0);
@@ -574,8 +905,25 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
   const [currentEpochTokens, setCurrentEpochTokens] = useState<string>("0");
   const [showRewardDistribution, setShowRewardDistribution] = useState(false);
   const [timeUntilNextEpoch, setTimeUntilNextEpoch] = useState<string>("");
-  const { name: resolvedName } = useEnvoiResolver(address);
-  const [selectedContract, setSelectedContract] = useState<number>(664258);
+  const [nftAssets, setNftAssets] = useState<
+    (NFTAsset & { parsedMetadata: NFTMetadata })[]
+  >([]);
+
+  interface TokenStats {
+    contractId: number;
+    account_count: number;
+    adjusted_total_balance: string; // Changed from number to string
+  }
+
+  interface StatsResponse {
+    "current-round": number;
+    tokens: TokenStats[];
+  }
+
+  // Add this state near other state declarations
+  const [statsResponse, setStatsResponse] = useState<StatsResponse | null>(
+    null
+  );
 
   useEffect(() => {
     if (connected) {
@@ -583,19 +931,29 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     }
   }, [connected, address, selectedContract]);
 
-  // Update the fetchData function
+  // Update the fetchData function to store the response
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Fetch contract stats
+      const statsResponse = await axios.get<StatsResponse>(
+        "https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/stats/wvoi"
+      );
+
+      setStatsResponse(statsResponse.data); // Store the entire response
+
+      const contractStats = statsResponse.data.tokens.find(
+        (token) => token.contractId === selectedContract
+      );
+
+      if (contractStats) {
+        setTotalInChest(contractStats.adjusted_total_balance);
+        setHolders(contractStats.account_count);
+      }
+
       const { algodClient } = getAlgorandClients();
 
-      // Fetch contract data
-
-      const ctcAddr = algosdk.getApplicationAddress(selectedContract);
-      const accInfo = await algodClient.accountInformation(ctcAddr).do();
-      const { amount } = accInfo;
-
-      // Fetch holders data
+      // Fetch holders data for rankings
       const response = await axios.get(
         `https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/balances?contractId=${selectedContract}`
       );
@@ -607,7 +965,6 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
             balance.balance !== "0"
         ) || [];
       setHoldersList(filteredHolders);
-      const holders = filteredHolders.length || 0;
 
       // Fetch epoch summary
       const epochResponse = await axios.get<ApiResponse>(
@@ -623,26 +980,27 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
       );
 
       setEpochSummaries(sortedEpochs);
-      console.log("Latest Epoch:", sortedEpochs[0]);
 
-      // Get user balance
-      const ci = new CONTRACT(selectedContract, algodClient, null, abi.nt200, {
-        addr:
-          address ||
-          "G3MSA75OZEJTCCENOJDLDJK7UD7E2K5DNC7FVHCNOV7E3I4DTXTOWDUIFQ",
-        sk: Uint8Array.from([]),
-      });
-      const arc200_balanceOf =
-        (await ci.arc200_balanceOf(address))?.returnValue || BigInt(0);
-      const userBalance = arc200_balanceOf.toString();
-
-      setTotalInChest(amount);
-      setHolders(holders);
-      setUserBalance(userBalance);
+      // Get user balance if connected
+      if (connected && address) {
+        const ci = new CONTRACT(
+          selectedContract,
+          algodClient,
+          null,
+          abi.nt200,
+          {
+            addr: address,
+            sk: Uint8Array.from([]),
+          }
+        );
+        const arc200_balanceOf =
+          (await ci.arc200_balanceOf(address))?.returnValue || BigInt(0);
+        const userBalance = arc200_balanceOf.toString();
+        setUserBalance(userBalance);
+      }
 
       // Add token calculations
       if (sortedEpochs.length > 0) {
-        // number of weeks since launch (since October 30, 2024 UTC)
         const weeksSinceLaunch = Math.ceil(
           (new Date().getTime() - new Date("2024-10-30").getTime()) /
             (1000 * 60 * 60 * 24 * 7)
@@ -656,7 +1014,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedContract]);
+  }, [selectedContract, connected, address]);
 
   const handleDeposit = async () => {
     if (!connected) {
@@ -892,66 +1250,225 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     });
   };
 
+  useEffect(() => {
+    const fetchNFTs = async () => {
+      try {
+        const response = await axios.get(
+          `https://mainnet-idx.nautilus.sh/nft-indexer/v1/tokens?owner=MTGLPLANYNVD4OMZUQDIZ62G5LRX3JCC2H33VZNYY5VDWLEYW5JRZ3W3GQ`
+        );
+
+        const nftData = response.data.tokens
+          .filter((token: NFTAsset) => !token.isBurned)
+          .map((token: NFTAsset) => ({
+            ...token,
+            parsedMetadata: JSON.parse(token.metadata),
+          }));
+
+        setNftAssets(nftData);
+      } catch (error) {
+        console.error("Error fetching NFTs:", error);
+      }
+    };
+
+    fetchNFTs();
+  }, []);
+
   return (
-    <Layout>
-      <ContractSelect
-        sx={{
-          mt: 3,
-        }}
-        select
-        label="Select Contract"
-        value={selectedContract}
-        onChange={(e) => {
-          setSelectedContract(Number(e.target.value));
-        }}
+    <>
+      <HeroSection $isDarkTheme={isDarkTheme}>
+        <HeroTitle $isDarkTheme={isDarkTheme}>
+          Wrapped Voi Ecosystem Hub
+        </HeroTitle>
+        <HeroSubtitle $isDarkTheme={isDarkTheme}>
+          Explore and participate in Voi's growing ecosystem of tokens and
+          applications. Stake, earn rewards, support projects, and be part of
+          the community-driven future.
+        </HeroSubtitle>
+        <StatsHighlight>
+          <StatItem $isDarkTheme={isDarkTheme}>
+            <div className="stat-value">6</div>
+            <div className="stat-label">ACTIVE TOKENS</div>
+          </StatItem>
+          <StatItem $isDarkTheme={isDarkTheme}>
+            <div className="stat-value">
+              {formatLargeNumber(
+                statsResponse?.tokens
+                  ?.reduce(
+                    (sum, token) => sum + BigInt(token.adjusted_total_balance),
+                    BigInt(0)
+                  )
+                  .toString() || "0"
+              )}{" "}
+              VOI
+            </div>
+            <div className="stat-label">TOTAL VALUE LOCKED</div>
+          </StatItem>
+          <StatItem $isDarkTheme={isDarkTheme}>
+            <div className="stat-value">
+              {statsResponse?.tokens?.reduce(
+                (sum, token) => sum + token.account_count,
+                0
+              ) || 0}
+            </div>
+            <div className="stat-label">TOTAL PARTICIPANTS</div>
+          </StatItem>
+        </StatsHighlight>
+      </HeroSection>
+
+      <Container
         $isDarkTheme={isDarkTheme}
-        fullWidth
-        SelectProps={{
-          MenuProps: {
-            PaperProps: {
-              sx: {
-                bgcolor: isDarkTheme ? "#1a1a1a" : "#fff",
-                color: isDarkTheme ? "#fff" : "#000",
-                "& .MuiMenuItem-root": {
-                  "&:hover": {
-                    bgcolor: isDarkTheme
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.1)",
+        sx={{ borderRadius: "16px", mb: 5 }}
+      >
+        <ContractSelect
+          sx={{
+            mt: 3,
+          }}
+          select
+          label="Select Contract"
+          value={selectedContract}
+          onChange={(e) => {
+            handleContractChange(Number(e.target.value));
+          }}
+          $isDarkTheme={isDarkTheme}
+          fullWidth
+          SelectProps={{
+            MenuProps: {
+              PaperProps: {
+                sx: {
+                  bgcolor: isDarkTheme ? "#1a1a1a" : "#fff",
+                  color: isDarkTheme ? "#fff" : "#000",
+                  maxHeight: {
+                    xs: "70vh", // Smaller height on mobile
+                    sm: "80vh", // Larger height on tablet/desktop
+                  },
+                  "& .MuiMenuItem-root": {
+                    "&:hover": {
+                      bgcolor: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.1)",
+                    },
                   },
                 },
               },
             },
-          },
-        }}
-      >
-        {CONTRACT_OPTIONS.map((option) => (
-          <MenuItem key={option.id} value={option.id}>
-            <Box>
-              <Typography variant="body1">{option.name}</Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: isDarkTheme
-                    ? "rgba(255, 255, 255, 0.7)"
-                    : "rgba(0, 0, 0, 0.7)",
-                }}
-              >
-                {option.description}
-              </Typography>
-            </Box>
-          </MenuItem>
-        ))}
-      </ContractSelect>
+          }}
+        >
+          {CONTRACT_OPTIONS.map((option) => {
+            const contractStats = statsResponse?.tokens?.find(
+              (token) => token.contractId === option.id
+            );
 
-      <Container $isDarkTheme={isDarkTheme}>
-        <HeaderContainer>
+            return (
+              <MenuItem key={option.id} value={option.id}>
+                <Box sx={{ width: "100%" }}>
+                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: { xs: 0.5, sm: 1 },
+                      }}
+                    >
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontSize: { xs: "0.875rem", sm: "1rem" },
+                        }}
+                      >
+                        {option.name}
+                      </Typography>
+                      {option.id === 664258 && (
+                        <RewardBadge $isDarkTheme={isDarkTheme}>
+                          Weekly Draw & Holder Distribution
+                        </RewardBadge>
+                      )}
+                      {option.id === 770561 && (
+                        <Tooltip
+                          title="Receive a 1% bonus for every 100 Voi staked."
+                          arrow
+                        >
+                          <Link
+                            href="https://fountain.voirewards.com/contribute"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ textDecoration: "none" }}
+                          >
+                            <RewardBadge $isDarkTheme={isDarkTheme}>
+                              Contributor Bonus
+                            </RewardBadge>
+                          </Link>
+                        </Tooltip>
+                      )}
+                      {(option.id === 390001 ||
+                        option.id === 828295 ||
+                        option.id === 888305) && (
+                        <RewardBadge
+                          $isDarkTheme={isDarkTheme}
+                          $variant="ecosystem"
+                        >
+                          Ecosystem
+                        </RewardBadge>
+                      )}
+                      {option.id === 913147 && (
+                        <RewardBadge $isDarkTheme={isDarkTheme}>
+                          Weekly NFT Prize
+                        </RewardBadge>
+                      )}
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.7)"
+                          : "rgba(0, 0, 0, 0.7)",
+                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                        mt: { xs: 0.5, sm: 1 },
+                      }}
+                    >
+                      {option.description}
+                    </Typography>
+
+                    <ContractStats>
+                      <StatBox $isDarkTheme={isDarkTheme}>
+                        <div className="stat-value">
+                          {formatLargeNumber(
+                            contractStats?.adjusted_total_balance || "0"
+                          )}{" "}
+                          VOI
+                        </div>
+                        <div className="stat-label">TVL</div>
+                      </StatBox>
+                      <StatBox $isDarkTheme={isDarkTheme}>
+                        <div className="stat-value">
+                          {contractStats?.account_count || 0}
+                        </div>
+                        <div className="stat-label">HOLDERS</div>
+                      </StatBox>
+                      <StatBox $isDarkTheme={isDarkTheme}>
+                        <div className="stat-value">
+                          {calculateAverageStake(
+                            contractStats?.adjusted_total_balance || "0",
+                            contractStats?.account_count || 0
+                          )}
+                        </div>
+                        <div className="stat-label">AVG STAKE</div>
+                      </StatBox>
+                    </ContractStats>
+                  </Box>
+                </Box>
+              </MenuItem>
+            );
+          })}
+        </ContractSelect>
+        <HeaderContainer sx={{ mt: { xs: 4, md: 6 } }}>
           <ChestIcon
             viewBox="0 0 24 24"
             $intensity={calculateGlowIntensity(totalInChest)}
           >
             <path
               fill={isDarkTheme ? "#ffd700" : "#ffa000"}
-              d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v12h14V6H5zm2 2h10v2H7V8zm0 4h10v2H7v-2z"
+              d={getContractInfo(selectedContract).iconPath}
             />
           </ChestIcon>
           <Typography
@@ -961,24 +1478,31 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
               color: isDarkTheme ? "#fff" : "#000",
             }}
           >
-            Community Chest
+            {getContractInfo(selectedContract).title}
           </Typography>
         </HeaderContainer>
 
         <StorySection $isDarkTheme={isDarkTheme}>
-          Welcome to the Community Chest - a collaborative pool where members
-          can deposit VOI for a chance to win big! Every deposit increases the
-          chest's value, and weekly draws give participants the opportunity to
-          win exciting rewards. Your deposit remains fully accessible - you can
-          withdraw your entire contribution at any time without restrictions.
-          Join us in building this treasure trove of possibilities!
-          <Link
-            component="span"
-            className="how-it-works-link"
-            onClick={() => setHowItWorksOpen(true)}
-          >
-            Learn how it works →
-          </Link>
+          {getContractDescription(selectedContract, isDarkTheme)}
+          {selectedContract === 664258 && (
+            <Link
+              component="span"
+              className="how-it-works-link"
+              onClick={() => setHowItWorksOpen(true)}
+            >
+              Learn how it works →
+            </Link>
+          )}
+          {selectedContract === 770561 && (
+            <Link
+              href="https://faucet.voirewards.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="how-it-works-link"
+            >
+              Visit Voi Fountain →
+            </Link>
+          )}
         </StorySection>
 
         {/* Add the notification section here */}
@@ -986,47 +1510,52 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           <Label $isDarkTheme={isDarkTheme} style={{ marginBottom: "16px" }}>
             Notifications
           </Label>
-          {notifications.slice(0, 3).map((notification, index) => (
-            <NotificationItem
-              key={index}
-              $isDarkTheme={isDarkTheme}
-              $type={notification.type}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+          {notifications
+            .filter(
+              (notification) => notification.contractId === selectedContract
+            )
+            .slice(0, 3)
+            .map((notification, index) => (
+              <NotificationItem
+                key={index}
+                $isDarkTheme={isDarkTheme}
+                $type={notification.type}
               >
-                <Typography
-                  variant="body2"
+                <Box
                   sx={{
-                    color: isDarkTheme
-                      ? "rgba(255, 255, 255, 0.9)"
-                      : "rgba(0, 0, 0, 0.9)",
-                    fontWeight: 500,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                   }}
                 >
-                  {notification.message}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: isDarkTheme
-                      ? "rgba(255, 255, 255, 0.6)"
-                      : "rgba(0, 0, 0, 0.6)",
-                    ml: 2,
-                  }}
-                >
-                  {formatNotificationDate(notification.date)}
-                </Typography>
-              </Box>
-            </NotificationItem>
-          ))}
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.9)"
+                        : "rgba(0, 0, 0, 0.9)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {notification.message}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.6)"
+                        : "rgba(0, 0, 0, 0.6)",
+                      ml: 2,
+                    }}
+                  >
+                    {formatNotificationDate(notification.date)}
+                  </Typography>
+                </Box>
+              </NotificationItem>
+            ))}
         </NotificationSection>
 
-        {selectedContract !== 664258 && (
+        {![664258, 770561, 913147].includes(selectedContract) && (
           <>
             <CautionBox $isDarkTheme={isDarkTheme}>
               <InfoIcon sx={{ color: "warning.main" }} />
@@ -1039,8 +1568,9 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                   CONTRACT_OPTIONS.find((opt) => opt.id === selectedContract)
                     ?.name
                 }{" "}
-                statistics. Only CCV (Community Chest Voi) holders are eligible
-                for weekly rewards and participation in the Community Chest.
+                statistics. Only CCV and NFV (Community Chest Voi and NFT VOI)
+                holders are eligible for weekly rewards and participation in the
+                Community Chest. Program offerings vary by contract.
               </Typography>
             </CautionBox>
 
@@ -1191,7 +1721,9 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                   })}
               />
               <Link
-                href="https://voirewards.com/wallet/KS55CA7K5HQG6P7M5IDH5VXDXBJILSYEVMPP24H3QGJSLPQXPX3LKPW7WM#proposals"
+                href={`https://voirewards.com/wallet/${algosdk.getApplicationAddress(
+                  selectedContract
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
@@ -1313,7 +1845,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                       (1000 * 60)
                   )}
                 />
-              )}
+              )}{" "}
             </>
           )}
         </StatusRow>
@@ -1325,134 +1857,290 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
             marginBottom: "24px",
           }}
         >
-          <StatusRow $isDarkTheme={isDarkTheme} style={{ flex: 1 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Label $isDarkTheme={isDarkTheme}>Estimated Reward</Label>
-              <InfoIcon
+          {selectedContract === 664258 && (
+            <StatusRow $isDarkTheme={isDarkTheme} style={{ flex: 1 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Label $isDarkTheme={isDarkTheme}>Estimated Reward</Label>
+                <InfoIcon
+                  sx={{
+                    fontSize: 16,
+                    color: isDarkTheme
+                      ? "rgba(255, 255, 255, 0.7)"
+                      : "rgba(0, 0, 0, 0.7)",
+                    cursor: "pointer",
+                    "&:hover": { opacity: 0.8 },
+                  }}
+                  onClick={() => setShowRewardDistribution(true)}
+                />
+              </Box>
+              {isLoading ? (
+                <CircularProgress size={24} />
+              ) : (
+                <>
+                  <BigNumberDisplay $isDarkTheme={isDarkTheme}>
+                    {epochSummaries.length > 0 && Number(currentEpochTokens) > 0
+                      ? (() => {
+                          const nonBallastBlocks =
+                            epochSummaries[0].total_blocks;
+
+                          if (nonBallastBlocks <= 0) return "0";
+
+                          const blocksProduced = Array.isArray(
+                            epochSummaries[0].proposers
+                          )
+                            ? 0
+                            : Object.values(epochSummaries[0].proposers).reduce(
+                                (sum, blocks) => sum + blocks,
+                                0
+                              );
+
+                          console.log("blocksProduced", blocksProduced);
+
+                          // Calculate percentage through epoch
+                          const secondsElapsed =
+                            new Date().getTime() / 1000 -
+                            new Date(epochSummaries[0].start_date).getTime() /
+                              1000;
+                          const secondsInEpoch = 7 * 24 * 60 * 60;
+                          const percentageThroughEpoch =
+                            secondsElapsed / secondsInEpoch;
+
+                          // Calculate rewards based on total blocks in epoch
+                          const rewardPerBlock =
+                            (Number(currentEpochTokens) *
+                              percentageThroughEpoch) /
+                            nonBallastBlocks;
+
+                          const totalReward = rewardPerBlock * blocksProduced;
+                          const estimatedReward = totalReward * 0.45; // 45% of rewards
+
+                          return isNaN(estimatedReward)
+                            ? "0"
+                            : estimatedReward.toFixed(2);
+                        })()
+                      : "0"}
+                  </BigNumberDisplay>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
+                  >
+                    VOI THIS EPOCH
+                  </Typography>
+                </>
+              )}
+            </StatusRow>
+          )}
+        </Box>
+
+        {selectedContract === 913147 && (
+          <>
+            <NFTVaultSection $isDarkTheme={isDarkTheme}>
+              <Label
+                $isDarkTheme={isDarkTheme}
+                style={{ marginBottom: "16px" }}
+              >
+                NFT Vault Collection ({nftAssets.length} NFTs)
+              </Label>
+              <ImageList
                 sx={{
-                  fontSize: 16,
+                  width: "100%",
+                  height: 450,
+                  "&::-webkit-scrollbar": {
+                    width: "8px",
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    background: isDarkTheme
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.1)",
+                    borderRadius: "4px",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    background: isDarkTheme
+                      ? "rgba(255, 255, 255, 0.2)"
+                      : "rgba(0, 0, 0, 0.2)",
+                    borderRadius: "4px",
+                    "&:hover": {
+                      background: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.3)"
+                        : "rgba(0, 0, 0, 0.3)",
+                    },
+                  },
+                }}
+                cols={3}
+                gap={8}
+              >
+                {nftAssets.map((asset) => (
+                  <ImageListItem key={`${asset.contractId}-${asset.tokenId}`}>
+                    <img
+                      src={asset.parsedMetadata.image}
+                      alt={
+                        asset.parsedMetadata.name ||
+                        `${asset.collectionName} #${asset.tokenId}`
+                      }
+                      loading="lazy"
+                      style={{
+                        borderRadius: "8px",
+                        border: `1px solid ${
+                          isDarkTheme
+                            ? "rgba(255, 255, 255, 0.1)"
+                            : "rgba(0, 0, 0, 0.1)"
+                        }`,
+                        aspectRatio: "1",
+                        objectFit: "cover",
+                      }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    <ImageListItemBar
+                      title={
+                        asset.parsedMetadata.name ||
+                        `${asset.collectionName} #${asset.tokenId}`
+                      }
+                      subtitle={
+                        <span>
+                          {asset.collectionName} • #{asset.tokenId}
+                        </span>
+                      }
+                      sx={{
+                        background: isDarkTheme
+                          ? "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)"
+                          : "linear-gradient(to top, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 70%, rgba(255,255,255,0) 100%)",
+                        borderBottomLeftRadius: "8px",
+                        borderBottomRightRadius: "8px",
+                        "& .MuiImageListItemBar-title": {
+                          color: isDarkTheme ? "#fff" : "#000",
+                          fontSize: "14px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        },
+                        "& .MuiImageListItemBar-subtitle": {
+                          color: isDarkTheme
+                            ? "rgba(255, 255, 255, 0.7)"
+                            : "rgba(0, 0, 0, 0.7)",
+                          fontSize: "12px",
+                        },
+                      }}
+                    />
+                  </ImageListItem>
+                ))}
+              </ImageList>
+            </NFTVaultSection>
+
+            <NFTPrizeCard $isDarkTheme={isDarkTheme}>
+              <Label $isDarkTheme={isDarkTheme}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  Weekly NFT Prize
+                  <InfoIcon
+                    sx={{
+                      fontSize: 16,
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(0, 0, 0, 0.7)",
+                      cursor: "pointer",
+                      "&:hover": { opacity: 0.8 },
+                    }}
+                    onClick={() => setShowRewardDistribution(true)}
+                  />
+                </Box>
+              </Label>
+              <NFTImage
+                src="https://prod.cdn.highforge.io/m/400099/30.png"
+                alt="Weekly NFT Prize"
+                $isDarkTheme={isDarkTheme}
+              />
+              <Typography
+                variant="h6"
+                sx={{
+                  color: isDarkTheme ? "#90caf9" : "#1976d2",
+                  fontWeight: "bold",
+                  mb: 1,
+                }}
+              >
+                PXLMOB30
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
                   color: isDarkTheme
                     ? "rgba(255, 255, 255, 0.7)"
                     : "rgba(0, 0, 0, 0.7)",
-                  cursor: "pointer",
-                  "&:hover": { opacity: 0.8 },
+                  mb: 2,
                 }}
-                onClick={() => setShowRewardDistribution(true)}
-              />
-            </Box>
-            {isLoading ? (
-              <CircularProgress size={24} />
-            ) : (
-              <>
-                <BigNumberDisplay $isDarkTheme={isDarkTheme}>
-                  {epochSummaries.length > 0 && Number(currentEpochTokens) > 0
-                    ? (() => {
-                        const nonBallastBlocks = epochSummaries[0].total_blocks;
-
-                        if (nonBallastBlocks <= 0) return "0";
-
-                        const blocksProduced = Array.isArray(
-                          epochSummaries[0].proposers
-                        )
-                          ? 0
-                          : Object.values(epochSummaries[0].proposers).reduce(
-                              (sum, blocks) => sum + blocks,
-                              0
-                            );
-
-                        console.log("blocksProduced", blocksProduced);
-
-                        // Calculate percentage through epoch
-                        const secondsElapsed =
-                          new Date().getTime() / 1000 -
-                          new Date(epochSummaries[0].start_date).getTime() /
-                            1000;
-                        const secondsInEpoch = 7 * 24 * 60 * 60;
-                        const percentageThroughEpoch =
-                          secondsElapsed / secondsInEpoch;
-
-                        // Calculate rewards based on total blocks in epoch
-                        const rewardPerBlock =
-                          (Number(currentEpochTokens) *
-                            percentageThroughEpoch) /
-                          nonBallastBlocks;
-
-                        const totalReward = rewardPerBlock * blocksProduced;
-                        const estimatedReward = totalReward * 0.45; // 45% of rewards
-
-                        return isNaN(estimatedReward)
-                          ? "0"
-                          : estimatedReward.toFixed(2);
-                      })()
-                    : "0"}
-                </BigNumberDisplay>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ color: isDarkTheme ? "#90caf9" : "#1976d2" }}
-                >
-                  VOI THIS EPOCH
-                </Typography>
-              </>
-            )}
-          </StatusRow>
-        </Box>
-
-        <RollDiceSection $isDarkTheme={isDarkTheme}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Feeling Lucky?
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={handleRollDice}
-            disabled={isRolling || !connected}
-            sx={{
-              bgcolor: isDarkTheme ? "#90caf9" : "#1976d2",
-              color: isDarkTheme ? "#000" : "#fff",
-              "&:hover": {
-                bgcolor: isDarkTheme ? "#64b5f6" : "#1565c0",
-              },
-            }}
-          >
-            {isRolling ? <CircularProgress size={24} /> : "Roll the Dice"}
-          </Button>
-          {selectedAccount && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mt: 2,
-              }}
-            >
-              <Typography className="selected-account">
-                🎉 Winner:{" "}
-                {`${selectedAccount.slice(0, 6)}...${selectedAccount.slice(
-                  -6
-                )}`}{" "}
-                🎉
+              >
+                This week's prize is a unique digital collectible. Hold NFT VOI
+                for a chance to win!
               </Typography>
-              <ContentCopyIcon
+              <Box
                 sx={{
-                  cursor: "pointer",
-                  fontSize: "20px",
-                  ml: 1,
-                  color: isDarkTheme ? "#90caf9" : "#1976d2",
-                  "&:hover": { opacity: 0.8 },
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 1,
+                  mb: 1,
                 }}
-                onClick={() => copyToClipboard(selectedAccount)}
-              />
-            </Box>
-          )}
-        </RollDiceSection>
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: isDarkTheme
+                      ? "rgba(255, 255, 255, 0.9)"
+                      : "rgba(0, 0, 0, 0.9)",
+                  }}
+                >
+                  Draw Date:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: isDarkTheme ? "#90caf9" : "#1976d2",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {new Date(
+                    new Date(
+                      epochSummaries[0]?.end_date || Date.now()
+                    ).getTime() +
+                      3 * 24 * 60 * 60 * 1000
+                  ).toLocaleDateString()}
+                </Typography>
+              </Box>
+            </NFTPrizeCard>
+
+            <RollDiceSection $isDarkTheme={isDarkTheme}>
+              <Typography variant="h6">Feeling Lucky?</Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Roll the dice to randomly select a holder from the current pool.
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={handleRollDice}
+                disabled={isRolling || holdersList.length === 0}
+              >
+                {isRolling ? "Rolling..." : "Roll Dice"}
+              </Button>
+              {selectedAccount && (
+                <div className="selected-account">
+                  <Typography
+                    variant="body1"
+                    sx={{ cursor: "pointer" }}
+                    onClick={() => copyToClipboard(selectedAccount)}
+                  >
+                    {selectedAccount}
+                  </Typography>
+                </div>
+              )}
+            </RollDiceSection>
+          </>
+        )}
 
         {address && (
           <StatusRow
             $isDarkTheme={isDarkTheme}
             style={{ marginBottom: "24px" }}
           >
-            <Label $isDarkTheme={isDarkTheme}>
-              {resolvedName ? resolvedName : "Your"} Balance
-            </Label>
+            <Label $isDarkTheme={isDarkTheme}>Your Balance</Label>
             {isLoading ? (
               <CircularProgress size={24} />
             ) : (
@@ -1558,13 +2246,16 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           totalSupply={totalInChest}
         />
 
-        <RewardDistributionModal
-          open={showRewardDistribution}
-          onClose={() => setShowRewardDistribution(false)}
-          isDarkTheme={isDarkTheme}
-        />
+        {[664258, 913147].includes(selectedContract) && (
+          <RewardDistributionModal
+            open={showRewardDistribution}
+            onClose={() => setShowRewardDistribution(false)}
+            isDarkTheme={isDarkTheme}
+            selectedContract={selectedContract}
+          />
+        )}
       </Container>
-    </Layout>
+    </>
   );
 };
 

@@ -75,8 +75,6 @@ const CurrencySelect: React.FC<CurrencySelectProps> = ({
   simulationResults = {},
   listingCurrency = 0,
 }) => {
-  console.log({ balances });
-
   const { activeAccount } = useWallet();
   const theme = useTheme();
   const isDarkMode = useSelector((state: RootState) => state.theme.isDarkTheme);
@@ -126,14 +124,17 @@ const CurrencySelect: React.FC<CurrencySelectProps> = ({
   };
 
   const formatBalance = (token: PaymentToken) => {
-    console.log({ token, balances });
-    if (!balances || !balances[token.tokenId]) return "";
+    if (!balances || !balances[token.tokenId]) {
+      return new BigNumber(0).toFormat(6, {
+        groupSize: 3,
+        groupSeparator: ",",
+        decimalSeparator: ".",
+      });
+    }
     const balance = balances[token.tokenId];
     if (balance.loading) return "Loading...";
     if (balance.error) return "Error loading balance";
-
     const displayDecimals = Math.min(balance.decimals, 6);
-
     return new BigNumber(balance.balance)
       .shiftedBy(-balance.decimals)
       .toFormat(displayDecimals, {
@@ -147,10 +148,8 @@ const CurrencySelect: React.FC<CurrencySelectProps> = ({
     if (!price || !token.decimals) return "";
     if (token.tokenId === 390001)
       return new BigNumber(price).dividedBy(10 ** 6).toString();
-
     // Show loading state if simulation is not yet available
     if (!simulationResults[token.tokenId]) return null;
-
     return new BigNumber(simulationResults[token.tokenId].outputAmount)
       .shiftedBy(-token.decimals)
       .toFormat(Math.min(token.decimals, 6));

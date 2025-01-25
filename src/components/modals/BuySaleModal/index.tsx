@@ -139,8 +139,6 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
     >
   >({});
 
-  console.log({ simulationResults });
-
   // Hooks
   const balances = useBalances(activeAccount?.address);
 
@@ -284,6 +282,14 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
 
   console.log({ listing });
 
+  const stakingNFTContractInfo = 421076;
+  const stakingInformation =
+    stakingNFTContractInfo === Number(token.contractId) ? (
+      <Grid item xs={12}>
+        <StakingInformation contractId={Number(token.tokenId)} />
+      </Grid>
+    ) : null;
+
   return (
     <StyledDialog
       open={open}
@@ -374,13 +380,7 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
                   </Box>
                 )}
               </Grid>
-
-              {[421076].includes(Number(token.contractId)) && (
-                <Grid item xs={12}>
-                  <StakingInformation contractId={Number(token.tokenId)} />
-                </Grid>
-              )}
-
+              {stakingInformation}
               <Grid item xs={12}>
                 <Box sx={{ mb: 2 }}>
                   <CurrencySelect
@@ -405,17 +405,10 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
                       }
                     }}
                     canBuy={(tokenId) => {
-                      console.log({
-                        tokenId,
-                        paymentTokens,
-                        balances,
-                        simulationResults,
-                      });
                       const token = paymentTokens.find(
                         (t) => t.tokenId === tokenId
                       );
                       if (!token) return false;
-
                       const balance =
                         balances[token.tokenId.toString()]?.balance || "0";
                       const requiredAmount =
@@ -423,7 +416,6 @@ const BuySaleModal: React.FC<BuySaleModalProps> = ({
                           ? priceAU
                           : simulationResults[token.tokenId]?.outputAmount ||
                             "0";
-
                       return new BigNumber(balance).gte(
                         new BigNumber(requiredAmount)
                       );

@@ -24,6 +24,7 @@ import {
   Stepper,
   Step,
   StepLabel,
+  Checkbox,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import moment from "moment";
@@ -330,6 +331,10 @@ interface PositionRowProps {
     part_vote_lst: number;
   };
   cellStyle: React.CSSProperties;
+  isSelected: boolean;
+  onSelectRow: () => void;
+  // Add new prop for refresh trigger
+  refreshTrigger?: number;
 }
 
 // Add new interface for block production data
@@ -869,7 +874,19 @@ const MintModal: React.FC<{
   );
 };
 
-const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
+const PositionRow: React.FC<PositionRowProps> = ({
+  position,
+  cellStyle,
+  isSelected,
+  onSelectRow,
+  refreshTrigger = 0,
+}) => {
+  // Add refreshTrigger to queryKey to force refresh
+  const { data, isLoading } = useStakingContract(position.contractId, {
+    includeWithdrawable: true,
+    queryKey: ["stakingAccount", position.contractId, refreshTrigger],
+  });
+
   const {
     data: blocksData,
     isLoading: isLoadingBlocks,
@@ -885,13 +902,6 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
   const [withdrawAmount, setWithdrawAmount] = useState<number>(0);
   const [maxAmount, setMaxAmount] = useState<number>(0);
 
-  const { data, isLoading, refetch } = useStakingContract(
-    Number(position.contractId),
-    {
-      includeRewards: true,
-      includeWithdrawable: true,
-    }
-  );
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard
       .writeText(text)
@@ -1336,10 +1346,51 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
   }
   return (
     <>
-      <TableRow>
+      <TableRow
+        hover
+        role="checkbox"
+        aria-checked={isSelected}
+        tabIndex={-1}
+        selected={isSelected}
+        sx={{
+          cursor: 'pointer',
+          '&.Mui-selected': {
+            backgroundColor: isDarkTheme 
+              ? 'rgba(153, 51, 255, 0.08)' 
+              : 'rgba(153, 51, 255, 0.08)',
+          },
+          '&.Mui-selected:hover': {
+            backgroundColor: isDarkTheme 
+              ? 'rgba(153, 51, 255, 0.12)' 
+              : 'rgba(153, 51, 255, 0.12)',
+          },
+        }}
+      >
+        <TableCell padding="checkbox" style={cellStyle}>
+          <Checkbox 
+            checked={isSelected}
+            onChange={(event) => {
+              event.stopPropagation();
+              onSelectRow();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+            sx={{
+              color: isDarkTheme ? 'white' : undefined,
+              '&.Mui-checked': {
+                color: '#9933ff',
+              },
+            }}
+          />
+        </TableCell>
         <TableCell
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectRow();
+          }}
           style={{
-            ...cellStyleWithColor,
+            ...cellStyle,
             color: isDarkTheme ? "white" : "black",
             fontWeight: 100,
           }}
@@ -1350,6 +1401,7 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: "inherit" }}
+            onClick={(e) => e.stopPropagation()}
           >
             {position.contractId}
           </a>
@@ -1360,12 +1412,19 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
               fontSize: "16px",
               color: "inherit",
             }}
-            onClick={() => copyToClipboard(position.contractId, "Account ID")}
+            onClick={(e) => {
+              e.stopPropagation();
+              copyToClipboard(position.contractId, "Account ID");
+            }}
           />
         </TableCell>
         <TableCell
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectRow();
+          }}
           style={{
-            ...cellStyleWithColor,
+            ...cellStyle,
             color: isDarkTheme ? "white" : "black",
             fontWeight: 100,
           }}
@@ -1376,6 +1435,7 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: "inherit" }}
+            onClick={(e) => e.stopPropagation()}
           >
             {position.contractAddress.slice(0, 6)}...
             {position.contractAddress.slice(-6)}
@@ -1387,20 +1447,23 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
               fontSize: "16px",
               color: "inherit",
             }}
-            onClick={() =>
-              copyToClipboard(position.contractAddress, "Account Address")
-            }
+            onClick={(e) => {
+              e.stopPropagation();
+              copyToClipboard(position.contractAddress, "Account Address");
+            }}
           />
         </TableCell>
         <TableCell
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectRow();
+          }}
           style={{
-            ...cellStyleWithColor,
+            ...cellStyle,
             color: isDarkTheme ? "white" : "black",
             fontWeight: 100,
-            cursor: "pointer",
           }}
           align="center"
-          onClick={() => setIsDelegateModalOpen(true)}
         >
           {position.global_delegate.slice(0, 6)}...
           {position.global_delegate.slice(-6)}
@@ -1418,8 +1481,12 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
           />
         </TableCell>
         <TableCell
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectRow();
+          }}
           style={{
-            ...cellStyleWithColor,
+            ...cellStyle,
             color: isDarkTheme ? "white" : "black",
             fontWeight: 100,
           }}
@@ -1449,8 +1516,12 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
           </Box>
         </TableCell>
         <TableCell
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectRow();
+          }}
           style={{
-            ...cellStyleWithColor,
+            ...cellStyle,
             color: isDarkTheme ? "white" : "black",
             fontWeight: 100,
           }}
@@ -1461,8 +1532,12 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
           </Typography>
         </TableCell>
         <TableCell
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectRow();
+          }}
           style={{
-            ...cellStyleWithColor,
+            ...cellStyle,
             color: isDarkTheme ? "white" : "black",
             fontWeight: 100,
           }}
@@ -1473,8 +1548,12 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
           </Typography>
         </TableCell>
         <TableCell
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectRow();
+          }}
           style={{
-            ...cellStyleWithColor,
+            ...cellStyle,
             color: isDarkTheme ? "white" : "black",
             fontWeight: 100,
           }}
@@ -1483,8 +1562,12 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
           {blocksData?.getProposerBlocks(position.contractAddress)}
         </TableCell>
         <TableCell
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectRow();
+          }}
           style={{
-            ...cellStyleWithColor,
+            ...cellStyle,
             color: isDarkTheme ? "white" : "black",
             fontWeight: 100,
           }}
@@ -1533,8 +1616,12 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
           </Box>
         </TableCell>
         <TableCell
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectRow();
+          }}
           style={{
-            ...cellStyleWithColor,
+            ...cellStyle,
             color: isDarkTheme ? "white" : "black",
             fontWeight: 100,
           }}
@@ -1553,7 +1640,9 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
               minWidth: "40px",
               color: isDarkTheme ? "#FFFFFF" : undefined,
               backgroundColor: isDarkTheme ? "transparent" : undefined,
-              borderColor: isDarkTheme ? "rgba(255, 255, 255, 0.3)" : undefined,
+              borderColor: isDarkTheme
+                ? "rgba(255, 255, 255, 0.3)"
+                : undefined,
             }}
           >
             <MoreVerticalIcon />
@@ -1756,7 +1845,7 @@ const PositionRow: React.FC<PositionRowProps> = ({ position, cellStyle }) => {
                 }}
               >
                 {isDepositLoading ? (
-                  <CircularProgress
+                  <Circ
                     size={16}
                     sx={{ color: isDarkTheme ? "#FFFFFF" : "inherit" }}
                   />

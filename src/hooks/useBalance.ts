@@ -44,7 +44,7 @@ interface AsaBalance {
 const TXN_FEE = 10000; // 0.01 VOI transaction fee
 
 // Token info cache
-const tokenInfoCache: Record<string, TokenInfoResponse['tokens'][0]> = {};
+const tokenInfoCache: Record<string, TokenInfoResponse["tokens"][0]> = {};
 
 export const useBalances = (address?: string) => {
   const [balances, setBalances] = useState<Record<string, Arc200Balance>>({});
@@ -61,11 +61,11 @@ export const useBalances = (address?: string) => {
       );
       const tokenData: TokenInfoResponse = await tokenResponse.json();
       const tokenInfo = tokenData.tokens[0];
-      
+
       if (tokenInfo) {
         tokenInfoCache[cacheKey] = tokenInfo;
       }
-      
+
       return tokenInfo;
     };
 
@@ -94,10 +94,15 @@ export const useBalances = (address?: string) => {
         // Calculate available balance for VOI
         const totalBalance = accountInfo.amount;
         const minBalance = accountInfo["min-balance"];
-        const availableBalance = Math.max(0, totalBalance - minBalance - TXN_FEE);
+        const availableBalance = Math.max(
+          0,
+          totalBalance - minBalance - TXN_FEE
+        );
 
         // Fetch ASA balances
-        const accountAssets = await indexerClient.lookupAccountAssets(address).do();
+        const accountAssets = await indexerClient
+          .lookupAccountAssets(address)
+          .do();
         console.log("ASA balances:", accountAssets);
 
         // Create a map of ASA balances by asset-id
@@ -116,7 +121,17 @@ export const useBalances = (address?: string) => {
         }
 
         const data: IndexerBalanceResponse = await response.json();
-        
+
+        // if wvoi is missing add it
+        if (!data.balances.find((b) => b.contractId === 390001)) {
+          data.balances.push({
+            accountId: address,
+            contractId: 390001,
+            balance: "0",
+            tokenId: "0",
+          });
+        }
+
         // Convert indexer balances to our format
         const arc200Balances: Record<string, Arc200Balance> = {};
 
@@ -176,7 +191,6 @@ export const useBalances = (address?: string) => {
           },
           ...arc200Balances,
         }));
-
       } catch (error) {
         console.error("Error fetching balances:", error);
         setBalances((prev) => ({
@@ -185,7 +199,10 @@ export const useBalances = (address?: string) => {
             balance: "0",
             availableBalance: "0",
             loading: false,
-            error: error instanceof Error ? error.message : "Failed to fetch balances",
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to fetch balances",
             assetType: 0,
             decimals: 6,
           },

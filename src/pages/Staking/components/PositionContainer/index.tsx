@@ -257,15 +257,18 @@ const PositionContainer: React.FC = () => {
     );
   }
 
-  const { data: stakingContractData, isLoading: stakingContractLoading } =
+  const { data: stakingContractData, isLoading: stakingContractLoading, refetch: refetchStakingContract } =
     useOwnedStakingContract(activeAccount?.address, {
       includeRewards: true,
       includeWithdrawable: true,
     });
-  const { data: arc72TokenData, isLoading: arc72TokenLoading } =
-    useOwnedARC72Token(activeAccount?.address, TOKEN_NAUT_VOI_STAKING, {
-      includeStaking: true,
-    });
+  const {
+    data: arc72TokenData,
+    isLoading: arc72TokenLoading,
+    refetch: refetchArc72Token,
+  } = useOwnedARC72Token(activeAccount?.address, TOKEN_NAUT_VOI_STAKING, {
+    includeStaking: true,
+  });
 
   // Infinite scroll setup
   const [displayCount, setDisplayCount] = useState(10);
@@ -297,6 +300,10 @@ const PositionContainer: React.FC = () => {
       <PositionTable
         stakingContracts={stakingContractData?.slice(0, displayCount) || []}
         arc72Tokens={arc72TokenData?.slice(0, displayCount)}
+        onRefresh={() => {
+          refetchStakingContract();
+          refetchArc72Token();
+        }}
       />
 
       {/* Invisible load more trigger */}
