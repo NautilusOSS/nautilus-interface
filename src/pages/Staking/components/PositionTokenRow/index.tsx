@@ -433,7 +433,7 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
           sk: new Uint8Array(0),
         }
       );
-      ci.setFee(5000);
+      ci.setFee(6000);
       const withdrawR2 = await ci.withdraw(
         Number(nft.tokenId),
         BigInt(withdrawAmount * 1e6) // Convert VOI to microVOI
@@ -644,26 +644,69 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
     setIsDepositLoading(true);
     try {
       // Create payment transaction to app account
-      const suggestedParams = await algodClient.getTransactionParams().do();
-      const paymentTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-        from: activeAccount.address,
-        to: nft.staking?.contractAddress || "",
-        amount: Math.floor(Number(amount) * 1e6), // Convert VOI to microVOI
-        suggestedParams,
-        note: new TextEncoder().encode(
-          `deposit ${amount} VOI to staking contract ${nft.contractId}`
-        ),
-      });
-      const stxns = await signTransactions([paymentTxn.toByte()]);
+
+      const ci = new CONTRACT(
+        Number(nft.contractId),
+        algodClient,
+        undefined,
+        {
+          name: "NautilusVoiStaking",
+          desc: "Nautilus Voi Staking Contract",
+          methods: [
+            {
+              name: "deposit",
+              args: [{ type: "uint64", name: "tokenId" }],
+              returns: { type: "uint64" },
+            },
+          ],
+          events: [],
+        },
+        {
+          addr: activeAccount.address,
+          sk: new Uint8Array(0),
+        }
+      );
+      ci.setFee(2000);
+      ci.setPaymentAmount(Math.floor(Number(amount) * 1e6));
+      const depositR = await ci.deposit(Number(nft.tokenId));
+      if (!depositR.success) {
+        console.error({ depositR });
+        throw new Error("deposit failed in simulate");
+      }
+      const stxns = await signTransactions(
+        depositR.txns.map(
+          (txn: string) => new Uint8Array(Buffer.from(txn, "base64"))
+        )
+      );
       const { txId } = await algodClient
         .sendRawTransaction(stxns as Uint8Array[])
         .do();
-
       await algosdk.waitForConfirmation(algodClient, txId, 4);
-      await refetch();
+      //await refetch(); // fix missing refetch
       toast.success("Successfully deposited funds");
       setIsDepositModalOpen(false);
       setAmount("");
+
+      // const suggestedParams = await algodClient.getTransactionParams().do();
+      // const paymentTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+      //   from: activeAccount.address,
+      //   to: nft.staking?.contractAddress || "",
+      //   amount: Math.floor(Number(amount) * 1e6), // Convert VOI to microVOI
+      //   suggestedParams,
+      //   note: new TextEncoder().encode(
+      //     `deposit ${amount} VOI to staking contract ${nft.contractId}`
+      //   ),
+      // });
+      // const stxns = await signTransactions([paymentTxn.toByte()]);
+      // const { txId } = await algodClient
+      //   .sendRawTransaction(stxns as Uint8Array[])
+      //   .do();
+
+      // await algosdk.waitForConfirmation(algodClient, txId, 4);
+      // await refetch();
+      // toast.success("Successfully deposited funds");
+      // setIsDepositModalOpen(false);
+      // setAmount("");
     } catch (error) {
       console.error("Error depositing:", error);
       toast.error(
