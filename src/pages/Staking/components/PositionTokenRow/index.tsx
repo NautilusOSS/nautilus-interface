@@ -22,6 +22,7 @@ import {
   Table,
   TableHead,
   TableBody,
+  Checkbox,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Skeleton from "@mui/material/Skeleton";
@@ -71,6 +72,9 @@ interface PositionTokenRowProps {
   arc72TokensLength: number;
   lastRowStyle: React.CSSProperties;
   cellStyle: React.CSSProperties;
+  selected: boolean;
+  onSelect: (nft: any) => void;
+  isSelectable?: boolean;
 }
 
 interface BlockProductionData {
@@ -330,6 +334,9 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
   arc72TokensLength,
   lastRowStyle,
   cellStyle,
+  selected,
+  onSelect,
+  isSelectable = true,
 }) => {
   if (!nft.staking) return null;
   const { isDarkTheme } = useSelector((state: RootState) => state.theme);
@@ -806,80 +813,135 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
   return (
     <>
       <TableRow
-        key={`${nft.contractId}-${nft.tokenId}`}
-        style={index === arc72TokensLength - 1 ? lastRowStyle : undefined}
+        hover
+        role="checkbox"
+        aria-checked={selected}
+        tabIndex={-1}
+        selected={selected}
+        onClick={() => isSelectable && onSelect(nft)}
+        sx={{
+          cursor: isSelectable ? 'pointer' : 'default',
+          '&.Mui-selected': {
+            backgroundColor: isDarkTheme 
+              ? 'rgba(153, 51, 255, 0.08)' 
+              : 'rgba(153, 51, 255, 0.08)',
+          },
+          '&.Mui-selected:hover': {
+            backgroundColor: isDarkTheme 
+              ? 'rgba(153, 51, 255, 0.12)' 
+              : 'rgba(153, 51, 255, 0.12)',
+          },
+        }}
       >
         {isLoading ? (
-          <TableCell style={cellStyleWithColor} colSpan={9} align="right">
+          <TableCell style={cellStyleWithColor} colSpan={10} align="right">
             <Skeleton variant="text" />
           </TableCell>
         ) : (
           <>
-            <TableCell style={cellStyleWithColor} align="right">
+            <TableCell padding="checkbox" style={cellStyleWithColor}>
+              <Checkbox
+                checked={selected}
+                onChange={(event) => {
+                  event.stopPropagation();
+                  onSelect(nft);
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+                sx={{
+                  color: isDarkTheme ? 'white' : undefined,
+                  '&.Mui-checked': {
+                    color: '#9933ff',
+                  },
+                }}
+              />
+            </TableCell>
+            <TableCell 
+              style={{
+                ...cellStyleWithColor,
+                color: isDarkTheme ? "white" : "black",
+                fontWeight: 100,
+              }}
+              align="right"
+            >
               <a
                 href={`https://block.voi.network/explorer/application/${data?.contractId}/global-state`}
                 target="_blank"
-                style={{
-                  color: isDarkTheme ? "white" : "inherit",
-                  fontWeight: 100,
-                }}
                 rel="noopener noreferrer"
+                style={{ color: "inherit" }}
+                onClick={(e) => e.stopPropagation()}
               >
                 {data?.contractId}
               </a>
               <ContentCopyIcon
                 style={{
-                  color: isDarkTheme ? "white" : "inherit",
                   cursor: "pointer",
                   marginLeft: "5px",
                   fontSize: "16px",
+                  color: "inherit",
                 }}
-                onClick={() => copyToClipboard(data?.contractId, "Account ID")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(data?.contractId, "Account ID");
+                }}
               />
             </TableCell>
-            <TableCell style={cellStyleWithColor} align="center">
+            <TableCell 
+              style={{
+                ...cellStyleWithColor,
+                color: isDarkTheme ? "white" : "black",
+                fontWeight: 100,
+              }}
+              align="right"
+            >
               <a
                 href={`https://block.voi.network/explorer/account/${data?.contractAddress}/transactions`}
                 target="_blank"
-                style={{
-                  color: isDarkTheme ? "white" : "inherit",
-                  fontWeight: 100,
-                }}
                 rel="noopener noreferrer"
+                style={{ color: "inherit" }}
+                onClick={(e) => e.stopPropagation()}
               >
                 {data?.contractAddress.slice(0, 6)}...
                 {data?.contractAddress.slice(-6)}
               </a>
               <ContentCopyIcon
                 style={{
-                  color: isDarkTheme ? "white" : "inherit",
                   cursor: "pointer",
                   marginLeft: "5px",
                   fontSize: "16px",
+                  color: "inherit",
                 }}
-                onClick={() =>
-                  copyToClipboard(data?.contractAddress, "Account Address")
-                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(data?.contractAddress, "Account Address");
+                }}
               />
             </TableCell>
             <TableCell
               style={{
                 ...cellStyleWithColor,
-                color: isDarkTheme ? "white" : "inherit",
+                color: isDarkTheme ? "white" : "black",
                 fontWeight: 100,
-                cursor: "pointer",
               }}
-              align="center"
-              onClick={() => setIsDelegateModalOpen(true)}
+              align="right"
             >
-              {data.global_delegate.slice(0, 6)}...
-              {data.global_delegate.slice(-6)}
+              <a
+                href={`https://block.voi.network/explorer/account/${data?.contractAddress}/transactions`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "inherit" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {data.global_delegate.slice(0, 6)}...
+                {data.global_delegate.slice(-6)}
+              </a>
               <ContentCopyIcon
                 style={{
-                  color: isDarkTheme ? "white" : "inherit",
                   cursor: "pointer",
                   marginLeft: "5px",
                   fontSize: "16px",
+                  color: "inherit",
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -890,7 +952,7 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
             <TableCell
               style={{
                 ...cellStyleWithColor,
-                color: isDarkTheme ? "white" : "inherit",
+                color: isDarkTheme ? "white" : "black",
                 fontWeight: 100,
               }}
               align="right"
@@ -925,7 +987,7 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
             <TableCell
               style={{
                 ...cellStyleWithColor,
-                color: isDarkTheme ? "white" : "inherit",
+                color: isDarkTheme ? "white" : "black",
                 fontWeight: 100,
               }}
               align="right"
@@ -935,14 +997,21 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
             <TableCell
               style={{
                 ...cellStyleWithColor,
-                color: isDarkTheme ? "white" : "inherit",
+                color: isDarkTheme ? "white" : "black",
                 fontWeight: 100,
               }}
               align="right"
             >
               {renderExpirationCell()}
             </TableCell>
-            <TableCell style={cellStyleWithColor} align="right">
+            <TableCell 
+              style={{
+                ...cellStyleWithColor,
+                color: isDarkTheme ? "white" : "black",
+                fontWeight: 100,
+              }}
+              align="right"
+            >
               <Typography
                 variant="body2"
                 sx={{
@@ -953,7 +1022,14 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
                 {blocksData?.getProposerBlocks(data?.contractAddress)}
               </Typography>
             </TableCell>
-            <TableCell style={cellStyleWithColor} align="right">
+            <TableCell 
+              style={{
+                ...cellStyleWithColor,
+                color: isDarkTheme ? "white" : "black",
+                fontWeight: 100,
+              }}
+              align="right"
+            >
               <Box
                 sx={{
                   display: "flex",
@@ -996,8 +1072,14 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
                 </Typography>
               </Box>
             </TableCell>
-
-            <TableCell style={cellStyleWithColor} align="right">
+            <TableCell 
+              style={{
+                ...cellStyleWithColor,
+                color: isDarkTheme ? "white" : "black",
+                fontWeight: 100,
+              }}
+              align="right"
+            >
               <Button
                 id="actions-button"
                 aria-controls={Boolean(anchorEl) ? "actions-menu" : undefined}

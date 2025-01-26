@@ -581,6 +581,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
             algodClient,
             indexerClient,
             skipEnsure,
+            strategy: "default",
           });
           console.log({ customR });
         } else {

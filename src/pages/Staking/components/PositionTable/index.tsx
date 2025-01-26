@@ -675,7 +675,7 @@ const ResponsiveTable: React.FC<ResponsiveTableProps> = ({
           }
           // Clear selected rows and trigger refresh
           setSelectedRows([]);
-          setRefreshCounter(prev => prev + 1);
+          setRefreshCounter((prev) => prev + 1);
           onRefresh();
         }
       } else {
@@ -759,7 +759,7 @@ const ResponsiveTable: React.FC<ResponsiveTableProps> = ({
           console.log(res);
           // Clear selected rows and trigger refresh
           setSelectedRows([]);
-          setRefreshCounter(prev => prev + 1);
+          setRefreshCounter((prev) => prev + 1);
           onRefresh();
         }
       }
@@ -1272,10 +1272,9 @@ const ResponsiveTable: React.FC<ResponsiveTableProps> = ({
                       arc72TokensLength={sortedArc72Tokens.length}
                       lastRowStyle={lastRowStyle}
                       cellStyle={cellStyle}
-                      isSelected={isSelected(nft.tokenId.toString())}
-                      onSelectRow={() =>
-                        handleSelectRow(nft.tokenId.toString())
-                      }
+                      isSelectable={true}
+                      selected={isSelected(nft.tokenId.toString())}
+                      onSelect={() => handleSelectRow(nft.tokenId.toString())}
                     />
                   ))
               ) : (
