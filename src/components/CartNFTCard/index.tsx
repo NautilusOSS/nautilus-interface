@@ -40,6 +40,7 @@ import { HIGHFORGE_CDN } from "@/config/arc72-idx";
 import { RootState } from "../../store/store";
 import { fetchTokenInfo } from "@/utils/dex";
 import { decodeRoyalties } from "@/utils/hf";
+import { useNFTDrips } from "@/hooks/useNFTDrips";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -316,6 +317,65 @@ const ListViewWrapper = styled.div<{ isDark?: boolean }>`
   `}
 `;
 
+// Add this styled component near the other styled components
+const DripBadge = styled.div`
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: help;
+
+  img {
+    width: 24px;
+    height: 24px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
+`;
+
+// Add this new component for the tooltip content
+const DripTooltipContent = styled.div`
+  padding: 8px;
+
+  .drip-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .drip-amount {
+    font-family: monospace;
+    font-weight: 600;
+  }
+`;
+
+// Add this SVG component near the top of the file
+const DripIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M12 21C16.4183 21 20 17.4183 20 13C20 8.58172 12 2 12 2C12 2 4 8.58172 4 13C4 17.4183 7.58172 21 12 21Z"
+      fill="#00A3FF"
+      stroke="#FFFFFF"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const getRarityColor = (rarity: string) => {
   switch (rarity.toLowerCase()) {
     case "legendary":
@@ -367,6 +427,7 @@ interface NFTCardProps {
   sx?: SxProps<Theme>;
   hideOverlay?: boolean;
   rarity?: any;
+  showDrip?: boolean;
 }
 
 const CartNftCard: React.FC<NFTCardProps> = ({
@@ -380,7 +441,9 @@ const CartNftCard: React.FC<NFTCardProps> = ({
   sx,
   hideOverlay = false,
   rarity,
+  showDrip = false,
 }) => {
+  const { drips, loading, error } = useNFTDrips();
   const { activeAccount, signTransactions } = useWallet();
 
   const metadata = JSON.parse(token.metadata || "{}");
@@ -730,6 +793,15 @@ const CartNftCard: React.FC<NFTCardProps> = ({
     };
   }, [metadata, rarity]);
 
+  const getDrips = useMemo(() => {
+    const drip = drips.filter(
+      (drip) => Number(drip.collectionId) === Number(token.contractId)
+    );
+    return drip;
+  }, [drips, token.contractId]);
+
+  console.log({ drips, getDrips, token });
+
   // Add this debug log right before the render
   console.log("Rarity:", getRarity, rarity);
 
@@ -746,6 +818,28 @@ const CartNftCard: React.FC<NFTCardProps> = ({
               )}
             </RarityBadge>
           ) : null}
+          {showDrip && getDrips.length > 0 && (
+            <Tooltip
+              title={
+                <DripTooltipContent>
+                  {getDrips.map((drip, index) => (
+                    <div key={index} className="drip-item">
+                      <span className="drip-amount">
+                        {formatter.format(drip.dripAmount)}
+                      </span>
+                      <span>{drip.symbol}/wk</span>
+                    </div>
+                  ))}
+                </DripTooltipContent>
+              }
+              arrow
+              placement="right"
+            >
+              <DripBadge>
+                <DripIcon />
+              </DripBadge>
+            </Tooltip>
+          )}
           <img className="list-image" src={url} alt={displayName} />
           <div className="list-content">
             <div className="list-header">
@@ -838,6 +932,28 @@ const CartNftCard: React.FC<NFTCardProps> = ({
             {getRarity.rank && <span className="rank">#{getRarity.rank}</span>}
           </RarityBadge>
         ) : null}
+        {showDrip && getDrips.length > 0 && (
+          <Tooltip
+            title={
+              <DripTooltipContent>
+                {getDrips.map((drip, index) => (
+                  <div key={index} className="drip-item">
+                    <span className="drip-amount">
+                      {formatter.format(drip.dripAmount)}
+                    </span>
+                    <span>{drip.symbol}/wk</span>
+                  </div>
+                ))}
+              </DripTooltipContent>
+            }
+            arrow
+            placement="right"
+          >
+            <DripBadge>
+              <DripIcon />
+            </DripBadge>
+          </Tooltip>
+        )}
         <Box
           style={{
             cursor: "pointer",

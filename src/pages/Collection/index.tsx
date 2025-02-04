@@ -62,10 +62,11 @@ import { formatUnits } from "viem";
 import { toast } from "react-hot-toast";
 import { mp, abi } from "ulujs";
 import party from "party-js";
-
 import { TOKEN_WVOI } from "@/contants/tokens";
 import { CTCINFO_MP206_2 } from "@/contants/mp";
 import algosdk from "algosdk";
+import { useNFTDrips } from "@/hooks/useNFTDrips";
+
 const PriceRangeContainer = styled.div`
   display: flex;
   align-items: center;
@@ -852,6 +853,8 @@ const calculateRarityData = (tokens: any[]): TokenRarity[] => {
 };
 
 export const Collection: React.FC = () => {
+  const { drips, loading, error } = useNFTDrips();
+
   /* Theme */
 
   const isDarkTheme = useSelector(
@@ -861,6 +864,10 @@ export const Collection: React.FC = () => {
   /* Router */
 
   const { id } = useParams();
+
+  const getDrips = useMemo(() => {
+    return drips.filter((drip) => Number(drip.collectionId) === Number(id));
+  }, [drips, id]);
 
   const dispatch = useDispatch();
 
@@ -1824,6 +1831,9 @@ export const Collection: React.FC = () => {
 
   console.log({ collectionTokens, rarityData });
 
+  // Add new state for drip toggle
+  const [showDrip, setShowDrip] = useState(false);
+
   return (
     <>
       <HeroSection
@@ -1946,6 +1956,37 @@ export const Collection: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-3">
+                    {getDrips.length > 0 && (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={showDrip}
+                            onChange={(e) => setShowDrip(e.target.checked)}
+                            sx={{
+                              "& .MuiSwitch-switchBase.Mui-checked": {
+                                color: "#93f",
+                                "&:hover": {
+                                  backgroundColor: "rgba(153, 51, 255, 0.04)",
+                                },
+                              },
+                              "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                                {
+                                  backgroundColor: "#93f",
+                                },
+                            }}
+                          />
+                        }
+                        label={
+                          <Typography
+                            sx={{
+                              color: isDarkTheme ? "#fff" : "textSecondary",
+                            }}
+                          >
+                            Show Drip
+                          </Typography>
+                        }
+                      />
+                    )}
                     <FormControlLabel
                       control={
                         <Switch
@@ -2016,6 +2057,7 @@ export const Collection: React.FC = () => {
                           token={listedToken}
                           listing={el}
                           rarity={rarity}
+                          showDrip={showDrip}
                           onClick={() => {
                             navigate(
                               `/collection/${el.token.contractId}/token/${el.token.tokenId}`

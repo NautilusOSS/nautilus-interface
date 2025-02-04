@@ -1167,6 +1167,7 @@ export const Listings: React.FC = () => {
                         `/collection/${el.token.contractId}/token/${el.token.tokenId}`
                       );
                     }}
+                    showDrip={true}
                   />
                 </Grid2>
               );
