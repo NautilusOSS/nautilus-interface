@@ -144,16 +144,16 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <WalletProvider manager={walletManager}>
-        <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <WalletProvider manager={walletManager}>
           <Provider store={store}>
             <PersistGate loading={null} persistor={persistor}>
               <AppRoutes />
             </PersistGate>
           </Provider>
           <ToastContainer />
-        </QueryClientProvider>
-      </WalletProvider>
+        </WalletProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 };

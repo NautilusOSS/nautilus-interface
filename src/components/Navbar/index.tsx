@@ -326,7 +326,9 @@ const Navbar: React.FC = () => {
                 gap: "24px",
               }}
             >
-              <li style={{ color: isDarkTheme ? "#717579" : undefined }}>
+              <li style={{ color: isDarkTheme ? "#717579" : undefined }}
+                  className="hidden md:block"
+              >
                 <ThemeSelector>
                   {isDarkTheme ? (
                     <WbSunnyOutlinedIcon className="cursor-pointer" />
@@ -388,7 +390,7 @@ const Navbar: React.FC = () => {
                           ).toLocaleString()}{" "}
                           VOI
                         </div>
-                        {balanceData && balanceData.success ? (
+                        {/*balanceData && balanceData.success ? (
                           <Tooltip title="Click to withdraw VOI">
                             <Button
                               size="small"
@@ -443,7 +445,7 @@ const Navbar: React.FC = () => {
                               )}
                             </Button>
                           </Tooltip>
-                        ) : null}
+                        ) : null*/}
                       </Stack>
                     </Stack>
                   </div>
@@ -452,7 +454,7 @@ const Navbar: React.FC = () => {
             ) : null}
             <AccountContainer>
               {activeAccount ? (
-                <Link to={`/account/${activeAccount?.address}`}>
+                <Link to={`/account/${activeAccount?.address}`} className="hidden md:block">
                   {accountProfile?.metadata?.avatar ? (
                     <Avatar
                       src={accountProfile?.metadata?.avatar}
@@ -476,14 +478,14 @@ const Navbar: React.FC = () => {
         </NavContainer>
       </NavRoot>
 
-      <WithdrawModal
+      {/*<WithdrawModal
         open={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
         isDarkTheme={isDarkTheme}
         balance={withdrawableBalance}
         isLoading={isWithdrawing}
         onWithdraw={handleWithdraw}
-      />
+      />*/}
     </>
   );
 };

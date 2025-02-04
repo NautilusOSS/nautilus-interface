@@ -42,4 +42,8 @@ export const routes = [
     path: "/sandbox",
     Component: Page.Sandbox,
   },
+  {
+    path: "/nft-games",
+    Component: Page.NFTGames,
+  },
 ];

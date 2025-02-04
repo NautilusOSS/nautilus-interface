@@ -459,7 +459,8 @@ export const Token: React.FC = () => {
           tokens: [nftData],
         },
       } = await axios.get(
-        `${ARC72_INDEXER_API}/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}`
+        //`${ARC72_INDEXER_API}/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}`
+        `https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}`
       );
       // TODO handle missing data
 

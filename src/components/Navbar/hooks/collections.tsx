@@ -66,10 +66,12 @@ export const useSmartTokens = () => {
 export const useCollectionInfo = () => {
   const data = useQuery({
     queryFn: () => {
-      return axios
-        //.get(`https://prod-voi.api.highforge.io/projects`)
-        .get(`https://mainnet-idx.nautilus.sh/nft-indexer/v1/collections`)
-        .then((res: any) => res.data.results);
+      return (
+        axios
+          //.get(`https://prod-voi.api.highforge.io/projects`)
+          .get(`https://mainnet-idx.nautilus.sh/nft-indexer/v1/collections`)
+          .then((res: any) => res.data.results)
+      );
     },
     queryKey: ["collection-collection-info"],
     staleTime: 60 * 1000 * 2,
@@ -81,12 +83,16 @@ export const useListings = (options?: { seller?: string[] }) => {
   const data = useQuery({
     queryFn: () => {
       return axios
-        .get(`${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`, {
-          params: {
-            active: true,
-            ...(options ?? {}),
-          },
-        })
+        .get(
+          //`${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`
+          `https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/mp/listings`,
+          {
+            params: {
+              active: true,
+              ...(options ?? {}),
+            },
+          }
+        )
         .then((res) => res?.data?.listings);
     },
     queryKey: ["collection-listings", JSON.stringify(options ?? {})],

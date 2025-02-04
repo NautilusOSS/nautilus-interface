@@ -1,6 +1,16 @@
 import React, { useEffect, useMemo } from "react";
 import styled from "styled-components";
-import { Avatar, Badge, Box, Chip, Fade, Stack, Tooltip } from "@mui/material";
+import {
+  Avatar,
+  Badge,
+  Box,
+  Chip,
+  Fade,
+  Stack,
+  SxProps,
+  Theme,
+  Tooltip,
+} from "@mui/material";
 import { stringToColorCode } from "../../utils/string";
 import VoiIcon from "../../static/crypto-icons/voi/0.svg";
 import ViaIcon from "../../static/crypto-icons/voi/6779767.svg";
@@ -66,7 +76,7 @@ const NFTCardWrapper = styled.div`
   flex-direction: column;
   position: relative;
   transition: all 0.1s ease;
-  overflow: hidden;
+  overflow: visible;
   cursor: pointer;
   &:hover {
     transform: scale(1.05);
@@ -306,6 +316,46 @@ const ListViewWrapper = styled.div<{ isDark?: boolean }>`
   `}
 `;
 
+const getRarityColor = (rarity: string) => {
+  switch (rarity.toLowerCase()) {
+    case "legendary":
+      return "linear-gradient(135deg, #FFD700, #FFA500)"; // Gold gradient
+    case "epic":
+      return "linear-gradient(135deg, #9400D3, #4B0082)"; // Purple gradient
+    case "rare":
+      return "linear-gradient(135deg, #0096FF, #0044FF)"; // Blue gradient
+    case "uncommon":
+      return "linear-gradient(135deg, #50C878, #228B22)"; // Green gradient
+    default: // Common
+      return "linear-gradient(135deg, #808080, #404040)"; // Gray gradient
+  }
+};
+
+const RarityBadge = styled.div<{ rarity: string }>`
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: ${(props) => getRarityColor(props.rarity)};
+  z-index: 999;
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  .rank {
+    font-size: 10px;
+    opacity: 0.9;
+  }
+`;
+
 interface NFTCardProps {
   token: ListingTokenI | NFTIndexerTokenI;
   listing?: NFTIndexerListingI;
@@ -314,6 +364,9 @@ interface NFTCardProps {
   size?: "small" | "medium" | "large";
   imageOnly?: boolean;
   viewMode?: "grid" | "list";
+  sx?: SxProps<Theme>;
+  hideOverlay?: boolean;
+  rarity?: any;
 }
 
 const CartNftCard: React.FC<NFTCardProps> = ({
@@ -324,18 +377,15 @@ const CartNftCard: React.FC<NFTCardProps> = ({
   onClick,
   selected,
   viewMode = "grid",
+  sx,
+  hideOverlay = false,
+  rarity,
 }) => {
   const { activeAccount, signTransactions } = useWallet();
 
   const metadata = JSON.parse(token.metadata || "{}");
 
-  const royalties = metadata?.royalties
-    ? decodeRoyalties(metadata?.royalties || "")
-    : null;
-
-  console.log({ royalties });
-
-  const navigate = useNavigate();
+  console.log({ metadata });
 
   const [display, setDisplay] = React.useState(true);
 
@@ -350,6 +400,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
 
   const currencyDecimals =
     currency?.decimals === 0 ? 0 : currency?.decimals || 6;
+
   const currencySymbol =
     currency?.tokenId === "0" ? "VOI" : currency?.symbol || "VOI";
 
@@ -357,13 +408,57 @@ const CartNftCard: React.FC<NFTCardProps> = ({
     new BigNumber(10).pow(currencyDecimals)
   );
 
-  const price = formatter.format(priceBn.toNumber());
+  const price =
+    priceBn.toNumber() === 0 ? "0" : formatter.format(priceBn.toNumber());
 
   const priceNormal = useMemo(() => {
-    if (!currency || !currency.price) return 0;
-    const price = priceBn.multipliedBy(new BigNumber(currency.price));
-    return formatter.format(price.toNumber());
-  }, [currency, priceBn]);
+    if (!listing?.price) return "0";
+    const normalPrice = new BigNumber(listing.price).div(
+      new BigNumber(10).pow(currencyDecimals)
+    );
+    return formatter.format(normalPrice.toNumber());
+  }, [listing?.price, currencyDecimals]);
+
+  const [resolvedName, setResolvedName] = React.useState<string | null>(null);
+
+  useEffect(() => {
+    const resolveEnVoiName = async () => {
+      if (metadata.name?.toLowerCase().includes("envoi name")) {
+        try {
+          const response = await fetch(
+            `https://api.envoi.sh/api/token/${token.tokenId}`
+          );
+          const data = await response.json();
+          if (data.results?.[0]?.name) {
+            setResolvedName(data.results[0].name);
+          }
+        } catch (error) {
+          console.error("Failed to resolve enVoi name:", error);
+        }
+      }
+    };
+
+    resolveEnVoiName();
+  }, [token.tokenId, metadata.name]);
+
+  // useEffect(() => {
+  //   console.log({ metadata });
+  //   if (metadata.properties) {
+  //     const name = Object.entries(metadata.properties).find(
+  //       ([key, value]) => key === "Name"
+  //     );
+  //     if (name) {
+  //       setResolvedName(name[1] as string);
+  //     }
+  //   }
+  // }, [metadata.properties]);
+
+  const displayName = useMemo(() => {
+    if (resolvedName) return resolvedName;
+    if (metadata.name?.includes(".voi")) return metadata.name;
+    if ((metadata.name || "").match(/[0-9]/)) return metadata.name;
+    return `${metadata.name} #${token.tokenId}`;
+  }, [metadata.name, token.tokenId, resolvedName]);
 
   const handleBuyButtonClick = async () => {
     try {
@@ -473,36 +568,16 @@ const CartNftCard: React.FC<NFTCardProps> = ({
     try {
       const doWithdraw = listing.currency === 0;
       setIsBuying(true);
-      // -------------------------------------
-      // SIM HERE
-      // -------------------------------------
+
       const { algodClient, indexerClient } = getAlgorandClients();
 
-      // approve spending
-
-      // {
-      //   const ci = new CONTRACT(
-      //     Number(listing?.currency),
-      //     algodClient,
-      //     indexerClient,
-      //     abi.nt200,
-      //     {
-      //       addr: activeAccount.address,
-      //       sk: new Uint8Array(0),
-      //     }
-      //   );
-      //   const approveR = await ci.arc200_approve(
-      //     algosdk.getApplicationAddress(pool.contractId),
-      //     Number.MAX_SAFE_INTEGER
-      //   );
-      //   if (!approveR.success) throw new Error("approve failed");
-      //   const stxn = await signTransactions(
-      //     approveR.txns.map(
-      //       (t: string) => new Uint8Array(Buffer.from(t, "base64"))
-      //     )
-      //   );
-      //   await algodClient.sendRawTransaction(stxn as Uint8Array[]).do();
-      // }
+      const defaultPaymentToken = {
+        contractId: 390001,
+        name: "Wrapped Voi",
+        symbol: "wVOI",
+        decimals: 6,
+        tokenId: "0",
+      };
 
       let customR;
       for (const skipEnsure of [true, false]) {
@@ -514,27 +589,15 @@ const CartNftCard: React.FC<NFTCardProps> = ({
             poolBalA,
             poolBalB,
           } = pool;
-          console.log({ poolId, tokAId, tokBId });
-          // -------------------------------------
-
-          // request tokens from api
-
           const tokA = await fetchTokenInfo(tokAId);
           const tokB = await fetchTokenInfo(tokBId);
-
           const inToken = tokA?.tokenId === "0" ? tokB : tokA;
           const outToken = tokA?.tokenId !== "0" ? tokB : tokA;
-
-          console.log({ tokA, tokB, inToken, outToken, poolId });
-
           const amount = new BigNumber(
             simulationResults[inToken?.contractId || 0]?.outputAmount
           )
             .dividedBy(new BigNumber(10).pow(inToken?.decimals || 0))
             .toString();
-
-          console.log({ amount });
-
           const A = {
             ...inToken,
             amount,
@@ -550,57 +613,38 @@ const CartNftCard: React.FC<NFTCardProps> = ({
           ).swap(activeAccount.address, poolId, A, B, [], {
             doWithdraw,
           }); // withdraws by default
-
-          console.log({ swapR });
-
           if (!swapR.success) throw new Error("swap failed");
-          // const returnValue = swapR.response.txnGroups[0].txnResults
-          //   .slice(-1)[0]
-          //   .txnResult.logs.slice(-1)[0];
-
-          // const selector = returnValue.slice(0, 4).toString("hex");
-          // const outA = algosdk.bytesToBigInt(returnValue.slice(4, 36));
-          // const outB = algosdk.bytesToBigInt(returnValue.slice(36, 68));
-
-          // const currencyId =
-          //   listing.currency === 0 ? TOKEN_WVOI : listing.currency;
-
-          const currency = {
-            contractId: 390001,
-            name: "Wrapped Voi",
-            symbol: "wVOI",
-            decimals: 6,
-            tokenId: "0",
-          };
-
-          customR = await mp.buy(activeAccount.address, listing, currency, {
-            paymentTokenId:
-              listing.currency === 0 ? TOKEN_WVOI : listing.currency,
-            wrappedNetworkTokenId: TOKEN_WVOI,
-            extraTxns: swapR.objs,
-            algodClient,
-            indexerClient,
-            skipEnsure,
-            strategy: "default",
-          });
-          console.log({ customR });
+          customR = await mp.buy(
+            activeAccount.address,
+            listing,
+            defaultPaymentToken,
+            {
+              paymentTokenId:
+                listing.currency === 0 ? TOKEN_WVOI : listing.currency,
+              wrappedNetworkTokenId: TOKEN_WVOI,
+              extraTxns: swapR.objs,
+              algodClient,
+              indexerClient,
+              skipEnsure,
+              strategy: "default",
+            }
+          );
         } else {
-          const paymentToken = {
-            contractId: 390001,
-            name: "Wrapped Voi",
-            symbol: "wVOI",
-            decimals: 6,
-            tokenId: "0",
-          };
-          customR = await mp.buy(activeAccount.address, listing, paymentToken, {
-            paymentTokenId:
-              listing.currency === 0 ? TOKEN_WVOI : listing.currency,
-            wrappedNetworkTokenId: TOKEN_WVOI,
-            extraTxns: [],
-            algodClient,
-            indexerClient,
-            skipEnsure,
-          });
+          customR = await mp.buy(
+            activeAccount.address,
+            listing,
+            defaultPaymentToken,
+            {
+              paymentTokenId:
+                listing.currency === 0 ? TOKEN_WVOI : listing.currency,
+              wrappedNetworkTokenId: TOKEN_WVOI,
+              extraTxns: [],
+              algodClient,
+              indexerClient,
+              skipEnsure,
+              strategy: "default",
+            }
+          );
         }
         if (customR.success) break;
       }
@@ -655,20 +699,53 @@ const CartNftCard: React.FC<NFTCardProps> = ({
     ? `${HIGHFORGE_CDN}/i/${encodeURIComponent(token.metadataURI)}?w=400`
     : metadata.image;
 
-  const displayName = metadata.name?.includes(".voi")
-    ? metadata.name
-    : (metadata.name || "").match(/[0-9]/)
-    ? metadata.name
-    : `${metadata.name} #${token.tokenId}`;
-
   const isDarkTheme = useSelector(
     (state: RootState) => state.theme.isDarkTheme
   );
 
+  // Update the getRarity helper function
+  const getRarity = useMemo(() => {
+    if (rarity?.rank) {
+      // Define rarity tiers based on rank
+      if (rarity.rank === 1)
+        return { label: "Legendary", rank: rarity.rank, show: true };
+      if (rarity.rank <= 9)
+        return { label: "Epic", rank: rarity.rank, show: true };
+      if (rarity.rank <= 25)
+        return { label: "Rare", rank: rarity.rank, show: true };
+      if (rarity.rank <= 99)
+        return { label: "Uncommon", rank: rarity.rank, show: true };
+      return { label: "Common", rank: rarity.rank, show: true };
+    }
+
+    // Check metadata.attributes array first
+    const rarityAttribute = metadata.attributes?.find(
+      (attr: any) => attr.trait_type?.toLowerCase() === "rarity"
+    );
+
+    return {
+      label: metadata.rarity || rarityAttribute?.value || "Common",
+      rank: null,
+      show: !!(metadata.rarity || rarityAttribute?.value),
+    };
+  }, [metadata, rarity]);
+
+  // Add this debug log right before the render
+  console.log("Rarity:", getRarity, rarity);
+
+  // Add this debug log right before the render
   if (viewMode === "list") {
     return (
       <>
-        <ListViewWrapper isDark={isDarkTheme} onClick={onClick}>
+        <ListViewWrapper isDark={isDarkTheme} onClick={onClick} sx={sx}>
+          {rarity ? (
+            <RarityBadge rarity={getRarity.label}>
+              {getRarity.label}
+              {getRarity.rank && (
+                <span className="rank">#{getRarity.rank}</span>
+              )}
+            </RarityBadge>
+          ) : null}
           <img className="list-image" src={url} alt={displayName} />
           <div className="list-content">
             <div className="list-header">
@@ -677,37 +754,35 @@ const CartNftCard: React.FC<NFTCardProps> = ({
                   {displayName}
                 </CollectionName>
                 <CollectionVolume isDark={isDarkTheme} inList>
-                  {price !== "0" ? (
-                    <Stack
-                      direction="row"
-                      gap={0.5}
-                      sx={{ alignItems: "center" }}
-                    >
-                      <span>
-                        {`${priceNormal || price} ${
-                          priceNormal ? "VOI" : currencySymbol
-                        }`}
-                      </span>
-                      {priceNormal && currencySymbol !== "VOI" ? (
-                        <Chip
-                          className="chip"
-                          size="small"
-                          sx={{
-                            background: isDarkTheme ? "#2b2b2b" : "#fff",
-                            color: isDarkTheme ? "#fff" : "#161717",
-                            border: isDarkTheme ? "none" : "1px solid #eaebf0",
-                            height: "20px",
-                            fontSize: "11px",
-                            padding: "0 6px",
-                          }}
-                          label={`${price} ${currencySymbol}`}
-                        />
-                      ) : null}
-                    </Stack>
-                  ) : null}
+                  <Stack
+                    direction="row"
+                    gap={0.5}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <span>
+                      {`${priceNormal || price} ${
+                        priceNormal ? "VOI" : currencySymbol
+                      }`}
+                    </span>
+                    {priceNormal && currencySymbol !== "VOI" && (
+                      <Chip
+                        className="chip"
+                        size="small"
+                        sx={{
+                          background: isDarkTheme ? "#2b2b2b" : "#fff",
+                          color: isDarkTheme ? "#fff" : "#161717",
+                          border: isDarkTheme ? "none" : "1px solid #eaebf0",
+                          height: "20px",
+                          fontSize: "11px",
+                          padding: "0 6px",
+                        }}
+                        label={`${price} ${currencySymbol}`}
+                      />
+                    )}
+                  </Stack>
                 </CollectionVolume>
               </Stack>
-              {price !== "0" ? (
+              {listing?.price && Number(listing.price) > 0 && (
                 <img
                   style={{ zIndex: 2 }}
                   height="32"
@@ -719,7 +794,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
                     handleBuyButtonClick();
                   }}
                 />
-              ) : null}
+              )}
             </div>
           </div>
         </ListViewWrapper>
@@ -750,85 +825,131 @@ const CartNftCard: React.FC<NFTCardProps> = ({
   return display ? (
     <>
       <Box
-        style={{
+        sx={{
           border: `4px solid ${selected ? "green" : "transparent"}`,
           borderRadius: "25px",
+          position: "relative",
+          ...sx,
         }}
       >
+        {rarity ? (
+          <RarityBadge rarity={getRarity.label}>
+            {getRarity.label}
+            {getRarity.rank && <span className="rank">#{getRarity.rank}</span>}
+          </RarityBadge>
+        ) : null}
         <Box
           style={{
             cursor: "pointer",
-            width: size === "medium" ? "305px" : "100px",
-            height: size === "medium" ? "305px" : "100px",
+            width: size === "medium" ? "305px" : "100%",
+            height: size === "medium" ? "305px" : "100%",
             flexShrink: 0,
             borderRadius: "20px",
-            background: `linear-gradient(0deg, rgba(0, 0, 0, 0.50) 10.68%, rgba(0, 0, 0, 0.00) 46.61%), 
-              url(${url}), 
-              lightgray 50% / cover no-repeat`,
             backgroundSize: "cover",
             display: "flex",
             alignItems: "flex-end",
             justifyContent: "center",
+            position: "relative",
+            overflow: "hidden",
           }}
           onClick={onClick}
         >
-          {!imageOnly ? (
-            <Stack
-              direction="row"
-              spacing={2}
-              sx={{
-                alignItems: "center",
-                justifyContent: "space-between",
-                color: "#fff",
-                width: "90%",
-                height: "52px",
-                marginBottom: "27px",
-              }}
-            >
-              <Stack gap={1}>
-                <CollectionName isDark={true}>{displayName}</CollectionName>
-                <CollectionVolume isDark={true}>
-                  {price !== "0" ? (
-                    <Stack
-                      direction="row"
-                      gap={1}
-                      sx={{ alignItems: "center" }}
-                    >
-                      <span>
-                        {`${priceNormal || price} ${
-                          priceNormal ? "VOI" : currencySymbol
-                        }`}
-                      </span>
-                      {priceNormal && currencySymbol !== "VOI" ? (
-                        <Chip
-                          sx={{
-                            background: "#fff",
-                            color: "#161717",
-                            border: "none",
-                            fontWeight: 500,
-                          }}
-                          label={`${price} ${currencySymbol}`}
-                        />
-                      ) : null}
-                    </Stack>
-                  ) : null}
-                </CollectionVolume>
-              </Stack>
-              {price !== "0" ? (
-                <img
-                  style={{ zIndex: 2 }}
-                  height="40"
-                  width="40"
-                  src="/static/icon-cart.png"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    handleBuyButtonClick();
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundImage: `url(${url})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              zIndex: 0,
+            }}
+          />
+          {!hideOverlay && (
+            <>
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: "90px",
+                  background: `linear-gradient(to top,
+                    rgba(255, 255, 255, 0.08) 0%,
+                    rgba(255, 255, 255, 0.05) 50%,
+                    rgba(255, 255, 255, 0) 100%)`,
+                  backdropFilter: "blur(2px) brightness(60%)",
+                  boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.1)",
+                  zIndex: 1,
+                }}
+              />
+              {!imageOnly && (
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  sx={{
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    color: "#fff",
+                    width: "90%",
+                    height: "52px",
+                    marginBottom: "27px",
+                    position: "relative",
+                    zIndex: 2,
                   }}
-                />
-              ) : null}
-            </Stack>
-          ) : null}
+                >
+                  <Stack gap={1}>
+                    <CollectionName isDark={true}>{displayName}</CollectionName>
+                    <CollectionVolume isDark={true}>
+                      {listing?.price && Number(listing.price) > 0 && (
+                        <Stack
+                          direction="row"
+                          gap={1}
+                          sx={{
+                            alignItems: "center",
+                            textShadow: "0px 1px 2px rgba(0,0,0,0.5)",
+                          }}
+                        >
+                          <span>
+                            {`${priceNormal || price} ${
+                              priceNormal ? "VOI" : currencySymbol
+                            }`}
+                          </span>
+                          {priceNormal && currencySymbol !== "VOI" && (
+                            <Chip
+                              sx={{
+                                background: "rgba(255, 255, 255, 0.9)",
+                                color: "#161717",
+                                border: "none",
+                                fontWeight: 500,
+                                backdropFilter: "blur(4px)",
+                              }}
+                              label={`${price} ${currencySymbol}`}
+                            />
+                          )}
+                        </Stack>
+                      )}
+                    </CollectionVolume>
+                  </Stack>
+                  {listing?.price && Number(listing.price) > 0 && (
+                    <img
+                      style={{ zIndex: 2 }}
+                      height="40"
+                      width="40"
+                      src="/static/icon-cart.png"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleBuyButtonClick();
+                      }}
+                    />
+                  )}
+                </Stack>
+              )}
+            </>
+          )}
         </Box>
       </Box>
       {activeAccount && openBuyModal && listing ? (

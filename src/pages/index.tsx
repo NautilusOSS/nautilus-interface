@@ -8,3 +8,4 @@ export { Activity } from "./Activity";
 export { Listings } from "./Listings";
 export { Staking } from "./Staking";
 export { CreateARC200 } from "./CreateARC200";
+export { NFTGames } from "./NFTGames";

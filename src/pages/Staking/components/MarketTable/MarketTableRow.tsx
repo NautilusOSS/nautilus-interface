@@ -9,7 +9,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import moment from "moment";
 import { toast } from "react-toastify";
 import VIAIcon from "/src/static/crypto-icons/voi/6779767.svg";
@@ -29,6 +29,7 @@ const MarketTableRow: React.FC<MarketTableRowProps> = ({
   isDarkTheme,
   onOpenModal,
 }) => {
+  const navigate = useNavigate();
   const theme = useTheme();
   const { balance, isLoading, error } = useAccountBalance(
     algosdk.getApplicationAddress(Number(item.token.tokenId))
@@ -214,7 +215,9 @@ const MarketTableRow: React.FC<MarketTableRowProps> = ({
           }}
           variant={isDarkTheme ? "outlined" : "contained"}
           size="small"
-          onClick={handleOpenModal}
+          onClick={() => {
+            navigate(`/collection/${item.token.contractId}/token/${item.token.tokenId}`);
+          }}
         >
           <img src={VIAIcon} style={{ height: "12px" }} alt="VOI Icon" />
           <Typography

@@ -903,14 +903,10 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
     }
     try {
       setIsBuying(true);
-      // -------------------------------------
-      // SIM HERE
-      // -------------------------------------
       const { algodClient, indexerClient } = getAlgorandClients();
       let customR;
       for (const skipEnsure of [true, false]) {
         if (pool) {
-          // -------------------------------------
           const {
             contractId: poolId,
             tokAId,
@@ -918,7 +914,6 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
             poolBalA,
             poolBalB,
           } = pool;
-          // -------------------------------------
           const tokA: TokenType = smartTokens.find(
             (el: any) => `${el.contractId}` === tokAId
           );
@@ -961,7 +956,6 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
           const selector = returnValue.slice(0, 4).toString("hex");
           const outA = algosdk.bytesToBigInt(returnValue.slice(4, 36));
           const outB = algosdk.bytesToBigInt(returnValue.slice(36, 68));
-
           customR = await mp.buy(activeAccount.address, nft.listing, currency, {
             paymentTokenId:
               nft.listing.currency === 0 ? TOKEN_WVOI : nft.listing.currency,
@@ -970,7 +964,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
             algodClient,
             indexerClient,
             skipEnsure,
-            strategy: "merge", // prevent resource exhaustion
+            strategy: "default",
           });
         } else {
           // no pool
@@ -989,7 +983,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
               algodClient,
               indexerClient,
               skipEnsure,
-              strategy: "merge", // prevent resource exhaustion
+              strategy: "default",
             }
           );
         }

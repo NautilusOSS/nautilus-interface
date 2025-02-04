@@ -38,6 +38,7 @@ import LEDCountdown from "./components/LEDCountdown";
 import { useSearchParams } from "react-router-dom";
 import SwapModal from "./components/SwapModal";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import { useCopyToClipboard } from "usehooks-ts";
 
 const findCommonRatio = (a: number, totalSum: number, n: number) => {
   // Using numerical method (binary search) to find r
@@ -170,12 +171,12 @@ const BigNumberDisplay = styled(Typography)<{ $isDarkTheme: boolean }>`
 `;
 
 const Label = styled(Typography)<{ $isDarkTheme: boolean }>`
-  color: ${(props) =>
-    props.$isDarkTheme ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 0.7)"};
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 1.25rem;
   font-weight: 500;
+  margin-bottom: 16px;
+  padding-top: 24px; // Added padding at the top
+  color: ${(props) =>
+    props.$isDarkTheme ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 0.9)"};
 `;
 
 const ActionCard = styled(Card)<{ $isDarkTheme: boolean }>`
@@ -495,6 +496,12 @@ const notifications: Notification[] = [
     type: "success",
     contractId: 913147,
   },
+  {
+    date: "2025-01-28",
+    message: "Arb Voi now live for arbitrage opportunities",
+    type: "success",
+    contractId: 917261,
+  },
 ];
 
 // Add these near the top with other interfaces
@@ -534,6 +541,11 @@ const CONTRACT_OPTIONS: ContractOption[] = [
     id: 913147,
     name: "NFV",
     description: "NFT VOI",
+  },
+  {
+    id: 917261,
+    name: "ARV",
+    description: "Arb Voi",
   },
 ];
 
@@ -700,6 +712,12 @@ const getContractInfo = (contractId: number) => {
         iconPath:
           "M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 2c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 1c3.87 0 7 3.13 7 7 0 1.93-.78 3.68-2.05 4.95L9.05 8.05C10.32 6.78 12.07 6 14 5zm-7 7c0-1.93.78-3.68 2.05-4.95l7.9 7.9C15.68 18.22 13.93 19 12 19c-3.87 0-7-3.13-7-7z",
       };
+    case 917261:
+      return {
+        title: "Arb Voi",
+        iconPath:
+          "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2h2V7h-4v2h2z",
+      };
     default:
       return {
         title: "Community Chest",
@@ -727,6 +745,8 @@ const getContractDescription = (
       return "Welcome to Womp VOI (WV) - the token that powers the WompCrew ecosystem. WV represents staked VOI in the WompCrew project, enabling users to participate in various WompCrew activities and support the growing WompCrew community.";
     case 913147:
       return "Welcome to NFT VOI (NFV) - the token that bridges the gap between VOI and NFTs. NFV enables unique interactions with digital collectibles while maintaining the security and value of the VOI ecosystem. Join us in exploring the intersection of DeFi and NFTs!";
+    case 917261:
+      return "Welcome to Arb Voi (ARV) - a token designed for arbitrage opportunities within the Voi ecosystem. ARV enables users to participate in cross-platform trading and take advantage of price differentials while maintaining the security of the Voi network.";
     default:
       return "";
   }
@@ -868,6 +888,438 @@ const formatLargeNumber = (value: string): string => {
   return num.toFixed(1);
 };
 
+// Add this styled component with other styled components
+const UserBalancesSection = styled(Box)<{ $isDarkTheme: boolean }>`
+  margin: 24px auto;
+  padding: 24px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 24px 24px;
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.1)"};
+  border-radius: 16px;
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+`;
+
+const BalanceTable = styled(Box)`
+  width: 100%;
+  margin-bottom: 16px;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid
+        ${(props) =>
+          props.$isDarkTheme
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)"};
+    }
+
+    th {
+      color: ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+
+    td {
+      color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+      font-size: 0.875rem;
+    }
+
+    .balance-value {
+      color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .token-symbol {
+      text-align: right;
+      color: ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+    }
+  }
+`;
+
+// Add a skeleton loading state for the balance cards
+const BalanceCardSkeleton = styled(Box)`
+  height: 80px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    ${(props) =>
+        props.$isDarkTheme ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
+      25%,
+    ${(props) =>
+        props.$isDarkTheme ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"}
+      50%,
+    ${(props) =>
+        props.$isDarkTheme ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
+      75%
+  );
+  background-size: 200% 100%;
+  animation: pulse 1.5s ease-in-out infinite;
+`;
+
+const BalanceCard = styled(Box)<{ $isDarkTheme: boolean }>`
+  padding: 16px;
+  border-radius: 8px;
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.2)"};
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+
+  .token-name {
+    font-size: 0.875rem;
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+    margin-bottom: 4px;
+  }
+
+  .balance {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+  }
+`;
+
+// Add a dedicated error state component
+const ErrorState = styled(Box)`
+  text-align: center;
+  padding: 24px;
+  color: ${(props) => (props.$isDarkTheme ? "#ff6b6b" : "#d32f2f")};
+
+  .retry-button {
+    margin-top: 16px;
+  }
+`;
+
+const TotalBalance = styled(Box)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid
+    ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+
+  .total-label {
+    font-size: 1rem;
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+  }
+
+  .total-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+  }
+`;
+
+// Add this interface near other interfaces
+interface NFTRelease {
+  date: string;
+  name: string;
+  url: string;
+  winnerAddress: string;
+  txid: string;
+}
+
+// Add this constant with the release schedule data
+const NFT_RELEASES: NFTRelease[] = [
+  {
+    date: "2025-01-31 00:00:00 UTC",
+    name: "PXLMOB30",
+    url: "https://nautilus.sh/#/collection/400099/token/30",
+    winnerAddress: "EM6YOBT4UOMEGWZO74OLOSA55V6EH6DUQSCAJA6FNMQ5IS5U3GZXBUR2OI",
+    txid: "BKUIX5NRWXCYGNVDMKCSHJCEP6EDGWAUDX6T6HSHXQ7A6YZIWRSQ",
+  },
+  {
+    date: "2025-02-07 00:00:00 UTC",
+    name: "DORKS13",
+    url: "https://nautilus.sh/#/collection/894888/token/13",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-02-14 00:00:00 UTC",
+    name: "DORKS29",
+    url: "https://nautilus.sh/#/collection/894888/token/29",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-02-21 00:00:00 UTC",
+    name: "Mermaid4",
+    url: "https://nautilus.sh/#/collection/864075/token/4",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-02-28 00:00:00 UTC",
+    name: "Mermaid2",
+    url: "https://nautilus.sh/#/collection/864075/token/2",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-03-07 00:00:00 UTC",
+    name: "Chrisbro 16",
+    url: "https://nautilus.sh/#/collection/603303/token/16",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-03-14 00:00:00 UTC",
+    name: "PixelProphet162",
+    url: "https://nautilus.sh/#/collection/450392/token/162",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-03-21 00:00:00 UTC",
+    name: "AI Voiager #66",
+    url: "https://nautilus.sh/#/collection/398796/token/66",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-03-28 00:00:00 UTC",
+    name: "CandyMons90",
+    url: "https://nautilus.sh/#/collection/587497/token/90",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-04-04 00:00:00 UTC",
+    name: "Bored Crepe #24",
+    url: "https://nautilus.sh/#/collection/398078/token/24",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-04-11 00:00:00 UTC",
+    name: "COB13",
+    url: "https://nautilus.sh/#/collection/417521/token/13",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-04-18 00:00:00 UTC",
+    name: "MIA WILD #188",
+    url: "https://nautilus.sh/#/collection/425242/token/188",
+    winnerAddress: "",
+    txid: "",
+  },
+  {
+    date: "2025-04-25 00:00:00 UTC",
+    name: "Zodiac 12",
+    url: "https://nautilus.sh/#/collection/407072/token/12",
+    winnerAddress: "",
+    txid: "",
+  },
+];
+
+// Add these styled components with other styled components
+const ReleaseScheduleSection = styled(Box)<{ $isDarkTheme: boolean }>`
+  margin: 32px 0;
+  padding: 24px;
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.1)"};
+  border-radius: 16px;
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+`;
+
+const ReleaseTable = styled(Box)`
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+
+    th,
+    td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid
+        ${(props) =>
+          props.$isDarkTheme
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)"};
+      font-size: 0.875rem;
+    }
+
+    th {
+      color: ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+      font-weight: 500;
+    }
+
+    td {
+      color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+    }
+
+    td a {
+      color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+      text-decoration: none;
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .address {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+    }
+  }
+`;
+
+// Inside your CommunityChest component, add this helper function
+const formatReleaseDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+// Add this interface near other interfaces
+interface DrawHistory {
+  date: string;
+  amount: string;
+  winnerAddress: string;
+  txid: string;
+}
+
+// Add this constant with the draw history data
+const DRAW_HISTORY: DrawHistory[] = [
+  {
+    date: "2025-01-28 00:00:00 UTC",
+    amount: "760.7277743",
+    winnerAddress: "5B3H47ALJ7WVF45HMVFQJ5XZGNLDE677FIPLHR2FB4J6S4MZYHDVQRGCTU",
+    txid: "-",
+  },
+  {
+    date: "2025-01-22 00:00:00 UTC",
+    amount: "748.4402651",
+    winnerAddress: "DQVAPFLH3ZOG3LJPFCDATKKTO5YXM77ENZBAEO5LPL7AO6QASBEEKDVS4I",
+    txid: "-",
+  },
+  {
+    date: "2025-01-08 00:00:00 UTC",
+    amount: "1291.000657",
+    winnerAddress: "7WO47R4XY5TIO3YP4KFK7RU6Z72YL5VPPIOM2P5NNFH6YFYLQZVVJWMJFI",
+    txid: "-",
+  },
+  {
+    date: "2025-01-01 00:00:00 UTC",
+    amount: "1304.158494",
+    winnerAddress: "VDEVK22RGTKEE4EVKRTWVBPBPBB3IOFGO25RQCKDZCLZMRBKFBNNECRDLI",
+    txid: "-",
+  },
+  {
+    date: "2024-12-25 00:00:00 UTC",
+    amount: "52.276572",
+    winnerAddress: "VDEVK22RGTKEE4EVKRTWVBPBPBB3IOFGO25RQCKDZCLZMRBKFBNNECRDLI",
+    txid: "-",
+  },
+  {
+    date: "2024-12-18 00:00:00 UTC",
+    amount: "439.7559921",
+    winnerAddress: "MUTS5EI5IYSNNM2QDLNPBJ2NNRSRRMUC4S6OTCXM3JZMHUAJOSJT6YUKRA",
+    txid: "-",
+  },
+  {
+    date: "2024-12-11 00:00:00 UTC",
+    amount: "315.2908013",
+    winnerAddress: "POPOO6QSUX2UTF4XCRY7WHHLSQTRDRTYIE7YW2DQ2KPGLQRAA7ZTCGLET4",
+    txid: "-",
+  },
+  {
+    date: "2024-12-04 00:00:00 UTC",
+    amount: "262.4207139",
+    winnerAddress: "VDEVK22RGTKEE4EVKRTWVBPBPBB3IOFGO25RQCKDZCLZMRBKFBNNECRDLI",
+    txid: "-",
+  },
+  {
+    date: "2024-11-27 00:00:00 UTC",
+    amount: "241.831476",
+    winnerAddress: "MUTS5EI5IYSNNM2QDLNPBJ2NNRSRRMUC4S6OTCXM3JZMHUAJOSJT6YUKRA",
+    txid: "-",
+  },
+];
+
+// Add this styled component with other styled components
+const DrawHistorySection = styled(Box)<{ $isDarkTheme: boolean }>`
+  margin: 32px 0;
+  padding: 24px;
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.1)"};
+  border-radius: 16px;
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+`;
+
+const DrawTable = styled(Box)<{
+  $isDarkTheme: boolean;
+  selectedContract: number;
+}>`
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+
+    th,
+    td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid
+        ${(props) =>
+          props.$isDarkTheme
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)"};
+      font-size: 0.875rem;
+    }
+
+    th {
+      color: ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+      font-weight: 500;
+    }
+
+    td {
+      color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+    }
+
+    .amount {
+      text-align: right;
+      color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .address {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+    }
+  }
+`;
+
 const CommunityChest: React.FC<CommunityChestProps> = ({
   isDarkTheme,
   connected,
@@ -911,6 +1363,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     (NFTAsset & { parsedMetadata: NFTMetadata })[]
   >([]);
   const [swapModalOpen, setSwapModalOpen] = useState(false);
+  const [userTokenBalances, setUserTokenBalances] = useState<any[]>([]);
 
   interface TokenStats {
     contractId: number;
@@ -1011,9 +1464,27 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         const current = await getTokensByEpoch(weeksSinceLaunch);
         setCurrentEpochTokens(current.toString());
       }
+
+      // Fetch user token balances if connected
+      if (connected && address) {
+        const balancesResponse = await axios.get(
+          `https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/balances?accountId=${address}`
+        );
+
+        const relevantTokens = [
+          664258, 390001, 770561, 828295, 888305, 913147, 917261,
+        ];
+        const filteredBalances = balancesResponse.data.balances.filter(
+          (balance: any) =>
+            relevantTokens.includes(balance.contractId) &&
+            balance.balance !== "0" // Filter out zero balances
+        );
+
+        setUserTokenBalances(filteredBalances);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Failed to fetch community chest data");
+      toast.error("Failed to fetch data");
     } finally {
       setIsLoading(false);
     }
@@ -1277,7 +1748,11 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
   }, []);
 
   // Add handleSwap function
-  const handleSwap = async (fromToken: number, toToken: number, amount: string) => {
+  const handleSwap = async (
+    fromToken: number,
+    toToken: number,
+    amount: string
+  ) => {
     if (!connected) {
       toast.error("Please connect your wallet");
       return;
@@ -1286,13 +1761,19 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     try {
       setIsLoading(true);
       const { algodClient } = getAlgorandClients();
-      
+
       // Create contract instances
-      const fromContract = new CONTRACT(fromToken, algodClient, null, abi.nt200, {
-        addr: address,
-        sk: Uint8Array.from([]),
-      });
-      
+      const fromContract = new CONTRACT(
+        fromToken,
+        algodClient,
+        null,
+        abi.nt200,
+        {
+          addr: address,
+          sk: Uint8Array.from([]),
+        }
+      );
+
       const toContract = new CONTRACT(toToken, algodClient, null, abi.nt200, {
         addr: address,
         sk: Uint8Array.from([]),
@@ -1318,12 +1799,12 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
 
       // Combine transactions
       const combinedTxns = [...withdrawR.txns, ...depositR.txns];
-      
+
       // Sign and send transactions
       const stxns = await signTransactions(
         combinedTxns.map((txn) => new Uint8Array(Buffer.from(txn, "base64")))
       );
-      
+
       await algodClient.sendRawTransaction(stxns as Uint8Array[]).do();
       await algosdk.waitForConfirmation(algodClient, txId, 4);
 
@@ -1336,6 +1817,138 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Add this interface near other interfaces
+  interface DrawHistory {
+    date: string;
+    amount: string;
+    winnerAddress: string;
+    txid: string;
+  }
+
+  // Add this constant with the draw history data
+  const DRAW_HISTORY: DrawHistory[] = [
+    {
+      date: "2025-01-28 00:00:00 UTC",
+      amount: "760.7277743",
+      winnerAddress:
+        "5B3H47ALJ7WVF45HMVFQJ5XZGNLDE677FIPLHR2FB4J6S4MZYHDVQRGCTU",
+      txid: "-",
+    },
+    {
+      date: "2025-01-22 00:00:00 UTC",
+      amount: "748.4402651",
+      winnerAddress:
+        "DQVAPFLH3ZOG3LJPFCDATKKTO5YXM77ENZBAEO5LPL7AO6QASBEEKDVS4I",
+      txid: "-",
+    },
+    {
+      date: "2025-01-08 00:00:00 UTC",
+      amount: "1291.000657",
+      winnerAddress:
+        "7WO47R4XY5TIO3YP4KFK7RU6Z72YL5VPPIOM2P5NNFH6YFYLQZVVJWMJFI",
+      txid: "-",
+    },
+    {
+      date: "2025-01-01 00:00:00 UTC",
+      amount: "1304.158494",
+      winnerAddress:
+        "VDEVK22RGTKEE4EVKRTWVBPBPBB3IOFGO25RQCKDZCLZMRBKFBNNECRDLI",
+      txid: "-",
+    },
+    {
+      date: "2024-12-25 00:00:00 UTC",
+      amount: "52.276572",
+      winnerAddress:
+        "VDEVK22RGTKEE4EVKRTWVBPBPBB3IOFGO25RQCKDZCLZMRBKFBNNECRDLI",
+      txid: "-",
+    },
+    {
+      date: "2024-12-18 00:00:00 UTC",
+      amount: "439.7559921",
+      winnerAddress:
+        "MUTS5EI5IYSNNM2QDLNPBJ2NNRSRRMUC4S6OTCXM3JZMHUAJOSJT6YUKRA",
+      txid: "-",
+    },
+    {
+      date: "2024-12-11 00:00:00 UTC",
+      amount: "315.2908013",
+      winnerAddress:
+        "POPOO6QSUX2UTF4XCRY7WHHLSQTRDRTYIE7YW2DQ2KPGLQRAA7ZTCGLET4",
+      txid: "-",
+    },
+    {
+      date: "2024-12-04 00:00:00 UTC",
+      amount: "262.4207139",
+      winnerAddress:
+        "VDEVK22RGTKEE4EVKRTWVBPBPBB3IOFGO25RQCKDZCLZMRBKFBNNECRDLI",
+      txid: "-",
+    },
+    {
+      date: "2024-11-27 00:00:00 UTC",
+      amount: "241.831476",
+      winnerAddress:
+        "MUTS5EI5IYSNNM2QDLNPBJ2NNRSRRMUC4S6OTCXM3JZMHUAJOSJT6YUKRA",
+      txid: "-",
+    },
+  ];
+
+  // Add this styled component with other styled components
+  const DrawHistorySection = styled(Box)<{ $isDarkTheme: boolean }>`
+    margin: 32px 0;
+    padding: 24px;
+    background-color: ${(props) =>
+      props.$isDarkTheme ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.1)"};
+    border-radius: 16px;
+    border: 1px solid
+      ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+  `;
+
+  const DrawTable = styled(Box)`
+    overflow-x: auto;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid
+          ${(props) =>
+            props.$isDarkTheme
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(0, 0, 0, 0.1)"};
+        font-size: 0.875rem;
+      }
+
+      th {
+        color: ${(props) =>
+          props.$isDarkTheme
+            ? "rgba(255, 255, 255, 0.7)"
+            : "rgba(0, 0, 0, 0.7)"};
+        font-weight: 500;
+      }
+
+      td {
+        color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+      }
+
+      .amount {
+        text-align: right;
+        color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+        font-family: "IBM Plex Mono", monospace;
+      }
+
+      .address {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.75rem;
+      }
+    }
+  `;
 
   return (
     <>
@@ -1378,6 +1991,61 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           </StatItem>
         </StatsHighlight>
       </HeroSection>
+
+      {/* Add this section after HeroSection */}
+      {connected && address && userTokenBalances.length > 0 && (
+        <UserBalancesSection $isDarkTheme={isDarkTheme}>
+          <Label $isDarkTheme={isDarkTheme}>Your Token Balances</Label>
+          <BalanceTable $isDarkTheme={isDarkTheme}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Token</th>
+                  <th style={{ textAlign: "right" }}>Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...userTokenBalances]
+                  .sort((a, b) => {
+                    // Convert balance strings to BigInt for accurate comparison
+                    const balanceA = BigInt(a.balance);
+                    const balanceB = BigInt(b.balance);
+                    return balanceB > balanceA
+                      ? 1
+                      : balanceB < balanceA
+                      ? -1
+                      : 0;
+                  })
+                  .map((balance) => (
+                    <tr key={balance.contractId}>
+                      <td>{balance.symbol}</td>
+                      <td style={{ textAlign: "right" }}>
+                        <span className="balance-value">
+                          {formatAmount(balance.balance)}
+                        </span>{" "}
+                        <span className="token-symbol">{balance.symbol}</span>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </BalanceTable>
+          <TotalBalance $isDarkTheme={isDarkTheme}>
+            <span className="total-label">Total Balance</span>
+            <span className="total-value">
+              {formatAmount(
+                userTokenBalances
+                  .reduce(
+                    (sum, balance) => sum + BigInt(balance.balance),
+                    BigInt(0)
+                  )
+                  .toString()
+              )}{" "}
+              VOI
+            </span>
+          </TotalBalance>
+        </UserBalancesSection>
+      )}
 
       <Container
         $isDarkTheme={isDarkTheme}
@@ -1477,6 +2145,11 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                       {option.id === 913147 && (
                         <RewardBadge $isDarkTheme={isDarkTheme}>
                           Weekly NFT Prize
+                        </RewardBadge>
+                      )}
+                      {option.id === 917261 && (
+                        <RewardBadge $isDarkTheme={isDarkTheme}>
+                          Arb Voi
                         </RewardBadge>
                       )}
                     </Box>
@@ -1996,181 +2669,340 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           )}
         </Box>
 
-        {selectedContract === 913147 && (
+        {(selectedContract === 913147 || selectedContract === 664258) && (
           <>
-            <NFTVaultSection $isDarkTheme={isDarkTheme}>
-              <Label
-                $isDarkTheme={isDarkTheme}
-                style={{ marginBottom: "16px" }}
-              >
-                NFT Vault Collection ({nftAssets.length} NFTs)
-              </Label>
-              <ImageList
-                sx={{
-                  width: "100%",
-                  height: 450,
-                  "&::-webkit-scrollbar": {
-                    width: "8px",
-                  },
-                  "&::-webkit-scrollbar-track": {
-                    background: isDarkTheme
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.1)",
-                    borderRadius: "4px",
-                  },
-                  "&::-webkit-scrollbar-thumb": {
-                    background: isDarkTheme
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : "rgba(0, 0, 0, 0.2)",
-                    borderRadius: "4px",
-                    "&:hover": {
-                      background: isDarkTheme
-                        ? "rgba(255, 255, 255, 0.3)"
-                        : "rgba(0, 0, 0, 0.3)",
-                    },
-                  },
-                }}
-                cols={3}
-                gap={8}
-              >
-                {nftAssets.map((asset) => (
-                  <ImageListItem key={`${asset.contractId}-${asset.tokenId}`}>
-                    <img
-                      src={asset.parsedMetadata.image}
-                      alt={
-                        asset.parsedMetadata.name ||
-                        `${asset.collectionName} #${asset.tokenId}`
-                      }
-                      loading="lazy"
-                      style={{
-                        borderRadius: "8px",
-                        border: `1px solid ${
-                          isDarkTheme
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(0, 0, 0, 0.1)"
-                        }`,
-                        aspectRatio: "1",
-                        objectFit: "cover",
-                      }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                    <ImageListItemBar
-                      title={
-                        asset.parsedMetadata.name ||
-                        `${asset.collectionName} #${asset.tokenId}`
-                      }
-                      subtitle={
-                        <span>
-                          {asset.collectionName} • #{asset.tokenId}
-                        </span>
-                      }
-                      sx={{
+            {selectedContract === 913147 && (
+              <>
+                <NFTVaultSection $isDarkTheme={isDarkTheme}>
+                  <Label
+                    $isDarkTheme={isDarkTheme}
+                    style={{ marginBottom: "16px" }}
+                  >
+                    NFT Vault Collection ({nftAssets.length} NFTs)
+                  </Label>
+                  <ImageList
+                    sx={{
+                      width: "100%",
+                      height: 450,
+                      "&::-webkit-scrollbar": {
+                        width: "8px",
+                      },
+                      "&::-webkit-scrollbar-track": {
                         background: isDarkTheme
-                          ? "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)"
-                          : "linear-gradient(to top, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 70%, rgba(255,255,255,0) 100%)",
-                        borderBottomLeftRadius: "8px",
-                        borderBottomRightRadius: "8px",
-                        "& .MuiImageListItemBar-title": {
-                          color: isDarkTheme ? "#fff" : "#000",
-                          fontSize: "14px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(0, 0, 0, 0.1)",
+                        borderRadius: "4px",
+                      },
+                      "&::-webkit-scrollbar-thumb": {
+                        background: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.2)"
+                          : "rgba(0, 0, 0, 0.2)",
+                        borderRadius: "4px",
+                        "&:hover": {
+                          background: isDarkTheme
+                            ? "rgba(255, 255, 255, 0.3)"
+                            : "rgba(0, 0, 0, 0.3)",
                         },
-                        "& .MuiImageListItemBar-subtitle": {
+                      },
+                    }}
+                    cols={3}
+                    gap={8}
+                  >
+                    {nftAssets.map((asset) => (
+                      <ImageListItem
+                        key={`${asset.contractId}-${asset.tokenId}`}
+                      >
+                        <img
+                          src={asset.parsedMetadata.image}
+                          alt={
+                            asset.parsedMetadata.name ||
+                            `${asset.collectionName} #${asset.tokenId}`
+                          }
+                          loading="lazy"
+                          style={{
+                            borderRadius: "8px",
+                            border: `1px solid ${
+                              isDarkTheme
+                                ? "rgba(255, 255, 255, 0.1)"
+                                : "rgba(0, 0, 0, 0.1)"
+                            }`,
+                            aspectRatio: "1",
+                            objectFit: "cover",
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                        <ImageListItemBar
+                          title={
+                            asset.parsedMetadata.name ||
+                            `${asset.collectionName} #${asset.tokenId}`
+                          }
+                          subtitle={
+                            <span>
+                              {asset.collectionName} • #{asset.tokenId}
+                            </span>
+                          }
+                          sx={{
+                            background: isDarkTheme
+                              ? "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)"
+                              : "linear-gradient(to top, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 70%, rgba(255,255,255,0) 100%)",
+                            borderBottomLeftRadius: "8px",
+                            borderBottomRightRadius: "8px",
+                            "& .MuiImageListItemBar-title": {
+                              color: isDarkTheme ? "#fff" : "#000",
+                              fontSize: "14px",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            },
+                            "& .MuiImageListItemBar-subtitle": {
+                              color: isDarkTheme
+                                ? "rgba(255, 255, 255, 0.7)"
+                                : "rgba(0, 0, 0, 0.7)",
+                              fontSize: "12px",
+                            },
+                          }}
+                        />
+                      </ImageListItem>
+                    ))}
+                  </ImageList>
+                </NFTVaultSection>
+                {selectedContract === 664258 && (
+                  <DrawHistorySection $isDarkTheme={isDarkTheme}>
+                    <Label
+                      $isDarkTheme={isDarkTheme}
+                      style={{ marginBottom: "24px" }}
+                    >
+                      Draw History
+                    </Label>
+                    <DrawTable $isDarkTheme={isDarkTheme}>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Winner</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {DRAW_HISTORY.map((draw, index) => (
+                            <tr key={index}>
+                              <td>{formatReleaseDate(draw.date)}</td>
+                              <td className="amount">
+                                {Number(draw.amount).toFixed(2)} VOI
+                              </td>
+                              <td className="address">
+                                <Tooltip title="Copy Address">
+                                  <Link
+                                    component="span"
+                                    onClick={() =>
+                                      useCopyToClipboard(draw.winnerAddress)
+                                    }
+                                    sx={{ cursor: "pointer" }}
+                                  >
+                                    {`${draw.winnerAddress.slice(
+                                      0,
+                                      4
+                                    )}...${draw.winnerAddress.slice(-4)}`}
+                                  </Link>
+                                </Tooltip>
+                              </td>
+                              <td>
+                                {draw.txid !== "-" ? (
+                                  <Link
+                                    href={`https://block.voi.network/explorer/transaction/${draw.txid}/global-state-delta`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    Claimed
+                                  </Link>
+                                ) : (
+                                  <Typography
+                                    component="span"
+                                    sx={{
+                                      color: isDarkTheme
+                                        ? "rgba(255, 255, 255, 0.5)"
+                                        : "rgba(0, 0, 0, 0.5)",
+                                      fontStyle: "italic",
+                                    }}
+                                  >
+                                    Pending
+                                  </Typography>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </DrawTable>
+                  </DrawHistorySection>
+                )}
+                {selectedContract === 913147 && (
+                  <ReleaseScheduleSection $isDarkTheme={isDarkTheme}>
+                    <Label
+                      $isDarkTheme={isDarkTheme}
+                      style={{ marginBottom: "24px" }}
+                    >
+                      NFT Release Schedule
+                    </Label>
+                    <ReleaseTable $isDarkTheme={isDarkTheme}>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Release Date</th>
+                            <th>NFT</th>
+                            <th>Winner</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {NFT_RELEASES.map((release, index) => (
+                            <tr key={index}>
+                              <td>{formatReleaseDate(release.date)}</td>
+                              <td>
+                                <Link
+                                  href={release.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {release.name}
+                                </Link>
+                              </td>
+                              <td className="address">
+                                {release.winnerAddress ? (
+                                  <Tooltip title="Copy Address">
+                                    <Link
+                                      component="span"
+                                      onClick={() =>
+                                        copyToClipboard(release.winnerAddress)
+                                      }
+                                      sx={{ cursor: "pointer" }}
+                                    >
+                                      {`${release.winnerAddress.slice(
+                                        0,
+                                        4
+                                      )}...${release.winnerAddress.slice(-4)}`}
+                                    </Link>
+                                  </Tooltip>
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                              <td>
+                                {release.txid ? (
+                                  <Link
+                                    href={`https://block.voi.network/explorer/transaction/${release.txid}/global-state-delta`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    Claimed
+                                  </Link>
+                                ) : (
+                                  <Typography
+                                    component="span"
+                                    sx={{
+                                      color: isDarkTheme
+                                        ? "rgba(255, 255, 255, 0.5)"
+                                        : "rgba(0, 0, 0, 0.5)",
+                                      fontStyle: "italic",
+                                    }}
+                                  >
+                                    Upcoming
+                                  </Typography>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </ReleaseTable>
+                  </ReleaseScheduleSection>
+                )}
+
+                <NFTPrizeCard $isDarkTheme={isDarkTheme}>
+                  <Label $isDarkTheme={isDarkTheme}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      Weekly NFT Prize
+                      <InfoIcon
+                        sx={{
+                          fontSize: 16,
                           color: isDarkTheme
                             ? "rgba(255, 255, 255, 0.7)"
                             : "rgba(0, 0, 0, 0.7)",
-                          fontSize: "12px",
-                        },
-                      }}
-                    />
-                  </ImageListItem>
-                ))}
-              </ImageList>
-            </NFTVaultSection>
-
-            <NFTPrizeCard $isDarkTheme={isDarkTheme}>
-              <Label $isDarkTheme={isDarkTheme}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  Weekly NFT Prize
-                  <InfoIcon
+                          cursor: "pointer",
+                          "&:hover": { opacity: 0.8 },
+                        }}
+                        onClick={() => setShowRewardDistribution(true)}
+                      />
+                    </Box>
+                  </Label>
+                  <NFTImage
+                    src="https://prod.cdn.highforge.io/m/894888/13.png"
+                    alt="Weekly NFT Prize"
+                    $isDarkTheme={isDarkTheme}
+                  />
+                  <Typography
+                    variant="h6"
                     sx={{
-                      fontSize: 16,
+                      color: isDarkTheme ? "#90caf9" : "#1976d2",
+                      fontWeight: "bold",
+                      mb: 1,
+                    }}
+                  >
+                    DORKS13
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
                       color: isDarkTheme
                         ? "rgba(255, 255, 255, 0.7)"
                         : "rgba(0, 0, 0, 0.7)",
-                      cursor: "pointer",
-                      "&:hover": { opacity: 0.8 },
+                      mb: 2,
                     }}
-                    onClick={() => setShowRewardDistribution(true)}
-                  />
-                </Box>
-              </Label>
-              <NFTImage
-                src="https://prod.cdn.highforge.io/m/400099/30.png"
-                alt="Weekly NFT Prize"
-                $isDarkTheme={isDarkTheme}
-              />
-              <Typography
-                variant="h6"
-                sx={{
-                  color: isDarkTheme ? "#90caf9" : "#1976d2",
-                  fontWeight: "bold",
-                  mb: 1,
-                }}
-              >
-                PXLMOB30
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: isDarkTheme
-                    ? "rgba(255, 255, 255, 0.7)"
-                    : "rgba(0, 0, 0, 0.7)",
-                  mb: 2,
-                }}
-              >
-                This week's prize is a unique digital collectible. Hold NFT VOI
-                for a chance to win!
-              </Typography>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 1,
-                  mb: 1,
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: isDarkTheme
-                      ? "rgba(255, 255, 255, 0.9)"
-                      : "rgba(0, 0, 0, 0.9)",
-                  }}
-                >
-                  Draw Date:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: isDarkTheme ? "#90caf9" : "#1976d2",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {new Date(
-                    new Date(
-                      epochSummaries[0]?.end_date || Date.now()
-                    ).getTime() +
-                      3 * 24 * 60 * 60 * 1000
-                  ).toLocaleDateString()}
-                </Typography>
-              </Box>
-            </NFTPrizeCard>
+                  >
+                    This week's prize is a unique digital collectible. Hold NFT
+                    VOI for a chance to win!
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 1,
+                      mb: 1,
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.9)"
+                          : "rgba(0, 0, 0, 0.9)",
+                      }}
+                    >
+                      Draw Date:
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: isDarkTheme ? "#90caf9" : "#1976d2",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {new Date(
+                        new Date(
+                          epochSummaries[0]?.end_date || Date.now()
+                        ).getTime() +
+                          3 * 24 * 60 * 60 * 1000
+                      ).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                </NFTPrizeCard>
+              </>
+            )}
 
             <RollDiceSection $isDarkTheme={isDarkTheme}>
               <Typography variant="h6">Feeling Lucky?</Typography>
@@ -2259,7 +3091,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
               </Button>
             </Box>
 
-            <Box>
+            {/*<Box>
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Swap
               </Typography>
@@ -2272,7 +3104,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
               >
                 Swap Tokens
               </Button>
-            </Box>
+            </Box>*/}
           </ActionCard>
         ) : null}
 

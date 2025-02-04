@@ -82,7 +82,7 @@ const RewardDistributionModal: React.FC<RewardDistributionModalProps> = ({
     },
     913147: {
       weeklyDrawWinner: 50,
-      holders: 35,
+      holders: 20,
       team: 0,
       treasury: 25,
       nodeOperator: 5,

@@ -515,6 +515,7 @@ const useCollections = () => {
     queryKey: ["collections"],
     queryFn: async () => {
       const { data } = await axios.get(
+        //"https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/collections"
         "https://mainnet-idx.nautilus.sh/nft-indexer/v1/collections"
       );
       return data.collections as CollectionData[];
@@ -554,15 +555,6 @@ export const Listings: React.FC = () => {
 
   const { data: listings, status: listingsStatus } = useListings();
 
-  const exchangeRate = useMemo(() => {
-    return 1;
-    //   if (!prices || dexStatus !== "succeeded") return 0;
-    //   const voiPrice = prices.find((p) => p.contractId === /* wVOI2/VIA */ 34099095);
-    //   if (!voiPrice) return 0;
-    //   return voiPrice.rate;
-    // }, [prices, dexStatus]);
-  }, []);
-
   const { status: smartTokenStatus, data: smartTokens } = useSmartTokens();
 
   const isDarkTheme = useSelector(
@@ -594,16 +586,6 @@ export const Listings: React.FC = () => {
   const debouncedMax = useDebounceCallback(setMax, 500);
 
   const { data: collections, isLoading: collectionsLoading } = useCollections();
-
-  console.log(collections);
-
-  const listCollectionIds: number[] = useMemo(() => {
-    if (!collections) return [];
-
-    return Array.from(
-      new Set(collections.map((collection) => collection.contractId))
-    );
-  }, [collections]);
 
   const listCurencies: number[] = useMemo(() => {
     const tokenIds = new Set();

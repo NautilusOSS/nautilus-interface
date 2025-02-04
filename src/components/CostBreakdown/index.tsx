@@ -6,6 +6,8 @@ interface CostBreakdownProps {
   marketplaceFeeRate: number; // Marketplace fee percentage (e.g., 0.025 for 2.5%)
   royaltyFeeRate: number; // Royalty fee percentage (e.g., 0.10 for 10%)
   symbol: string;
+  darkMode?: boolean;
+  sx?: React.CSSProperties;
 }
 
 const CostBreakdown: React.FC<CostBreakdownProps> = ({
@@ -13,6 +15,8 @@ const CostBreakdown: React.FC<CostBreakdownProps> = ({
   marketplaceFeeRate,
   royaltyFeeRate,
   symbol,
+  darkMode = false,
+  sx,
 }) => {
   // Calculations
   const marketplaceFee = price * marketplaceFeeRate;
@@ -20,14 +24,25 @@ const CostBreakdown: React.FC<CostBreakdownProps> = ({
   const proceeds = price - marketplaceFee - royaltyFee;
 
   return (
-    <Box sx={{ padding: 2, margin: "0 auto", background: "#F0F0F0" }}>
-      <Typography variant="h6" gutterBottom>
+    <Box
+      sx={{
+        padding: 2,
+        margin: "0 auto",
+        background: darkMode ? 'rgba(255, 255, 255, 0.05)' : '#F0F0F0',
+        color: darkMode ? 'white' : 'inherit',
+        ...sx
+      }}
+    >
+      <Typography variant="h6" gutterBottom color={darkMode ? 'white' : 'inherit'}>
         Cost Breakdown
       </Typography>
 
       <Grid container spacing={2}>
         <Grid item xs={6}>
-          <Typography variant="body1" color="textSecondary">
+          <Typography 
+            variant="body1" 
+            color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}
+          >
             Price:
           </Typography>
         </Grid>
@@ -38,7 +53,10 @@ const CostBreakdown: React.FC<CostBreakdownProps> = ({
         </Grid>
 
         <Grid item xs={6}>
-          <Typography variant="body1" color="textSecondary">
+          <Typography 
+            variant="body1" 
+            color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}
+          >
             Marketplace Fee ({(marketplaceFeeRate * 100).toFixed(2)}%):
           </Typography>
         </Grid>
@@ -50,7 +68,10 @@ const CostBreakdown: React.FC<CostBreakdownProps> = ({
         {royaltyFee > 0 ? (
           <>
             <Grid item xs={6}>
-              <Typography variant="body1" color="textSecondary">
+              <Typography 
+                variant="body1" 
+                color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}
+              >
                 Royalty Fee ({(royaltyFeeRate * 100).toFixed(2)}%):
               </Typography>
             </Grid>
@@ -62,7 +83,10 @@ const CostBreakdown: React.FC<CostBreakdownProps> = ({
           </>
         ) : null}
         <Grid item xs={6}>
-          <Typography variant="body1" color="textSecondary">
+          <Typography 
+            variant="body1" 
+            color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}
+          >
             Proceeds:
           </Typography>
         </Grid>

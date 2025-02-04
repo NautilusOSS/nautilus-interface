@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Layout from "../../layouts/Default";
-import { Box, Grid, Skeleton, Typography, Chip, Avatar } from "@mui/material";
+import {
+  Box,
+  Grid,
+  Skeleton,
+  Typography,
+  Chip,
+  Avatar,
+  Button as MuiButton,
+} from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store/store";
@@ -46,9 +54,17 @@ import CustomPagination from "../../components/Pagination";
 import { Tabs, Tab } from "@mui/material";
 import { useName } from "@/hooks/useName";
 import { useEnvoiResolver } from "@/hooks/useEnvoiResolver";
+import { useProjects } from "@/hooks/useProjects";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 
 const formatPrice = (price: number) => {
-  return (price / 1e6).toLocaleString(undefined, {
+  const value = price / 1e6; // Convert to VOI
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}M`;
+  } else if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}K`;
+  }
+  return value.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -492,6 +508,261 @@ const ActivityTableRow = ({
   );
 };
 
+// Add new styled component for the animated background
+const AnimatedBackground = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  z-index: 0;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    width: 150%;
+    height: 150%;
+    top: -25%;
+    left: -25%;
+    background: ${(props) =>
+      props.theme.isDarkTheme
+        ? `radial-gradient(circle, rgba(153, 51, 255, 0.3) 0%, rgba(153, 51, 255, 0) 70%),
+         radial-gradient(circle at 70% 40%, rgba(153, 51, 255, 0.25) 0%, rgba(153, 51, 255, 0) 60%),
+         radial-gradient(circle at 30% 60%, rgba(255, 105, 180, 0.25) 0%, rgba(255, 105, 180, 0) 60%)`
+        : `radial-gradient(circle, rgba(153, 51, 255, 0.08) 0%, rgba(153, 51, 255, 0) 50%),
+         radial-gradient(circle at 70% 40%, rgba(153, 51, 255, 0.05) 0%, rgba(153, 51, 255, 0) 45%),
+         radial-gradient(circle at 30% 60%, rgba(153, 51, 255, 0.05) 0%, rgba(153, 51, 255, 0) 45%)`};
+    animation: rotate 60s linear infinite;
+  }
+
+  &::after {
+    animation-direction: reverse;
+    animation-duration: 45s;
+    opacity: ${(props) => (props.theme.isDarkTheme ? "0.9" : "0.7")};
+    background: ${(props) =>
+      props.theme.isDarkTheme
+        ? `radial-gradient(circle at 70% 60%, rgba(255, 105, 180, 0.25) 0%, rgba(255, 105, 180, 0) 50%),
+         radial-gradient(circle at 30% 40%, rgba(153, 51, 255, 0.3) 0%, rgba(153, 51, 255, 0) 60%)`
+        : `radial-gradient(circle at 70% 60%, rgba(153, 51, 255, 0.05) 0%, rgba(153, 51, 255, 0) 45%),
+         radial-gradient(circle at 30% 40%, rgba(153, 51, 255, 0.05) 0%, rgba(153, 51, 255, 0) 45%)`};
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const Attribution = styled.div`
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-size: 12px;
+  opacity: 0.7;
+  z-index: 1;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+`;
+
+// Update HeroSection component
+const HeroSection = styled.div`
+  padding: 48px 0;
+  text-align: center;
+  margin-bottom: 48px;
+  position: relative;
+  overflow: hidden;
+  background: ${(props) =>
+    props.theme.isDarkTheme
+      ? "linear-gradient(180deg, rgba(0, 0, 139, 0.3) 0%, rgba(0, 0, 0, 0) 100%)"
+      : "linear-gradient(180deg, rgba(153, 51, 255, 0.1) 0%, rgba(153, 51, 255, 0) 100%)"};
+
+  // Add these properties for parallax effect
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("/hero-bg-blue.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed; // This creates the parallax effect
+    background-blend-mode: overlay;
+    z-index: -2;
+  }
+
+  // Keep the grain texture overlay
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url(https://prod.cdn.highforge.io/m/407105/1.png);
+    opacity: ${(props) => (props.theme.isDarkTheme ? "0.15" : "0.07")};
+    z-index: -1;
+    pointer-events: none;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+`;
+
+const HeroTitle = styled.h1<{ $isDarkTheme: boolean }>`
+  color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  font-family: "Plus Jakarta Sans";
+  position: relative;
+  z-index: 1;
+
+  @media (max-width: 768px) {
+    font-size: 36px;
+  }
+`;
+
+const HeroSubtitle = styled.p<{ $isDarkTheme: boolean }>`
+  color: ${(props) =>
+    props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+  font-size: 20px;
+  margin-bottom: 32px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  z-index: 1;
+`;
+
+const HeroButton = styled(MuiButton)<{ $isDarkTheme: boolean }>`
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "#fff" : "#93f"} !important;
+  color: ${(props) => (props.$isDarkTheme ? "#000" : "#fff")} !important;
+  padding: 12px 32px !important;
+  font-size: 16px !important;
+  text-transform: none !important;
+  border-radius: 100px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+
+  &:hover {
+    background-color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.9)" : "#7a2adb"} !important;
+  }
+
+  &.external-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+
+    .external-link-icon {
+      width: 16px;
+      height: 16px;
+      transition: transform 0.2s;
+    }
+
+    &:hover .external-link-icon {
+      transform: translate(2px, -2px);
+    }
+  }
+`;
+
+// Add styled components for Stats
+const StatsContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-top: 48px;
+  flex-wrap: wrap;
+`;
+
+const StatItem = styled.div<{ $isDarkTheme: boolean }>`
+  text-align: center;
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+    margin-bottom: 8px;
+  }
+
+  .stat-label {
+    font-size: 16px;
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+  }
+`;
+
+// Add these type definitions near the top of the file where other interfaces are defined
+interface ListingResponse {
+  listings: ListingI[];
+  status: string;
+}
+
+interface ListingState {
+  listings: ListingI[];
+  status: "idle" | "loading" | "succeeded" | "failed";
+  error: string | null;
+}
+
+// The existing ListingI interface should be imported from types.ts
+// If it's not already defined there, you can add:
+interface ListingI {
+  collectionId: number;
+  tokenId: number;
+  price: number;
+  seller: string;
+  // Add any other fields that come from the API
+}
+
+// Add these interfaces near the top with other interfaces
+interface MarketStats {
+  totalVolume: number;
+  totalSales: number;
+  totalNFTs: number;
+  uniqueBuyers: number;
+  uniqueSellers: number;
+  uniqueCollections: number;
+  activeUsers: number;
+  isLoading: boolean;
+  timestamp?: number;
+}
+
+// Add this helper function before the Home component
+const CACHE_KEY = 'market_stats';
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+
+const getCachedStats = (): MarketStats | null => {
+  const cached = localStorage.getItem(CACHE_KEY);
+  if (!cached) return null;
+
+  const stats = JSON.parse(cached);
+  const now = Date.now();
+
+  if (now - stats.timestamp > CACHE_DURATION) {
+    localStorage.removeItem(CACHE_KEY);
+    return null;
+  }
+
+  return stats;
+};
+
 export const Home: React.FC = () => {
   /* Dispatch */
   const dispatch = useDispatch();
@@ -515,6 +786,7 @@ export const Home: React.FC = () => {
     if (listingsStatus === "succeeded") return;
     dispatch(getListings() as unknown as UnknownAction);
   }, []);
+  console.log({ listings });
 
   /* Theme */
   const isDarkTheme = useSelector(
@@ -995,20 +1267,230 @@ export const Home: React.FC = () => {
     fetchTrendingCollections();
   }, []);
 
+  // Add useProjects hook
+  const { data: projects } = useProjects();
+
+  console.log("projects", projects);
+
+  // Add state for marketplace stats
+  const [marketStats, setMarketStats] = useState({
+    totalVolume: 0,
+    totalSales: 0,
+    totalNFTs: 0,
+    uniqueBuyers: 0,
+    uniqueSellers: 0,
+    uniqueCollections: 0,
+    activeUsers: 0,
+    isLoading: true,
+  });
+
+  // Update effect to fetch marketplace stats
+  useEffect(() => {
+    const fetchMarketStats = async () => {
+      // Check cache first
+      const cachedStats = getCachedStats();
+      if (cachedStats) {
+        setMarketStats(cachedStats);
+        return;
+      }
+
+      try {
+        const statsResponse = await axios.get(
+          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/stats"
+        );
+
+        const stats = statsResponse.data.stats[0];
+        const newStats = {
+          totalVolume: Number(stats.total_volume),
+          totalSales: stats.total_sales,
+          totalNFTs: stats.unique_pairs,
+          activeUsers: stats.active_users,
+          uniqueBuyers: stats.unique_buyers,
+          uniqueSellers: stats.unique_sellers,
+          uniqueCollections: stats.total_collections,
+          isLoading: false,
+          timestamp: Date.now(),
+        };
+
+        // Cache the stats
+        localStorage.setItem(CACHE_KEY, JSON.stringify(newStats));
+        setMarketStats(newStats);
+      } catch (error) {
+        console.error("Error fetching market stats:", error);
+        setMarketStats((prev) => ({ ...prev, isLoading: false }));
+      }
+    };
+    fetchMarketStats();
+  }, []);
+
+  console.log("marketStats", marketStats);
+
+  // Add helper function to format large numbers
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toString();
+  };
+
   return (
-    <Layout>
+    <>
       {!isLoading ? (
         <div>
-          <StyledTabs
+          <HeroSection>
+            {/*<Attribution>
+              <a
+                href="https://nautilus.sh/#/collection/407105/token/1"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Villains Only Scene 1
+              </a>
+            </Attribution>*/}
+
+            <HeroTitle $isDarkTheme={isDarkTheme}>
+              Discover, Collect, and Trade NFTs on Voi
+            </HeroTitle>
+            <HeroSubtitle $isDarkTheme={isDarkTheme}>
+              The premier marketplace for NFTs on the Voi Network. Explore
+              unique digital assets, join the community, and start your
+              collection today.
+            </HeroSubtitle>
+            {/*<Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+              <HeroButton
+                $isDarkTheme={isDarkTheme}
+                variant="contained"
+                component="a"
+                href="https://nftnavigator.xyz/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="external-link"
+              >
+                Explore NFTs
+              </HeroButton>
+              <HeroButton
+                $isDarkTheme={isDarkTheme}
+                variant="outlined"
+                component="a"
+                href="https://highforge.io/launch/new/projectType"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  backgroundColor: "transparent !important",
+                  border: `2px solid ${
+                    isDarkTheme ? "#fff" : "#93f"
+                  } !important`,
+                  color: `${isDarkTheme ? "#fff" : "#93f"} !important`,
+                  "&:hover": {
+                    backgroundColor: `${
+                      isDarkTheme
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(153, 51, 255, 0.1)"
+                    } !important`,
+                  },
+                }}
+              >
+                Create NFT
+              </HeroButton>
+            </Box>*/}
+
+            {/* Add Stats Section */}
+            <StatsContainer>
+              {marketStats.isLoading ? (
+                <>
+                  <Skeleton variant="rounded" width={150} height={80} />
+                  <Skeleton variant="rounded" width={150} height={80} />
+                  <Skeleton variant="rounded" width={150} height={80} />
+                  <Skeleton variant="rounded" width={150} height={80} />
+                  <Skeleton variant="rounded" width={150} height={80} />
+                  <Skeleton variant="rounded" width={150} height={80} />
+                </>
+              ) : (
+                <>
+                  <StatItem $isDarkTheme={isDarkTheme}>
+                    <div className="stat-value">
+                      {formatPrice(marketStats.totalVolume)} VOI
+                    </div>
+                    <div className="stat-label">Total Volume</div>
+                  </StatItem>
+                  <StatItem $isDarkTheme={isDarkTheme}>
+                    <div className="stat-value">
+                      {formatNumber(marketStats.totalSales)}
+                    </div>
+                    <div className="stat-label">Total Sales</div>
+                  </StatItem>
+                  {/*<StatItem $isDarkTheme={isDarkTheme}>
+                    <div className="stat-value">
+                      {formatNumber(marketStats.totalNFTs)}
+                    </div>
+                    <div className="stat-label">Total NFTs</div>
+                  </StatItem>
+                  <StatItem $isDarkTheme={isDarkTheme}>
+                    <div className="stat-value">
+                      {formatNumber(marketStats.uniqueBuyers)}
+                    </div>
+                    <div className="stat-label">Unique Buyers</div>
+                  </StatItem>
+                  <StatItem $isDarkTheme={isDarkTheme}>
+                    <div className="stat-value">
+                      {formatNumber(marketStats.uniqueSellers)}
+                    </div>
+                    <div className="stat-label">Unique Sellers</div>
+                  </StatItem>
+                  <StatItem $isDarkTheme={isDarkTheme}>
+                    <div className="stat-value">
+                      {formatNumber(marketStats.uniqueCollections)}
+                    </div>
+                    <div className="stat-label">Total Collections</div>
+                  </StatItem>*/}
+                  <StatItem $isDarkTheme={isDarkTheme}>
+                    <div className="stat-value">
+                      {formatNumber(marketStats.activeUsers)}
+                    </div>
+                    <div className="stat-label">Active Users</div>
+                  </StatItem>
+                </>
+              )}
+            </StatsContainer>
+          </HeroSection>
+          <Layout>
+            {/*<StyledTabs
             value={tabValue}
             onChange={handleTabChange}
             theme={{ isDarkTheme }}
           >
             <StyledTab label="Top Collections" />
             <StyledTab label="Trending Volume" />
-          </StyledTabs>
+          </StyledTabs>*/}
 
-          <TabPanel value={tabValue} index={0}>
+            {/*<TabPanel value={tabValue} index={0}>*/}
+            <Box sx={{ mb: 3 }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 600,
+                  color: isDarkTheme ? "#fff" : "#000",
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                }}
+              >
+                Featured Collections
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  mt: 1,
+                  color: isDarkTheme
+                    ? "rgba(255, 255, 255, 0.7)"
+                    : "rgba(0, 0, 0, 0.7)",
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                }}
+              >
+                Explore the most popular NFT collections on Voi Network, ranked
+                by all-time volume
+              </Typography>
+            </Box>
             {isLoadingTopCollections ? (
               <div className="w-full">
                 <Skeleton
@@ -1019,17 +1501,14 @@ export const Home: React.FC = () => {
               </div>
             ) : (
               <Swiper
-                modules={[Navigation, Pagination, Autoplay]}
+                modules={[Navigation, Pagination]}
                 spaceBetween={30}
                 slidesPerView={3}
                 centeredSlides={true}
                 loop={true}
                 navigation
                 pagination={{ clickable: true }}
-                autoplay={{
-                  delay: 5000,
-                  disableOnInteraction: false,
-                }}
+                autoplay={false}
                 className="w-full mb-12"
                 style={{
                   borderRadius: "16px",
@@ -1087,7 +1566,7 @@ export const Home: React.FC = () => {
                                     "ipfs://",
                                     "https://ipfs.io/ipfs/"
                                   )
-                                : "/placeholder.png"
+                                : metadata?.image
                             }
                             alt={
                               metadata?.name ||
@@ -1129,207 +1608,265 @@ export const Home: React.FC = () => {
                 })}
               </Swiper>
             )}
-          </TabPanel>
+            {/*</TabPanel>*/}
 
-          <TabPanel value={tabValue} index={1}>
-            {isLoadingTrendingCollections ? (
-              <div className="w-full">
-                <Skeleton
-                  variant="rectangular"
-                  height={400}
-                  sx={{ borderRadius: 2 }}
-                />
-              </div>
-            ) : (
-              <Swiper
-                modules={[Navigation, Pagination, Autoplay]}
-                spaceBetween={30}
-                slidesPerView={3}
-                centeredSlides={true}
-                loop={true}
-                navigation
-                pagination={{ clickable: true }}
-                autoplay={{
-                  delay: 5000,
-                  disableOnInteraction: false,
-                }}
-                className="w-full mb-12"
-                style={{
-                  borderRadius: "16px",
-                  height: "400px",
-                }}
-                breakpoints={{
-                  // when window width is >= 320px
-                  320: {
-                    slidesPerView: 1,
-                    spaceBetween: 20,
-                  },
-                  // when window width is >= 640px
-                  640: {
-                    slidesPerView: 2,
-                    spaceBetween: 30,
-                  },
-                  // when window width is >= 1024px
-                  1024: {
-                    slidesPerView: 3,
-                    spaceBetween: 30,
-                  },
+            {/* Add Active Listings Section */}
+            {/*<Box sx={{ mb: 3, mt: 6 }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 600,
+                  color: isDarkTheme ? "#fff" : "#000",
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
                 }}
               >
-                {trendingCollections.map((collection) => {
-                  const metadata = collection.metadata?.firstToken?.metadata
-                    ? JSON.parse(collection.metadata.firstToken.metadata)
-                    : null;
+                Active Listings
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  mt: 1,
+                  color: isDarkTheme
+                    ? "rgba(255, 255, 255, 0.7)"
+                    : "rgba(0, 0, 0, 0.7)",
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                }}
+              >
+                Explore the latest NFTs available for purchase
+              </Typography>
+            </Box>
 
-                  return (
-                    <SwiperSlide key={collection.collectionId}>
-                      {({ isActive, isNext, isPrev }) => (
-                        <div
-                          className="relative w-full h-full cursor-pointer transition-all duration-300"
-                          onClick={() =>
-                            navigate(`/collection/${collection.collectionId}`)
-                          }
-                          style={{
-                            filter: isActive ? "none" : "blur(2px)",
-                            transform: isActive
-                              ? "scale(1.05)"
-                              : isNext || isPrev
-                              ? "scale(0.9)"
-                              : "scale(0.8)",
-                            opacity: isActive
-                              ? 1
-                              : isNext || isPrev
-                              ? 0.7
-                              : 0.5,
-                          }}
-                        >
-                          <img
-                            src={
-                              metadata?.image
-                                ? metadata.image.replace(
-                                    "ipfs://",
-                                    "https://ipfs.io/ipfs/"
-                                  )
-                                : "/placeholder.png"
-                            }
-                            alt={
-                              metadata?.name ||
-                              `Collection #${collection.collectionId}`
-                            }
-                            className="w-full h-full object-cover rounded-lg"
-                            onError={(
-                              e: React.SyntheticEvent<HTMLImageElement>
-                            ) => {
-                              e.currentTarget.src = "/placeholder.png";
+            <Swiper
+              modules={[Navigation, Pagination]}
+              spaceBetween={30}
+              slidesPerView={4}
+              navigation
+              pagination={{ clickable: true }}
+              className="w-full mb-12"
+              style={{
+                borderRadius: "16px",
+                height: "400px",
+              }}
+              breakpoints={{
+                320: {
+                  slidesPerView: 1,
+                  spaceBetween: 20,
+                },
+                640: {
+                  slidesPerView: 2,
+                  spaceBetween: 30,
+                },
+                1024: {
+                  slidesPerView: 4,
+                  spaceBetween: 30,
+                },
+              }}
+            >
+              {listings.slice(0, 8).map((listing: NFTIndexerListingI) => {
+                const { token } = listing;
+                const metadata = token?.metadata
+                  ? JSON.parse(token.metadata)
+                  : null;
+                const name = metadata?.name || `Token #${listing.tokenId}`;
+                console.log({ listing, token, metadata, name });
+                return (
+                  <SwiperSlide
+                    key={`${listing.collectionId}-${listing.tokenId}`}
+                  >
+                    <div
+                      className="relative w-full h-full cursor-pointer"
+                      onClick={() =>
+                        navigate(
+                          `/collection/${listing.collectionId}/token/${listing.tokenId}`
+                        )
+                      }
+                    >
+                      <img
+                        src={
+                          metadata?.image
+                            ? metadata.image.indexOf("ipfs://") !== -1
+                              ? metadata.image.replace(
+                                  "ipfs://",
+                                  "https://ipfs.io/ipfs/"
+                                )
+                              : metadata.image
+                            : ""
+                        }
+                        alt={metadata?.name || `Token #${listing.tokenId}`}
+                        className="w-full h-full object-cover rounded-lg"
+                        onError={(
+                          e: React.SyntheticEvent<HTMLImageElement>
+                        ) => {
+                          e.currentTarget.src = "/placeholder.png";
+                        }}
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 rounded-b-lg">
+                        <h3 className="text-lg font-bold mb-2">
+                          {metadata?.name || `Token #${listing.tokenId}`}
+                        </h3>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-sm opacity-80">Price</p>
+                            <p className="font-bold">
+                              {formatPrice(listing.price)} VOI
+                            </p>
+                          </div>
+                          <MuiButton
+                            variant="contained"
+                            size="small"
+                            sx={{
+                              backgroundColor: "#93f",
+                              "&:hover": {
+                                backgroundColor: "#7a2adb",
+                              },
                             }}
-                          />
-                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 rounded-b-lg">
-                            <h3 className="text-xl font-bold mb-2">
-                              {metadata?.name?.replace(/\s*#\d+$/, "") ||
-                                `Collection #${collection.collectionId}`}
-                            </h3>
-                            <div className="flex justify-between">
-                              <div>
-                                <p className="text-sm opacity-80">
-                                  Recent Sales
-                                </p>
-                                <p className="font-bold">
-                                  {collection.totalSales}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm opacity-80">Volume</p>
-                                <p className="font-bold">
-                                  {formatPrice(collection.totalVolume)} VOI
-                                </p>
-                              </div>
+                          >
+                            Buy Now
+                          </MuiButton>
+                        </div>
+                      </div>
+                    </div>
+                  </SwiperSlide>
+                );
+              })}
+            </Swiper>*/}
+
+            {/* NFT Games Section */}
+            {projects?.nftGamesProjects &&
+              projects.nftGamesProjects.length > 0 && (
+                <>
+                  <Box sx={{ mb: 3, mt: 6 }}>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        fontWeight: 600,
+                        color: isDarkTheme ? "#fff" : "#000",
+                        fontFamily: '"Plus Jakarta Sans", sans-serif',
+                      }}
+                    >
+                      NFT Games
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        mt: 1,
+                        color: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.7)"
+                          : "rgba(0, 0, 0, 0.7)",
+                        fontFamily: '"Plus Jakarta Sans", sans-serif',
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "4px",
+                      }}
+                    >
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <FavoriteIcon sx={{ color: "#ff69b4", fontSize: 16 }} />
+                        10% of this project's proceeds goes to NFT Game Rewards.
+                      </Box>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <FavoriteIcon sx={{ color: "#ff69b4", fontSize: 16 }} />
+                        This project is part of the NFT Games.
+                      </Box>
+                    </Typography>
+                  </Box>
+                  <Swiper
+                    modules={[Navigation, Pagination]}
+                    spaceBetween={30}
+                    slidesPerView={3}
+                    centeredSlides={true}
+                    loop={true}
+                    navigation
+                    pagination={{ clickable: true }}
+                    autoplay={false}
+                    className="w-full mb-12"
+                    style={{
+                      borderRadius: "16px",
+                      height: "400px",
+                    }}
+                    breakpoints={{
+                      320: {
+                        slidesPerView: 1,
+                        spaceBetween: 20,
+                      },
+                      640: {
+                        slidesPerView: 2,
+                        spaceBetween: 30,
+                      },
+                      1024: {
+                        slidesPerView: 3,
+                        spaceBetween: 30,
+                      },
+                    }}
+                  >
+                    {projects.nftGamesProjects.map((project) => (
+                      <SwiperSlide key={project.applicationID}>
+                        {({ isActive, isNext, isPrev }) => (
+                          <div
+                            className="relative w-full h-full cursor-pointer transition-all duration-300"
+                            onClick={() =>
+                              navigate(`/collection/${project.applicationID}`)
+                            }
+                            style={{
+                              filter: isActive ? "none" : "blur(2px)",
+                              transform: isActive
+                                ? "scale(1.05)"
+                                : isNext || isPrev
+                                ? "scale(0.9)"
+                                : "scale(0.8)",
+                              opacity: isActive
+                                ? 1
+                                : isNext || isPrev
+                                ? 0.7
+                                : 0.5,
+                            }}
+                          >
+                            <img
+                              src={project.coverImageURL || "/placeholder.png"}
+                              alt={project.title}
+                              className="w-full h-full object-cover rounded-lg"
+                              onError={(
+                                e: React.SyntheticEvent<HTMLImageElement>
+                              ) => {
+                                e.currentTarget.src = "/placeholder.png";
+                              }}
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 rounded-b-lg">
+                              <h3 className="text-xl font-bold mb-2">
+                                {project.title}
+                              </h3>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </SwiperSlide>
-                  );
-                })}
-              </Swiper>
-            )}
-          </TabPanel>
-
-          {/* Activity */}
-          <ActivitySection>
-            <ActivityTitle $isDarkTheme={isDarkTheme}>
-              Recent Activity
-            </ActivityTitle>
-            <StyledTableContainer $isDarkTheme={isDarkTheme}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Collection</TableCell>
-                    <TableCell>Price</TableCell>
-                    <TableCell>From</TableCell>
-                    <TableCell>To</TableCell>
-                    <TableCell>Time</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {isLoadingSales ? (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center">
-                        <CircularProgress
-                          size={24}
-                          sx={{ color: isDarkTheme ? "#fff" : "inherit" }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    paginatedSales.map((sale) => (
-                      <ActivityTableRow
-                        key={sale.transactionId}
-                        sale={sale}
-                        isDarkTheme={isDarkTheme}
-                        tokenInfo={getTokenInfo(
-                          sale.collectionId,
-                          sale.tokenId
                         )}
-                        collectionName={getCollectionName(sale.collectionId)}
-                      />
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </StyledTableContainer>
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                </>
+              )}
 
-            {/* Add Pagination */}
-            {sales.length > salesPerPage && (
-              <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-                <CustomPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  isDarkTheme={isDarkTheme}
-                />
-              </Box>
-            )}
-          </ActivitySection>
-
-          {/* Top Sellers Section */}
-          {/*false && (
+            {/* Activity */}
             <ActivitySection>
               <ActivityTitle $isDarkTheme={isDarkTheme}>
-                Top Sellers
+                Recent Activity
               </ActivityTitle>
               <StyledTableContainer $isDarkTheme={isDarkTheme}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Seller</TableCell>
-                      <TableCell align="right">Total Sales</TableCell>
-                      <TableCell align="right">Total Proceeds</TableCell>
+                      <TableCell>Collection</TableCell>
+                      <TableCell>Price</TableCell>
+                      <TableCell>From</TableCell>
+                      <TableCell>To</TableCell>
+                      <TableCell>Time</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {isLoadingTopSellers ? (
+                    {isLoadingSales ? (
                       <TableRow>
-                        <TableCell colSpan={3} align="center">
+                        <TableCell colSpan={6} align="center">
                           <CircularProgress
                             size={24}
                             sx={{ color: isDarkTheme ? "#fff" : "inherit" }}
@@ -1337,141 +1874,36 @@ export const Home: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      paginatedSellers.map((seller) => (
-                        <TableRow key={seller.seller}>
-                          <TableCell>
-                            <Link
-                              to={`/account/${seller.seller}`}
-                              style={{
-                                textDecoration: "none",
-                                color: isDarkTheme ? "#fff" : "inherit",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "12px",
-                              }}
-                            >
-                              <Jazzicon
-                                diameter={24}
-                                seed={jsNumberForAddress(seller.seller)}
-                              />
-                              {`${seller.seller.slice(
-                                0,
-                                6
-                              )}...${seller.seller.slice(-4)}`}
-                            </Link>
-                          </TableCell>
-                          <TableCell align="right">
-                            {seller.totalSales.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            {(seller.totalProceeds / 1e6).toLocaleString(
-                              undefined,
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }
-                            )}{" "}
-                            VOI
-                          </TableCell>
-                        </TableRow>
+                      paginatedSales.map((sale) => (
+                        <ActivityTableRow
+                          key={sale.transactionId}
+                          sale={sale}
+                          isDarkTheme={isDarkTheme}
+                          tokenInfo={getTokenInfo(
+                            sale.collectionId,
+                            sale.tokenId
+                          )}
+                          collectionName={getCollectionName(sale.collectionId)}
+                        />
                       ))
                     )}
                   </TableBody>
                 </Table>
               </StyledTableContainer>
-              {topSellers.length > sellersPerPage && (
-                <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-                  <CustomPagination
-                    currentPage={currentTopSellersPage}
-                    totalPages={totalSellerPages}
-                    onPageChange={setCurrentTopSellersPage}
-                    isDarkTheme={isDarkTheme}
-                  />
-                </Box>
-              )}
-            </ActivitySection>
-          )*/}
 
-          {/* Top Buyers Section */}
-          {/*false && (
-            <ActivitySection>
-              <ActivityTitle $isDarkTheme={isDarkTheme}>
-                Top Buyers
-              </ActivityTitle>
-              <StyledTableContainer $isDarkTheme={isDarkTheme}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Buyer</TableCell>
-                      <TableCell align="right">Total Purchases</TableCell>
-                      <TableCell align="right">Total Spent</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {isLoadingTopBuyers ? (
-                      <TableRow>
-                        <TableCell colSpan={3} align="center">
-                          <CircularProgress
-                            size={24}
-                            sx={{ color: isDarkTheme ? "#fff" : "inherit" }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      paginatedBuyers.map((buyer) => (
-                        <TableRow key={buyer.buyer}>
-                          <TableCell>
-                            <Link
-                              to={`/account/${buyer.buyer}`}
-                              style={{
-                                textDecoration: "none",
-                                color: isDarkTheme ? "#fff" : "inherit",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "12px",
-                              }}
-                            >
-                              <Jazzicon
-                                diameter={24}
-                                seed={jsNumberForAddress(buyer.buyer)}
-                              />
-                              {`${buyer.buyer.slice(
-                                0,
-                                6
-                              )}...${buyer.buyer.slice(-4)}`}
-                            </Link>
-                          </TableCell>
-                          <TableCell align="right">
-                            {buyer.totalPurchases.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            {(buyer.totalSpent / 1e6).toLocaleString(
-                              undefined,
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }
-                            )}{" "}
-                            VOI
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </StyledTableContainer>
-              {topBuyers.length > buyersPerPage && (
+              {/* Add Pagination */}
+              {sales.length > salesPerPage && (
                 <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
                   <CustomPagination
-                    currentPage={currentTopBuyersPage}
-                    totalPages={totalBuyerPages}
-                    onPageChange={setCurrentTopBuyersPage}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
                     isDarkTheme={isDarkTheme}
                   />
                 </Box>
               )}
             </ActivitySection>
-          )*/}
+          </Layout>
         </div>
       ) : (
         <div>
@@ -1501,6 +1933,6 @@ export const Home: React.FC = () => {
           </Grid>
         </div>
       )}
-    </Layout>
+    </>
   );
 };
