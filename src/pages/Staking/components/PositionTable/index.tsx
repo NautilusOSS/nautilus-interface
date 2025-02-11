@@ -23,6 +23,7 @@ import {
   MenuItem,
   Fade,
   CircularProgress,
+  TextField,
 } from "@mui/material";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
@@ -284,6 +285,11 @@ const ResponsiveTable: React.FC<ResponsiveTableProps> = ({
   // Add state for refresh counter
   const [refreshCounter, setRefreshCounter] = useState(0);
 
+  // Add new state for delegate modal
+  const [isDelegateModalOpen, setIsDelegateModalOpen] = useState(false);
+  const [delegateAddress, setDelegateAddress] = useState('');
+  const [isDelegating, setIsDelegating] = useState(false);
+
   // Add handlers for selection
   const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (value === 0) {
@@ -329,190 +335,6 @@ const ResponsiveTable: React.FC<ResponsiveTableProps> = ({
 
   // Add isSelected helper
   const isSelected = (id: string) => selectedRows.indexOf(id) !== -1;
-
-  /*
-  // Calculate total withdrawable amount based on active tab
-  const handleWithdrawAllClick = async () => {
-    if (!activeAccount) return;
-    const { algodClient } = getAlgorandClients();
-    let total = BigInt(0);
-    if (value === 0) {
-      // Only calculate for active staking contracts tab
-      // total = sortedStakingContracts
-      //   .slice((currentPage - 1) * pageSize, currentPage * pageSize)
-      //   .reduce((sum, ctc) => sum + Number(ctc.withdrawable || 0), 0);
-      // build withdraw transactions
-      const buildN = [];
-      let withdrawableAmount;
-      for await (const ctc of sortedStakingContracts) {
-        const withdrawable = await getStakingWithdrawableAmount(
-          algodClient,
-          ctc.contractId,
-          ctc.global_owner
-        );
-        total += BigInt(withdrawable);
-        if (withdrawable > 0) {
-          const builder = new CONTRACT(
-            ctc.contractId,
-            algodClient,
-            undefined,
-            {
-              name: "NautilusVoiStaking",
-              methods: [
-                {
-                  name: "withdraw",
-                  args: [{ type: "uint64", name: "amount" }],
-                  readonly: false,
-                  returns: { type: "uint64" },
-                  desc: "Withdraw funds from contract.",
-                },
-              ],
-              events: [],
-            },
-            { addr: activeAccount.address, sk: new Uint8Array(0) },
-            true,
-            false,
-            true
-          );
-          const txnO = await builder.withdraw(BigInt(withdrawable));
-          buildN.push({
-            ...txnO,
-          });
-        }
-      }
-      const ci = new CONTRACT(0, algodClient, undefined, abi.custom, {
-        addr: activeAccount.address,
-        sk: new Uint8Array(0),
-      });
-      ci.setFee(2000);
-      ci.setEnableGroupResourceSharing(true);
-      ci.setExtraTxns(buildN.slice(0, 8).map((txn) => txn.obj));
-      //ci.setGroupResourceSharingStrategy("merge");
-      const customR = await ci.custom();
-      const stxns = await signTransactions(
-        customR.txns.map(
-          (txn: string) => new Uint8Array(Buffer.from(txn, "base64"))
-        )
-      );
-      const res = await algodClient
-        .sendRawTransaction(stxns as Uint8Array[])
-        .do();
-      console.log(res);
-    } else {
-      const buildN: any[] = [];
-      for await (const nft of sortedArc72Tokens) {
-        try {
-          const withdrawable = await getStakingWithdrawableAmount(
-            algodClient,
-            Number(nft.tokenId),
-            nft.staking?.global_owner
-          );
-          console.log(withdrawable);
-          total += BigInt(withdrawable);
-          if (withdrawable > BigInt(0)) {
-            const builder = new CONTRACT(
-              nft.contractId,
-              algodClient,
-              undefined,
-              {
-                name: "NautilusVoiStaking",
-                methods: [
-                  {
-                    name: "withdraw",
-                    args: [
-                      {
-                        type: "uint64",
-                        name: "tokenId",
-                      },
-                      {
-                        type: "uint64",
-                        name: "amount",
-                      },
-                    ],
-                    readonly: false,
-                    returns: {
-                      type: "void",
-                    },
-                    desc: "Withdraw funds from contract.",
-                  },
-                ],
-                events: [],
-              },
-              { addr: activeAccount.address, sk: new Uint8Array(0) },
-              true,
-              false,
-              true
-            );
-            const txnO = await builder.withdraw(
-              Number(nft.tokenId),
-              BigInt(withdrawable)
-            );
-            console.log({ txnO });
-            buildN.push({
-              ...txnO,
-              accounts: [
-                "RTKWX3FTDNNIHMAWHK5SDPKH3VRPPW7OS5ZLWN6RFZODF7E22YOBK2OGPE",
-              ],
-              foreignApp: [Number(nft.tokenId)],
-            });
-          }
-        } catch (e) {
-          console.log(e);
-        }
-      }
-      console.log(buildN);
-      const ci = new CONTRACT(0, algodClient, undefined, abi.custom, {
-        addr: activeAccount.address,
-        sk: new Uint8Array(0),
-      });
-      ci.setFee(8000);
-      ci.setEnableGroupResourceSharing(true);
-      ci.setExtraTxns(buildN.slice(0, 7).map((txn) => txn.obj));
-      //ci.setGroupResourceSharingStrategy("merge");
-      const customR = await ci.custom();
-      console.log(customR);
-      const stxns = await signTransactions(
-        customR.txns.map(
-          (txn: string) => new Uint8Array(Buffer.from(txn, "base64"))
-        )
-      );
-      const res = await algodClient
-        .sendRawTransaction(stxns as Uint8Array[])
-        .do();
-      console.log(res);
-    }
-    setWithdrawableAmount(Number(total) / 10 ** 6);
-    setIsModalOpen(true);
-  };
-  */
-
-  // Add modal JSX before the return statement
-  /*
-  const withdrawModal = (
-    <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)}>
-      <DialogTitle>Withdraw All Tokens</DialogTitle>
-      <DialogContent>
-        <Typography>Total withdrawable amount: {withdrawableAmount}</Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
-        <Button
-          onClick={() => {
-            // Add your withdraw logic here
-            setIsModalOpen(false);
-          }}
-          sx={{
-            backgroundColor: "#9933ff",
-            color: "white",
-            "&:hover": { backgroundColor: "#7f2adb" },
-          }}
-        >
-          Confirm Withdraw
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-  */
 
   const handleActionClick = (event: React.MouseEvent<HTMLElement>) => {
     setActionAnchorEl(event.currentTarget);
@@ -775,6 +597,166 @@ const ResponsiveTable: React.FC<ResponsiveTableProps> = ({
     }
   };
 
+  // Add handler for delegate action
+  const handleSetDelegateClick = () => {
+    setDelegateAddress('');
+    setIsDelegateModalOpen(true);
+    handleActionClose();
+  };
+
+  // Add handler for confirmed delegation
+  const handleConfirmedDelegate = async () => {
+    if (!activeAccount || selectedRows.length === 0 || !delegateAddress) return;
+    const { algodClient } = getAlgorandClients();
+
+    try {
+      setIsDelegating(true);
+      if (value === 0) {
+        // Handle staking contracts tab
+        const buildN = [];
+        for await (const ctc of sortedStakingContracts) {
+          if (!selectedRows.includes(ctc.contractId.toString())) continue;
+
+          const builder = new CONTRACT(
+            ctc.contractId,
+            algodClient,
+            undefined,
+            {
+              name: "NautilusVoiStaking",
+              methods: [
+                {
+                  name: "set_delegate",
+                  args: [{ type: "address", name: "delegate_address" }],
+                  readonly: false,
+                  returns: { type: "void" },
+                  desc: "Set delegate address for the contract.",
+                },
+              ],
+              events: [],
+            },
+            { addr: activeAccount.address, sk: new Uint8Array(0) },
+            true,
+            false,
+            true
+          );
+          const txnO = await builder.set_delegate(delegateAddress);
+          buildN.push({
+            ...txnO,
+            note: new TextEncoder().encode(
+              `set delegate ${delegateAddress} for ${ctc.contractId}`
+            ),
+          });
+        }
+
+        if (buildN.length > 0) {
+          const ci = new CONTRACT(0, algodClient, undefined, abi.custom, {
+            addr: activeAccount.address,
+            sk: new Uint8Array(0),
+          });
+          ci.setFee(2000);
+          ci.setEnableGroupResourceSharing(true);
+          ci.setGroupResourceSharingStrategy("merge");
+          ci.setExtraTxns(buildN.slice(0, 8).map((txn) => txn.obj));
+          const customR = await ci.custom();
+          const stxns = await signTransactions(
+            customR.txns.map(
+              (txn: string) => new Uint8Array(Buffer.from(txn, "base64"))
+            )
+          );
+          const res = await algodClient
+            .sendRawTransaction(stxns as Uint8Array[])
+            .do();
+
+          const txid = res.txId;
+          await algosdk.waitForConfirmation(algodClient, txid, 4);
+          await new Promise((resolve) => setTimeout(resolve, 8000));
+
+          toast.success("Delegate set successfully");
+          setSelectedRows([]);
+          setRefreshCounter((prev) => prev + 1);
+          onRefresh();
+        }
+      } else {
+        // Handle tokens tab - similar to staking contracts but with token-specific logic
+        const buildN: any[] = [];
+        for await (const nft of sortedArc72Tokens) {
+          if (!selectedRows.includes(nft.tokenId.toString())) continue;
+
+          const builder = new CONTRACT(
+            nft.contractId,
+            algodClient,
+            undefined,
+            {
+              name: "NautilusVoiStaking",
+              methods: [
+                {
+                  name: "set_delegate",
+                  args: [
+                    { type: "uint64", name: "tokenId" },
+                    { type: "address", name: "delegate_address" },
+                  ],
+                  readonly: false,
+                  returns: { type: "void" },
+                  desc: "Set delegate address for the token.",
+                },
+              ],
+              events: [],
+            },
+            { addr: activeAccount.address, sk: new Uint8Array(0) },
+            true,
+            false,
+            true
+          );
+          const txnO = await builder.set_delegate(Number(nft.tokenId), delegateAddress);
+          buildN.push({
+            ...txnO,
+            accounts: [
+              "RTKWX3FTDNNIHMAWHK5SDPKH3VRPPW7OS5ZLWN6RFZODF7E22YOBK2OGPE",
+            ],
+            foreignApp: [Number(nft.tokenId)],
+            note: new TextEncoder().encode(
+              `set delegate ${delegateAddress} for token ${nft.tokenId}`
+            ),
+          });
+        }
+
+        if (buildN.length > 0) {
+          const ci = new CONTRACT(0, algodClient, undefined, abi.custom, {
+            addr: activeAccount.address,
+            sk: new Uint8Array(0),
+          });
+          ci.setFee(8000);
+          ci.setEnableGroupResourceSharing(true);
+          ci.setGroupResourceSharingStrategy("merge");
+          ci.setExtraTxns(buildN.slice(0, 7).map((txn) => txn.obj));
+          const customR = await ci.custom();
+          const stxns = await signTransactions(
+            customR.txns.map(
+              (txn: string) => new Uint8Array(Buffer.from(txn, "base64"))
+            )
+          );
+          const res = await algodClient
+            .sendRawTransaction(stxns as Uint8Array[])
+            .do();
+
+          await algosdk.waitForConfirmation(algodClient, res.txId, 4);
+          await new Promise((resolve) => setTimeout(resolve, 8000));
+
+          toast.success("Delegate set successfully");
+          setSelectedRows([]);
+          setRefreshCounter((prev) => prev + 1);
+          onRefresh();
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to set delegate");
+    } finally {
+      setIsDelegating(false);
+      setIsDelegateModalOpen(false);
+    }
+  };
+
   return (
     <>
       {/* Updated confirmation modal */}
@@ -896,6 +878,109 @@ const ResponsiveTable: React.FC<ResponsiveTableProps> = ({
         </DialogActions>
       </Dialog>
 
+      {/* Add delegate modal */}
+      <Dialog
+        open={isDelegateModalOpen}
+        onClose={() => !isDelegating && setIsDelegateModalOpen(false)}
+        PaperProps={{
+          sx: {
+            backgroundColor: isDarkTheme
+              ? "rgba(30, 30, 30, 0.95)"
+              : "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(10px)",
+            borderRadius: "16px",
+          },
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h6" color={isDarkTheme ? "white" : "inherit"}>
+            {isDelegating ? "Setting Delegate" : "Set Delegate Address"}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {isDelegating ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                py: 3,
+                gap: 2,
+              }}
+            >
+              <CircularProgress
+                size={48}
+                sx={{
+                  color: "#9933ff",
+                }}
+              />
+              <Typography color={isDarkTheme ? "white" : "inherit"} align="center">
+                Please sign the transaction in your wallet...
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ mt: 1 }}>
+              <Typography color={isDarkTheme ? "white" : "inherit"} gutterBottom>
+                Enter the delegate address for {selectedRows.length} selected{" "}
+                {selectedRows.length === 1 ? "position" : "positions"}.
+              </Typography>
+              <TextField
+                fullWidth
+                value={delegateAddress}
+                onChange={(e) => setDelegateAddress(e.target.value)}
+                placeholder="Enter delegate address"
+                sx={{
+                  mt: 2,
+                  "& .MuiInputBase-input": {
+                    color: isDarkTheme ? "white" : "inherit",
+                  },
+                }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setIsDelegateModalOpen(false)}
+            sx={{
+              color: isDarkTheme ? "white" : "inherit",
+            }}
+            disabled={isDelegating}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmedDelegate}
+            variant="contained"
+            disabled={!delegateAddress || isDelegating}
+            sx={{
+              backgroundColor: "#9933ff",
+              color: "white",
+              "&:hover": { backgroundColor: "#7f2adb" },
+              "&.Mui-disabled": {
+                backgroundColor: isDarkTheme
+                  ? "rgba(153, 51, 255, 0.3)"
+                  : "rgba(153, 51, 255, 0.12)",
+              },
+            }}
+          >
+            {isDelegating ? (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <CircularProgress
+                  size={20}
+                  sx={{
+                    color: "white",
+                  }}
+                />
+                Processing...
+              </Box>
+            ) : (
+              "Set Delegate"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Box sx={{ mb: 3 }}>
         <StyledTabs
           value={value}
@@ -995,7 +1080,19 @@ const ResponsiveTable: React.FC<ResponsiveTableProps> = ({
         >
           Withdraw Selected
         </MenuItem>
-        {/* Add more actions as needed */}
+        <MenuItem
+          onClick={handleSetDelegateClick}
+          sx={{
+            color: isDarkTheme ? "white" : "inherit",
+            "&:hover": {
+              backgroundColor: isDarkTheme
+                ? "rgba(153, 51, 255, 0.08)"
+                : "rgba(153, 51, 255, 0.08)",
+            },
+          }}
+        >
+          Set Delegate
+        </MenuItem>
       </Menu>
       <CustomTabPanel value={value} index={0}>
         <TableContainer component={Paper} style={tableStyle}>

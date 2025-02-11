@@ -1048,8 +1048,8 @@ const NFT_RELEASES: NFTRelease[] = [
     date: "2025-02-07 00:00:00 UTC",
     name: "DORKS13",
     url: "https://nautilus.sh/#/collection/894888/token/13",
-    winnerAddress: "",
-    txid: "",
+    winnerAddress: "BWHDXT6H4EP54IE3ETYXR3YATEXNI7ABWYTX3LQVBGTFQZ3OK4QAQWFLLM",
+    txid: "SRPUJZDXM5AB4XZBCRKFIHEZAYOEKJHTKOYR5ENGVJEITKRL6BJA",
   },
   {
     date: "2025-02-14 00:00:00 UTC",
@@ -2940,7 +2940,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                     </Box>
                   </Label>
                   <NFTImage
-                    src="https://prod.cdn.highforge.io/m/894888/13.png"
+                    src="https://prod.cdn.highforge.io/m/894888/29.png"
                     alt="Weekly NFT Prize"
                     $isDarkTheme={isDarkTheme}
                   />
@@ -2952,7 +2952,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                       mb: 1,
                     }}
                   >
-                    DORKS13
+                    DORKS29
                   </Typography>
                   <Typography
                     variant="body2"

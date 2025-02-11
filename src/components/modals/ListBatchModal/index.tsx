@@ -148,7 +148,7 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
     const pricesList = nfts.map((nft) => prices[getPriceKey(nft)]);
     await onSave(pricesList, currency, token, setProgress);
     setShowDefaultButton(false);
-    
+
     // Trigger confetti from the modal element
     if (modalRef.current) {
       party.confetti(modalRef.current, {
@@ -175,13 +175,14 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
     return decodeRoyalties(royalties);
   }, [nfts]);
 
-  const [mpFee, royaltyFee] = useMemo(() => {
+  const [mpFee, royaltyFee, gameFee] = useMemo(() => {
     const mpFee = 500 / 10000;
     const royaltyFee = (royaltyInfo?.royaltyPoints || 0) / 10000;
-    return [mpFee, royaltyFee];
+    const gameFee = 0.1; // 10% game fee
+    return [mpFee, royaltyFee, gameFee];
   }, [initialPrice, royaltyInfo]);
 
-  console.log({ mpFee, royaltyFee, royaltyInfo });
+  console.log({ mpFee, royaltyFee, gameFee, royaltyInfo });
 
   return (
     <Modal
@@ -250,7 +251,7 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
                       maxWidth: "100% !important",
                       flexBasis: "unset !important",
                       height: "100%",
-                    }
+                    },
                   }}
                 >
                   {nfts.map((nft: NFTIndexerTokenI, index) => (
@@ -446,6 +447,7 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
                               ? 0
                               : royaltyFee
                           }
+                          gamesFeeRate={gameFee}
                           symbol="VOI"
                           darkMode={true}
                           sx={{ color: "white", mt: 2 }}

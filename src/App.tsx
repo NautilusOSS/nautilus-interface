@@ -22,6 +22,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { theme } from "./theme";
 import CommunityChest from "./pages/CommunityChest";
+import EarlyAccessTokenSender from './pages/EarlyAccessTokenSender';
 
 const BackgroundLayer = styled.div`
   width: 100%;
@@ -82,6 +83,10 @@ const AppRoutes: React.FC = () => {
                 address={activeAccount?.address}
               />
             }
+          />
+          <Route
+            path="/eat-wizard"
+            element={<EarlyAccessTokenSender />}
           />
         </Routes>
       </Router>
