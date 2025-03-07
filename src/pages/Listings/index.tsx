@@ -19,6 +19,11 @@ import {
   Autocomplete,
   TextField,
   Chip,
+  Paper,
+  Stack,
+  Typography,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -35,7 +40,6 @@ import NFTListingTable from "../../components/NFTListingTable";
 import RankingList from "../../components/RankingList";
 import ToggleButtons from "../../components/RankingFilterToggleButtons";
 import MyAutocomplete from "../../components/Autocomplete";
-import { Stack } from "@mui/material";
 import { getTokens, updateToken } from "../../store/tokenSlice";
 import { UnknownAction } from "@reduxjs/toolkit";
 import { getCollections } from "../../store/collectionSlice";
@@ -248,9 +252,13 @@ const ListingRoot = styled.div`
   display: flex;
   align-items: flex-start;
   gap: var(--Main-System-20px, 20px);
-  margin-top: 44px;
-  min-height: 100vh;
+  min-height: calc(100vh - 88px);
   position: relative;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    margin-top: 0;
+  }
 `;
 
 const SidebarFilterRoot = styled(Stack)`
@@ -296,17 +304,26 @@ const SidebarFilterRoot = styled(Stack)`
   }
 `;
 
-const ListingContainer = styled.div<{ viewMode?: "grid" | "list" }>`
-  padding-top: 16px;
-  padding-left: ${(props) => (props.viewMode === "list" ? "24px" : "16px")};
-  padding-right: ${(props) => (props.viewMode === "list" ? "24px" : "16px")};
-  padding-bottom: 16px;
+const ListingContainer = styled.div<{ viewMode?: "grid" | "list" | "compact" }>`
+  padding: 16px;
   overflow: hidden;
   flex-grow: 1;
+  width: 100%;
+  min-height: calc(100vh - 88px);
 
-  // Add margin to InfiniteScroll container to prevent hover cutoff
+  // Add padding for hover effects
   & > div {
-    margin: ${(props) => (props.viewMode === "list" ? "8px 0" : "8px")};
+    padding: ${(props) => (props.viewMode === "list" ? "0" : "8px")};
+  }
+
+  // Responsive padding
+  @media (min-width: 768px) {
+    padding: ${(props) => (props.viewMode === "list" ? "24px" : "20px")};
+  }
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    min-height: calc(100vh - 88px - 56px);
   }
 `;
 
@@ -314,59 +331,49 @@ const ListingHeading = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
 `;
 
-const HeadingContainer = styled.div`
+const HeadingLeft = styled.div`
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  /*
-  gap: var(--Main-System-2px, 2px);
-  */
-  gap: 6px;
-`;
-
-const HeadingTitle = styled.div`
-  text-align: center;
-  font-family: Nohemi;
-  /* font-size: 48px; */
-  font-style: normal;
-  font-weight: 700;
-  line-height: 40px; /* 83.333% */
-  letter-spacing: 0.5px;
-  &.dark {
-    color: #fff;
-  }
-  &.light {
-    color: #93f;
-  }
-`;
-
-const HeadingDescriptionContainer = styled.div`
-  display: flex;
-  width: 174px;
   align-items: center;
-  gap: var(--Main-System-8px, 8px);
+  gap: 8px;
 `;
 
-const HeadingDescription = styled.div`
-  flex: 1 0 0;
-  color: #93f;
-  font-family: "Advent Pro";
-  font-size: 20px;
-  font-style: normal;
-  font-weight: 500;
-  line-height: 24px; /* 120% */
-  letter-spacing: 0.2px;
-`;
-
-const ListingGrid = styled.div`
+const HeadingRight = styled.div`
   display: flex;
-  align-items: flex-start;
-  align-content: flex-start;
-  gap: 20px var(--Main-System-20px, 20px);
-  flex-wrap: wrap;
-  margin-top: 48px;
+  align-items: center;
+  gap: 12px;
+`;
+
+const StyledToggleButtonGroup = styled(ToggleButtonGroup)<{
+  theme: { isDarkTheme: boolean };
+}>`
+  border: 1px solid
+    ${(props) => (props.theme.isDarkTheme ? "#3b3b3b" : "#eaebf0")};
+  background: ${(props) => (props.theme.isDarkTheme ? "#2b2b2b" : "#fff")};
+  border-radius: 8px;
+
+  .MuiToggleButton-root {
+    border: none;
+    color: ${(props) => (props.theme.isDarkTheme ? "#fff" : "#000")};
+
+    &:hover {
+      background: ${(props) =>
+        props.theme.isDarkTheme ? "#3b3b3b" : "#f5f5f5"};
+    }
+
+    &.Mui-selected {
+      background: ${(props) =>
+        props.theme.isDarkTheme ? "#3b3b3b" : "#f5f5f5"};
+      color: ${(props) => (props.theme.isDarkTheme ? "#fff" : "#000")};
+
+      &:hover {
+        background: ${(props) =>
+          props.theme.isDarkTheme ? "#4b4b4b" : "#e5e5e5"};
+      }
+    }
+  }
 `;
 
 // ------------------------------
@@ -548,6 +555,54 @@ const getCollectionName = (collection: CollectionData) => {
     return `#${collection.contractId}`;
   }
 };
+
+const StyledSelect = styled(Select)<{ isDark?: boolean }>`
+  .MuiSelect-select {
+    padding: 6px 12px;
+    color: ${(props) => (props.isDark ? "#fff" : "#000")};
+    font-size: 0.875rem;
+  }
+
+  .MuiOutlinedInput-notchedOutline {
+    border-color: ${(props) => (props.isDark ? "#3b3b3b" : "#eaebf0")};
+  }
+
+  &:hover .MuiOutlinedInput-notchedOutline {
+    border-color: ${(props) => (props.isDark ? "#4b4b4b" : "#d0d0d0")};
+  }
+
+  &.Mui-focused .MuiOutlinedInput-notchedOutline {
+    border-color: ${(props) => (props.isDark ? "#4b4b4b" : "#93f")};
+  }
+
+  .MuiSvgIcon-root {
+    color: ${(props) => (props.isDark ? "#fff" : "#000")};
+  }
+
+  .MuiPaper-root {
+    background-color: ${(props) => (props.isDark ? "#2b2b2b" : "#fff")};
+    border: 1px solid ${(props) => (props.isDark ? "#3b3b3b" : "#eaebf0")};
+  }
+`;
+
+const StyledMenuItem = styled(MenuItem)<{ isDark?: boolean }>`
+  &.MuiMenuItem-root {
+    font-size: 0.875rem;
+    color: ${(props) => (props.isDark ? "#fff" : "#000")};
+
+    &:hover {
+      background-color: ${(props) => (props.isDark ? "#3b3b3b" : "#f5f5f5")};
+    }
+
+    &.Mui-selected {
+      background-color: ${(props) => (props.isDark ? "#2b2b2b" : "#f0f0f0")};
+
+      &:hover {
+        background-color: ${(props) => (props.isDark ? "#3b3b3b" : "#e5e5e5")};
+      }
+    }
+  }
+`;
 
 export const Listings: React.FC = () => {
   const dispatch = useDispatch();
@@ -736,10 +791,12 @@ export const Listings: React.FC = () => {
     dispatch,
   ]);
 
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "compact">("list");
   const [displayedItems, setDisplayedItems] = useState<NFTIndexerListingI[]>(
     []
   );
+
+  console.log({ viewMode });
 
   console.log({ displayedItems });
 
@@ -754,7 +811,7 @@ export const Listings: React.FC = () => {
 
   const handleViewChange = (
     event: React.MouseEvent<HTMLElement>,
-    newView: "grid" | "list" | null
+    newView: "grid" | "list" | "compact" | null
   ) => {
     if (newView !== null) {
       setViewMode(newView);
@@ -1013,38 +1070,68 @@ export const Listings: React.FC = () => {
 
   const renderHeading = (
     <ListingHeading>
-      <HeadingContainer className="my-4 flex items-center">
-        <HeadingTitle
-          className={`${isDarkTheme ? "dark" : "light"} !text-4xl sm:text-5xl `}
+      <HeadingLeft>
+        <Typography
+          variant="body1"
+          sx={{
+            color: isDarkTheme ? "#fff" : "#000",
+            fontSize: "0.875rem",
+            wordWrap: "nowrap",
+            paddingRight: "12px",
+          }}
         >
-          Buy
-        </HeadingTitle>
-        <HeadingDescriptionContainer>
-          <HeadingDescription>
-            // {filteredListings.length} Results
-          </HeadingDescription>
-        </HeadingDescriptionContainer>
-      </HeadingContainer>
-      <div className="flex items-center">
-        <TimeFilterContainer>
-          <FormControl size="small">
-            <StyledSelect
-              value={timeFilter}
-              onChange={(event) => {
-                // Cast the event value to the correct type
-                const value = event.target.value;
-                if (value === "24h" || value === "7d" || value === "all") {
-                  dispatch(setTimeFilter(value));
-                }
-              }}
-              theme={{ isDarkTheme }}
-            >
-              <MenuItem value="24h">Last 24 hours</MenuItem>
-              <MenuItem value="7d">Last 7 days</MenuItem>
-              <MenuItem value="all">All time</MenuItem>
-            </StyledSelect>
-          </FormControl>
-        </TimeFilterContainer>
+          {filteredListings.length} Results
+        </Typography>
+      </HeadingLeft>
+      <HeadingRight>
+        <FormControl size="small">
+          <StyledSelect
+            value={timeFilter}
+            onChange={handleTimeFilterChange}
+            isDark={isDarkTheme}
+            MenuProps={{
+              PaperProps: {
+                sx: {
+                  bgcolor: isDarkTheme ? "#2b2b2b" : "#fff",
+                  borderRadius: "8px",
+                  boxShadow: isDarkTheme
+                    ? "0 4px 12px rgba(0, 0, 0, 0.3)"
+                    : "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  border: isDarkTheme
+                    ? "1px solid #3b3b3b"
+                    : "1px solid #eaebf0",
+                  "& .MuiMenuItem-root": {
+                    color: isDarkTheme ? "#fff" : "#000",
+                    fontSize: "0.875rem",
+                    padding: "8px 16px",
+                    "&:hover": {
+                      backgroundColor: isDarkTheme ? "#3b3b3b" : "#f5f5f5",
+                    },
+                    "&.Mui-selected": {
+                      backgroundColor: isDarkTheme ? "#2b2b2b" : "#f0f0f0",
+                      "&:hover": {
+                        backgroundColor: isDarkTheme ? "#3b3b3b" : "#e5e5e5",
+                      },
+                    },
+                  },
+                },
+              },
+            }}
+          >
+            <StyledMenuItem value="24h" isDark={isDarkTheme}>
+              Last 24 hours
+            </StyledMenuItem>
+            <StyledMenuItem value="7d" isDark={isDarkTheme}>
+              Last 7 days
+            </StyledMenuItem>
+            <StyledMenuItem value="all" isDark={isDarkTheme}>
+              All time
+            </StyledMenuItem>
+          </StyledSelect>
+        </FormControl>
+
+        <Box sx={{ width: "16px" }} />
+
         <StyledToggleButtonGroup
           value={viewMode}
           exclusive
@@ -1053,14 +1140,17 @@ export const Listings: React.FC = () => {
           size="small"
           theme={{ isDarkTheme }}
         >
+          {/*<ToggleButton value="compact" aria-label="compact view">
+            <GridView sx={{ transform: "scale(0.8)" }} />
+          </ToggleButton>*/}
           <ToggleButton value="grid" aria-label="grid view">
-            <GridView sx={{ color: isDarkTheme ? "#fff" : "inherit" }} />
+            <GridView />
           </ToggleButton>
           <ToggleButton value="list" aria-label="list view">
-            <List sx={{ color: isDarkTheme ? "#fff" : "inherit" }} />
+            <List />
           </ToggleButton>
         </StyledToggleButtonGroup>
-      </div>
+      </HeadingRight>
     </ListingHeading>
   );
 
@@ -1093,6 +1183,9 @@ export const Listings: React.FC = () => {
     [listings, smartTokens, listingsStatus, collectionsLoading]
   );
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   if (isLoading) {
     return (
       <Layout>
@@ -1123,13 +1216,52 @@ export const Listings: React.FC = () => {
   return (
     <Layout>
       <ListingRoot className="!flex !flex-col lg:!flex-row !items-start">
-        <div className="!hidden lg:!block !sticky !top-[88px] !h-[calc(100vh-88px)]">
+        <div className="!hidden lg:!block !sticky !top-[88px] !h-[calc(100vh-88px)] !overflow-auto">
           {renderSidebar}
         </div>
-        <div className="lg:!hidden w-full">
-          <DialogSearch>{renderSidebar}</DialogSearch>
+        <div className="lg:!hidden w-full px-4 mb-4">
+          <SearchInput className={isDarkTheme ? "dark" : "light"}>
+            <SearchIcon
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+            >
+              <g clipPath="url(#clip0_1018_4041)">
+                <path
+                  d="M14.6673 14.6667L11.6673 11.6667M13.334 7.33333C13.334 10.647 10.6477 13.3333 7.33398 13.3333C4.02028 13.3333 1.33398 10.647 1.33398 7.33333C1.33398 4.01962 4.02028 1.33333 7.33398 1.33333C10.6477 1.33333 13.334 4.01962 13.334 7.33333Z"
+                  stroke="#68727D"
+                  strokeWidth="1.77778"
+                  strokeLinecap="round"
+                />
+              </g>
+              <defs>
+                <clipPath id="clip0_1018_4041">
+                  <rect width="16" height="16" fill="white" />
+                </clipPath>
+              </defs>
+            </SearchIcon>
+            <SearchPlaceholderText
+              type="text"
+              className={[
+                search ? "has-value" : "",
+                isDarkTheme ? "dark" : "light",
+              ].join(" ")}
+              placeholder="Search listings..."
+              value={searchValue}
+              onChange={(e) => {
+                if (e.target.value === "") {
+                  setSearch("");
+                  setSearchValue("");
+                }
+                debouncedSearch(e.target.value);
+                setSearchValue(e.target.value);
+              }}
+            />
+          </SearchInput>
         </div>
-        <ListingContainer viewMode={viewMode}>
+        <ListingContainer viewMode={viewMode} className="!flex-1">
           {renderHeading}
           <InfiniteScroll
             dataLength={displayedItems.length}
@@ -1145,9 +1277,11 @@ export const Listings: React.FC = () => {
               </div>
             }
             className={
-              viewMode === "grid"
-                ? "items-center flex flex-col sm:grid md:grid-cols-2 lg:grid-cols-3 sm:w-fit gap-4 sm:gap-2"
-                : "flex flex-col gap-4"
+              viewMode === "list"
+                ? "flex flex-col gap-4 w-full"
+                : viewMode === "compact"
+                ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3 md:gap-4"
+                : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5"
             }
           >
             {displayedItems.map((el: NFTIndexerListingI) => {
@@ -1157,7 +1291,17 @@ export const Listings: React.FC = () => {
                 metadataURI: stripTrailingZeroBytes(el.token.metadataURI),
               };
               return (
-                <Grid2 key={pk} className={viewMode === "list" ? "w-full" : ""}>
+                <Grid2
+                  key={pk}
+                  className={`
+                    ${viewMode === "list" ? "w-full" : ""}
+                    ${viewMode === "compact" ? "!p-0" : ""}
+                    transition-transform hover:scale-[1.02] duration-200
+                  `}
+                  sx={{
+                    overflow: "hidden",
+                  }}
+                >
                   <CartNftCard
                     token={listedToken}
                     listing={el}
@@ -1166,6 +1310,10 @@ export const Listings: React.FC = () => {
                       navigate(
                         `/collection/${el.token.contractId}/token/${el.token.tokenId}`
                       );
+                      window.scrollTo({
+                        top: 0,
+                        behavior: "smooth",
+                      });
                     }}
                     showDrip={true}
                   />
@@ -1204,73 +1352,20 @@ const DialogSearch = ({ children }: { children: ReactNode }) => {
   );
 };
 
-const StyledToggleButtonGroup = styled(ToggleButtonGroup)`
-  && {
-    .MuiToggleButton-root {
-      border-color: ${(props) =>
-        props.theme.isDarkTheme ? "#3b3b3b" : "rgba(0, 0, 0, 0.12)"};
-      color: ${(props) =>
-        props.theme.isDarkTheme ? "#fff" : "rgba(0, 0, 0, 0.54)"};
-
-      &.Mui-selected {
-        background-color: ${(props) =>
-          props.theme.isDarkTheme ? "#2b2b2b" : "rgba(0, 0, 0, 0.08)"};
-        color: ${(props) =>
-          props.theme.isDarkTheme ? "#fff" : "rgba(0, 0, 0, 0.54)"};
-
-        &:hover {
-          background-color: ${(props) =>
-            props.theme.isDarkTheme ? "#3b3b3b" : "rgba(0, 0, 0, 0.12)"};
-        }
-      }
-
-      &:hover {
-        background-color: ${(props) =>
-          props.theme.isDarkTheme ? "#2b2b2b" : "rgba(0, 0, 0, 0.04)"};
-      }
-    }
-  }
+const HeroSection = styled.div<{ isDark?: boolean }>`
+  background: ${(props) => (props.isDark ? "#202020" : "#fff")};
+  padding: 24px;
+  border-bottom: 1px solid ${(props) => (props.isDark ? "#2b2b2b" : "#eaebf0")};
 `;
 
-const TimeFilterContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-right: 16px;
+const HeroContent = styled(Stack)`
+  max-width: 1200px;
+  margin: 0 auto;
 `;
 
-const StyledSelect = styled(Select)`
-  && {
-    height: 36px;
-    min-width: 120px;
-    border-radius: 4px;
-    font-size: 14px;
-
-    .MuiSelect-select {
-      padding: 6px 12px;
-      color: ${(props) => (props.theme.isDarkTheme ? "#fff" : "#161717")};
-      display: flex;
-      align-items: center;
-      height: 20px;
-    }
-
-    .MuiOutlinedInput-notchedOutline {
-      border-color: ${(props) =>
-        props.theme.isDarkTheme ? "#3b3b3b" : "#eaebf0"};
-    }
-
-    &:hover .MuiOutlinedInput-notchedOutline {
-      border-color: ${(props) =>
-        props.theme.isDarkTheme ? "#4b4b4b" : "#d0d0d0"};
-    }
-
-    &.Mui-focused .MuiOutlinedInput-notchedOutline {
-      border-color: ${(props) =>
-        props.theme.isDarkTheme ? "#4b4b4b" : "#93f"};
-    }
-
-    svg {
-      color: ${(props) => (props.theme.isDarkTheme ? "#fff" : "#161717")};
-    }
-  }
+const StatsCard = styled(Paper)<{ isDark?: boolean }>`
+  padding: 16px;
+  text-align: center;
+  background: ${(props) => (props.isDark ? "#2b2b2b" : "#fff")};
+  border: 1px solid ${(props) => (props.isDark ? "#3b3b3b" : "#eaebf0")};
 `;

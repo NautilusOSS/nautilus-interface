@@ -53,32 +53,12 @@ export const Profile = ({ children }: { children?: React.ReactNode }) => {
                     VOI
                   </div>
                 </Stack>
-                {/*<Stack
-                      direction="row"
-                      spacing={0.5}
-                      sx={{
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <img src={VIAIcon} style={{ height: "12px" }} />
-                      <div>{(balance / 1e6).toLocaleString()} VIA</div>
-                    </Stack>*/}
               </Stack>
             </div>
           </Stack>
         </StyledLink>
       ) : null}
-      <AccountContainer>
-        {activeAccount ? (
-          <Link to={`/account/${activeAccount?.address}`}>
-            <AccountIconContainer>
-              <AccountIcon />
-            </AccountIconContainer>
-          </Link>
-        ) : null}
-        {children}
-      </AccountContainer>
+      <AccountContainer>{children}</AccountContainer>
     </div>
   );
 };

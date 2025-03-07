@@ -40,7 +40,7 @@
     "@txnlab/use-wallet-react": "^3.7.2",
     "@walletconnect/modal": "^2.7.0",
     "@walletconnect/sign-client": "^2.17.0",
-    "@xarmian/envoi-sdk": "^0.1.0",
+    "@xarmian/envoi-sdk": "^0.2.1",
     "algosdk": "^2.9.0",
     "axios": "^1.7.7",
     "bignumber.js": "^9.1.2",
@@ -49,6 +49,8 @@
     "chart.js": "^4.4.6",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "crypto-js": "^4.2.0",
+    "date-fns": "^4.1.0",
     "dexie": "^3.2.7",
     "dexie-react-hooks": "^1.1.7",
     "humanize-duration": "^3.32.1",
@@ -79,9 +81,10 @@
     "swiper": "^11.1.14",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
-    "ulujs": "^0.12.3",
+    "ulujs": "^0.12.6",
     "usehooks-ts": "^2.16.0",
-    "viem": "^2.22.17"
+    "viem": "^2.22.17",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",

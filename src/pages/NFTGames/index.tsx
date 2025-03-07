@@ -59,7 +59,13 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import { useCountdown } from "@/hooks/useCountdown";
 
 const formatPrice = (price: number) => {
-  return (price / 1e6).toLocaleString(undefined, {
+  const value = price / 1e6; // Convert to VOI
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}M`;
+  } else if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}K`;
+  }
+  return value.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -752,18 +758,22 @@ const HumbleSwapLogo = () => {
 
 // Update the KibisisLogo component
 const KibisisLogo = () => {
-  const isDarkTheme = useSelector((state: RootState) => state.theme.isDarkTheme);
-  
+  const isDarkTheme = useSelector(
+    (state: RootState) => state.theme.isDarkTheme
+  );
+
   return (
-    <img 
-      src="https://kibis.is/images/logo.svg" 
+    <img
+      src="https://kibis.is/images/logo.svg"
       alt="Kibisis"
-      style={{ 
-        filter: isDarkTheme ? 'brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%)' : 'none',
-        width: '100%',
-        height: '100%',
-        objectFit: 'contain'
-      }} 
+      style={{
+        filter: isDarkTheme
+          ? "brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%)"
+          : "none",
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
+      }}
     />
   );
 };
@@ -1182,83 +1192,6 @@ export const NFTGames: React.FC = () => {
   //   currentTopBuyersPage * buyersPerPage
   // );
 
-  //const NEW_LISTINGS_COUNT = 5; // New constant for number of listings to show
-
-  const [topCollections, setTopCollections] = useState<
-    {
-      collectionId: number;
-      totalSales: number;
-      totalVolume: number;
-      lastSale?: number;
-      metadata?: any;
-    }[]
-  >([]);
-  const [isLoadingTopCollections, setIsLoadingTopCollections] = useState(false);
-
-  // Add this effect to fetch top collections by sales
-  useEffect(() => {
-    const fetchTopCollections = async () => {
-      setIsLoadingTopCollections(true);
-      try {
-        // First get collections with their total supply
-        const collectionsResponse = await axios.get(
-          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/collections"
-        );
-
-        // Get all sales to calculate total volume
-        const allSalesResponse = await axios.get(
-          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales"
-        );
-
-        // Calculate total volume and sales for each collection
-        const collectionStats = allSalesResponse.data.sales.reduce(
-          (
-            acc: Record<number, { totalSales: number; totalVolume: number }>,
-            sale: any
-          ) => {
-            if (!acc[sale.collectionId]) {
-              acc[sale.collectionId] = {
-                totalSales: 0,
-                totalVolume: 0,
-              };
-            }
-            acc[sale.collectionId].totalSales += 1;
-            acc[sale.collectionId].totalVolume += Number(sale.price);
-            return acc;
-          },
-          {}
-        );
-
-        // Combine collection data with total volumes and sales
-        const collections = collectionsResponse.data.collections.map(
-          (collection: any) => ({
-            collectionId: collection.contractId,
-            totalSales: collectionStats[collection.contractId]?.totalSales || 0,
-            totalVolume:
-              collectionStats[collection.contractId]?.totalVolume || 0,
-            metadata: collection,
-          })
-        );
-
-        // Sort by total all-time volume and take top 5
-        const sortedCollections = collections
-          .sort(
-            (a: CollectionStats, b: CollectionStats) =>
-              b.totalVolume - a.totalVolume
-          )
-          .slice(0, 5);
-
-        setTopCollections(sortedCollections);
-      } catch (error) {
-        console.error("Error fetching top collections:", error);
-      } finally {
-        setIsLoadingTopCollections(false);
-      }
-    };
-
-    fetchTopCollections();
-  }, []);
-
   const [tabValue, setTabValue] = useState(0);
   const [trendingCollections, setTrendingCollections] = useState<
     CollectionStats[]
@@ -1271,82 +1204,6 @@ export const NFTGames: React.FC = () => {
     setTabValue(newValue);
   };
 
-  // Add effect to fetch trending collections
-  useEffect(() => {
-    const fetchTrendingCollections = async () => {
-      setIsLoadingTrendingCollections(true);
-      try {
-        // Get only the last 100 sales
-        const response = await axios.get(
-          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales?sort=-round&limit=100"
-        );
-
-        // Group sales by collection and calculate totals from ONLY these 100 sales
-        const collectionMap = response.data.sales.reduce(
-          (acc: Record<number, CollectionStats>, sale: any) => {
-            const collectionId = sale.collectionId;
-            if (!acc[collectionId]) {
-              acc[collectionId] = {
-                collectionId: collectionId,
-                totalSales: 0,
-                totalVolume: 0,
-                lastSale: sale.timestamp,
-                recentSales: [], // Add array to track recent sales
-              };
-            }
-
-            // Add this sale to recent sales and update totals
-            acc[collectionId].totalSales += 1;
-            acc[collectionId].totalVolume += Number(sale.price);
-            acc[collectionId].recentSales.push(sale);
-
-            return acc;
-          },
-          {}
-        );
-
-        // Convert to array and sort by recent volume
-        const sortedCollections = Object.values(collectionMap)
-          .map((collection: any) => ({
-            collectionId: collection.collectionId,
-            totalSales: collection.totalSales,
-            totalVolume: collection.recentSales.reduce(
-              (sum: number, sale: any) => sum + Number(sale.price),
-              0
-            ),
-            lastSale: collection.lastSale,
-          }))
-          .sort((a, b) => b.totalVolume - a.totalVolume)
-          .slice(0, 5);
-
-        // Fetch metadata for each collection
-        for (const collection of sortedCollections) {
-          try {
-            const collectionResponse = await axios.get(
-              `https://mainnet-idx.nautilus.sh/nft-indexer/v1/collections?contractId=${collection.collectionId}`
-            );
-            if (collectionResponse.data.collections?.[0]) {
-              collection.metadata = collectionResponse.data.collections[0];
-            }
-          } catch (error) {
-            console.error(
-              `Error fetching collection ${collection.collectionId} metadata:`,
-              error
-            );
-          }
-        }
-
-        setTrendingCollections(sortedCollections);
-      } catch (error) {
-        console.error("Error fetching trending collections:", error);
-      } finally {
-        setIsLoadingTrendingCollections(false);
-      }
-    };
-
-    fetchTrendingCollections();
-  }, []);
-
   // Add useProjects hook
   const { data: projects } = useProjects();
 
@@ -1354,24 +1211,25 @@ export const NFTGames: React.FC = () => {
 
   // Add state for marketplace stats
   const [marketStats, setMarketStats] = useState({
-    totalVolume: 0,
-    totalSales: 0,
+    totalVolume: 4200000000000, // 4.2M VOI in microVOI
+    totalSales: 265,
     totalNFTs: 0,
-    isLoading: true,
+    totalTraders: 0,
+    isLoading: false
   });
 
   // Add effect to fetch marketplace stats
-  useEffect(() => {
+  /*useEffect(() => {
     const fetchMarketStats = async () => {
       try {
         // Fetch total sales and volume
         const salesResponse = await axios.get(
-          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales"
-        );
-
-        // Fetch total NFTs
-        const tokensResponse = await axios.get(
-          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/tokens/count"
+          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales",
+          {
+            params: {
+              ["min-round"]: 4727817,
+            },
+          }
         );
 
         const totalVolume = salesResponse.data.sales.reduce(
@@ -1382,7 +1240,12 @@ export const NFTGames: React.FC = () => {
         setMarketStats({
           totalVolume,
           totalSales: salesResponse.data.sales.length,
-          totalNFTs: tokensResponse.data.count,
+          totalNFTs: 0,
+          totalTraders: new Set(
+            salesResponse.data.sales
+              .map((sale: any) => [sale.buyer, sale.seller])
+              .flat()
+          ).size,
           isLoading: false,
         });
       } catch (error) {
@@ -1392,7 +1255,7 @@ export const NFTGames: React.FC = () => {
     };
 
     fetchMarketStats();
-  }, []);
+  }, []);*/
 
   // Add helper function to format large numbers
   const formatNumber = (num: number) => {
@@ -1404,8 +1267,8 @@ export const NFTGames: React.FC = () => {
     return num.toString();
   };
 
-  // Add launch date constant
-  const LAUNCH_DATE = new Date("2025-02-14T10:00:00-05:00").getTime();
+  // Update the LAUNCH_DATE constant to match official start time
+  const LAUNCH_DATE = new Date("2025-02-14T17:00:00Z").getTime();
   const { days, hours, minutes, seconds, isComplete } =
     useCountdown(LAUNCH_DATE);
 
@@ -1465,9 +1328,10 @@ export const NFTGames: React.FC = () => {
                 🔥 Traders and Creators Collide! ❄️
               </HeroTitle>
               <HeroSubtitle $isDarkTheme={isDarkTheme}>
-                Join the NFT Winter Games on Voi! Trade, compete as a trader or
-                creator, and showcase your creativity with real-time
-                leaderboards and exciting rewards.
+                Join the VOI NFT Winter Games! Trade, compete as a trader or
+                creator, and showcase your creativity. Total potential prize
+                pool of 100 Million VOI with real-time leaderboards and exciting
+                rewards.
               </HeroSubtitle>
 
               {/* Add conditional rendering for countdown vs stats */}
@@ -1526,50 +1390,44 @@ export const NFTGames: React.FC = () => {
                         </div>
                         <div className="stat-label">Total Sales</div>
                       </StatItem>
-                      <StatItem $isDarkTheme={isDarkTheme}>
+                      {/*<StatItem $isDarkTheme={isDarkTheme}>
                         <div className="stat-value">
-                          {formatNumber(marketStats.totalNFTs)}
+                          {formatNumber(marketStats.totalTraders)}
                         </div>
-                        <div className="stat-label">Total NFTs</div>
-                      </StatItem>
+                        <div className="stat-label">Active Traders</div>
+                      </StatItem>*/}
                     </>
                   )}
                 </StatsContainer>
               )}
 
-              <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  justifyContent: "center",
+                  mt: 3,
+                }}
+              >
+                <HeroButton
+                  $isDarkTheme={isDarkTheme}
+                  variant="contained"
+                  className="external-link"
+                  component="a"
+                  href="https://nftnavigator.xyz/nftgames"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Track Progress
+                </HeroButton>
                 <HeroButton
                   $isDarkTheme={isDarkTheme}
                   variant="contained"
                   className="external-link"
                   onClick={() => navigate("/listing")}
                 >
-                  Explore Listings
+                  Listings
                 </HeroButton>
-                {/*<HeroButton
-                    $isDarkTheme={isDarkTheme}
-                    variant="outlined"
-                    component="a"
-                    href="https://highforge.io/launch/new/projectType"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{
-                      backgroundColor: "transparent !important",
-                      border: `2px solid ${
-                        isDarkTheme ? "#fff" : "#93f"
-                      } !important`,
-                      color: `${isDarkTheme ? "#fff" : "#93f"} !important`,
-                      "&:hover": {
-                        backgroundColor: `${
-                          isDarkTheme
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(153, 51, 255, 0.1)"
-                        } !important`,
-                      },
-                    }}
-                  >
-                    Create NFT
-                  </HeroButton>*/}
               </Box>
             </HeroContent>
           </HeroSection>
@@ -1858,14 +1716,14 @@ export const NFTGames: React.FC = () => {
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
                         <FavoriteIcon sx={{ color: "#ff69b4", fontSize: 16 }} />
-                        10% of the project's proceeds goes to NFT Game Rewards.
+                        10% fee from all NFT trades during the games goes to
+                        prize pool.
                       </Box>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
                         <FavoriteIcon sx={{ color: "#ff69b4", fontSize: 16 }} />
-                        2x fees collected matched by community-managed Voi
-                        Foundation (up to 50M VOI).
+                        Voi Foundation matching up to 50M VOI.
                       </Box>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
@@ -2345,13 +2203,13 @@ export const NFTGames: React.FC = () => {
                         {
                           name: "Highforge",
                           logo: "https://highforge.io/apple-touch-icon.png",
-                          description: "NFT Launchpad",
+                          description: "NFT Launchpad. Buy here first.",
                           link: "https://highforge.io",
                         },
                         {
                           name: "Nautilus",
                           logo: <NautilusLogo />,
-                          description: "NFT Marketplace",
+                          description: "NFT Marketplace. You are here.",
                           link: "https://nautilus.sh",
                         },
                         /*
@@ -2371,28 +2229,45 @@ export const NFTGames: React.FC = () => {
                         {
                           name: "NFT Navigator",
                           logo: "https://nftnavigator.xyz/_app/immutable/assets/android-chrome-192x192.BJQGzsFc.png",
-                          description: "Advanced analytics and trading platform",
+                          description:
+                            "Advanced analytics and trading platform. Games tracking.",
                           link: "https://nftnavigator.xyz",
+                        },
+                        {
+                          name: "Voiager Explorer",
+                          logo: "https://voirewards.com/logos/voiager-explorer.png",
+                          description: "Block Explorer. Token Tracker. Charts.",
+                          link: "https://voiager.xyz/tokens",
                         },
                         {
                           name: "HumbleSwap",
                           logo: <HumbleSwapLogo />,
-                          description: "Decentralized exchange for NFT trading",
+                          description:
+                            "Decentralized exchange. Swap cryptocurrencies on-chain.",
                           link: "https://voi.humble.sh",
                         },
                         {
                           name: "Kibisis",
                           logo: <KibisisLogo />,
-                          description: "Web Wallet for Voi Network",
+                          description:
+                            "Web Extension Wallet for Voi Network with smart asset token and nft support.",
                           link: "https://kibis.is",
+                        },
+                        {
+                          name: "Lute",
+                          logo: "https://voirewards.com/logos/lute.svg",
+                          description:
+                            "Web Wallet with that supports Ledger Hardward Wallet. Interact with Highforge and sign on mobile.",
+                          link: "https://lute.app",
                         },
                         {
                           name: "enVoi",
                           logo: "https://pbs.twimg.com/profile_images/1869235054297137152/K00Ts5Sv_400x400.jpg",
-                          description: "Naming service for Voi Network",
-                          link: "https://envoi.me",
-                        }
-                      ]
+                          description:
+                            "Naming service for Voi Network. Claim your name.",
+                          link: "https://envoi.sh",
+                        },
+                      ],
                     },
                   ].map((category, index) => (
                     <Grid item xs={12} key={index}>

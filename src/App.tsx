@@ -22,7 +22,9 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { theme } from "./theme";
 import CommunityChest from "./pages/CommunityChest";
-import EarlyAccessTokenSender from './pages/EarlyAccessTokenSender';
+import EarlyAccessTokenSender from "./pages/EarlyAccessTokenSender";
+import SalesActivity from "./pages/SalesActivity";
+import AccountOffers from './pages/AccountOffers';
 
 const BackgroundLayer = styled.div`
   width: 100%;
@@ -84,10 +86,9 @@ const AppRoutes: React.FC = () => {
               />
             }
           />
-          <Route
-            path="/eat-wizard"
-            element={<EarlyAccessTokenSender />}
-          />
+          <Route path="/eat-wizard" element={<EarlyAccessTokenSender />} />
+          <Route path="/sales-activity" element={<SalesActivity />} />
+          <Route path="/account/:address/offers" element={<AccountOffers />} />
         </Routes>
       </Router>
     </AppContainer>

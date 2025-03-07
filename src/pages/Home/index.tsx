@@ -56,6 +56,8 @@ import { useName } from "@/hooks/useName";
 import { useEnvoiResolver } from "@/hooks/useEnvoiResolver";
 import { useProjects } from "@/hooks/useProjects";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import algosdk from "algosdk";
+import { getAlgorandClients } from "@/wallets";
 
 const formatPrice = (price: number) => {
   const value = price / 1e6; // Convert to VOI
@@ -324,34 +326,30 @@ const ActivityTableRow = ({
   collectionName: string;
 }) => {
   const metadata = JSON.parse(tokenInfo?.metadata || "{}");
-  const [sellerName, setSellerName] = useState<string>("");
+  const [sellerName, setSellerName] = useState<string>(sale.seller);
   const [sellerProfile, setSellerProfile] = useState<any>(null);
-  const [buyerName, setBuyerName] = useState<string>("");
+  const [buyerName, setBuyerName] = useState<string>(sale.buyer);
   const [buyerProfile, setBuyerProfile] = useState<any>(null);
-  const resolver = useEnvoiResolver();
+  const { resolver } = useEnvoiResolver();
   useEffect(() => {
     resolver.http.getNameFromAddress(sale.seller).then((res) => {
-      if (!!res) {
-        setSellerName(res);
-        resolver.http.search(res).then((res) => {
+      if (res.length > 0 && !!res[0]) {
+        setSellerName(res[0]);
+        resolver.http.search(res[0]).then((res) => {
           if (res.length === 1) {
             setSellerProfile(res[0]);
           }
         });
-      } else {
-        setSellerName(compactAddress(sale.seller));
       }
     });
     resolver.http.getNameFromAddress(sale.buyer).then((res) => {
-      if (!!res) {
-        setBuyerName(res);
-        resolver.http.search(res).then((res) => {
+      if (res.length > 0 && !!res[0]) {
+        setBuyerName(res[0]);
+        resolver.http.search(res[0]).then((res) => {
           if (res.length === 1) {
             setBuyerProfile(res[0]);
           }
         });
-      } else {
-        setBuyerName(compactAddress(sale.buyer));
       }
     });
   }, [sale]);
@@ -707,6 +705,44 @@ const StatItem = styled.div<{ $isDarkTheme: boolean }>`
     color: ${(props) =>
       props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
   }
+
+  &.reward-pool {
+    .stat-value {
+      color: ${(props) => (props.$isDarkTheme ? "#00ffff" : "#93f")};
+      text-shadow: ${(props) =>
+        props.$isDarkTheme
+          ? `0 0 10px rgba(0, 255, 255, 0.7),
+             0 0 20px rgba(0, 255, 255, 0.5),
+             0 0 30px rgba(0, 255, 255, 0.3)`
+          : `0 0 10px rgba(153, 51, 255, 0.7),
+             0 0 20px rgba(153, 51, 255, 0.5),
+             0 0 30px rgba(153, 51, 255, 0.3)`};
+      animation: ${(props) => (props.$isDarkTheme ? "glowCyan" : "glowPurple")}
+        1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes glowCyan {
+      from {
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.7),
+          0 0 20px rgba(0, 255, 255, 0.5), 0 0 30px rgba(0, 255, 255, 0.3);
+      }
+      to {
+        text-shadow: 0 0 20px rgba(0, 255, 255, 0.7),
+          0 0 30px rgba(0, 255, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.3);
+      }
+    }
+
+    @keyframes glowPurple {
+      from {
+        text-shadow: 0 0 10px rgba(153, 51, 255, 0.7),
+          0 0 20px rgba(153, 51, 255, 0.5), 0 0 30px rgba(153, 51, 255, 0.3);
+      }
+      to {
+        text-shadow: 0 0 20px rgba(153, 51, 255, 0.7),
+          0 0 30px rgba(153, 51, 255, 0.5), 0 0 40px rgba(153, 51, 255, 0.3);
+      }
+    }
+  }
 `;
 
 // Add these type definitions near the top of the file where other interfaces are defined
@@ -740,12 +776,14 @@ interface MarketStats {
   uniqueSellers: number;
   uniqueCollections: number;
   activeUsers: number;
+  tenPercent: number;
+  rewardPoolBalance: number;
   isLoading: boolean;
   timestamp?: number;
 }
 
 // Add this helper function before the Home component
-const CACHE_KEY = 'market_stats';
+const CACHE_KEY = "market_stats";
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 const getCachedStats = (): MarketStats | null => {
@@ -766,8 +804,6 @@ const getCachedStats = (): MarketStats | null => {
 export const Home: React.FC = () => {
   /* Dispatch */
   const dispatch = useDispatch();
-
-  const resolver = useEnvoiResolver();
 
   /* Smart Tokens */
   const smartTokens = useSelector((state: any) => state.smartTokens.tokens);
@@ -838,7 +874,7 @@ export const Home: React.FC = () => {
         const response = await axios.get(
           "https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales?sort=-round"
         );
-        const salesData = response.data.sales.slice(0, 10);
+        const salesData = response.data.sales.slice(0, 20);
 
         // Fetch collection info and token info for each sale
         for (const sale of salesData) {
@@ -1281,6 +1317,8 @@ export const Home: React.FC = () => {
     uniqueSellers: 0,
     uniqueCollections: 0,
     activeUsers: 0,
+    tenPercent: 0,
+    rewardPoolBalance: 0,
     isLoading: true,
   });
 
@@ -1298,7 +1336,12 @@ export const Home: React.FC = () => {
         const statsResponse = await axios.get(
           "https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/stats"
         );
-
+        const { algodClient } = getAlgorandClients();
+        const accountInfo = await algodClient
+          .accountInformation(
+            "GAMESB74MIL32A5FZTS2F4YYDGG6YQKBO6TDG6PHITCIIVQAA77GE253CQ"
+          )
+          .do();
         const stats = statsResponse.data.stats[0];
         const newStats = {
           totalVolume: Number(stats.total_volume),
@@ -1308,6 +1351,9 @@ export const Home: React.FC = () => {
           uniqueBuyers: stats.unique_buyers,
           uniqueSellers: stats.unique_sellers,
           uniqueCollections: stats.total_collections,
+          tenPercent: stats.ten_percent,
+          rewardPoolBalance:
+            2 * (accountInfo.amount + Number(stats.ten_percent) * 10 ** 6),
           isLoading: false,
           timestamp: Date.now(),
         };
@@ -1355,21 +1401,38 @@ export const Home: React.FC = () => {
             </HeroTitle>
             <HeroSubtitle $isDarkTheme={isDarkTheme}>
               The premier marketplace for NFTs on the Voi Network. Explore
-              unique digital assets, join the community, and start your
+              unique digital collectibles, join the community, and start your
               collection today.
             </HeroSubtitle>
-            {/*<Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+            <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
               <HeroButton
                 $isDarkTheme={isDarkTheme}
                 variant="contained"
-                component="a"
-                href="https://nftnavigator.xyz/"
-                target="_blank"
-                rel="noopener noreferrer"
+                component={Link}
+                to="/listing"
                 className="external-link"
               >
-                Explore NFTs
+                Listings
               </HeroButton>
+              <HeroButton
+                $isDarkTheme={isDarkTheme}
+                variant="contained"
+                component={Link}
+                to="/collection"
+                className="external-link"
+              >
+                Collections
+              </HeroButton>
+              {/*<HeroButton
+                $isDarkTheme={isDarkTheme}
+                variant="contained"
+                component={Link}
+                to="/nft-games"
+                className="external-link"
+              >
+                NFT Games
+              </HeroButton>*/}
+              {/*
               <HeroButton
                 $isDarkTheme={isDarkTheme}
                 variant="outlined"
@@ -1394,7 +1457,8 @@ export const Home: React.FC = () => {
               >
                 Create NFT
               </HeroButton>
-            </Box>*/}
+              */}
+            </Box>
 
             {/* Add Stats Section */}
             <StatsContainer>
@@ -1454,6 +1518,14 @@ export const Home: React.FC = () => {
                 </>
               )}
             </StatsContainer>
+            {/*<StatsContainer>
+              <StatItem $isDarkTheme={isDarkTheme} className="reward-pool">
+                <div className="stat-value">
+                  {formatPrice(marketStats.rewardPoolBalance)} VOI
+                </div>
+                <div className="stat-label">Reward Pool</div>
+              </StatItem>
+            </StatsContainer>*/}
           </HeroSection>
           <Layout>
             {/*<StyledTabs
@@ -1732,7 +1804,7 @@ export const Home: React.FC = () => {
             </Swiper>*/}
 
             {/* NFT Games Section */}
-            {projects?.nftGamesProjects &&
+            {/*projects?.nftGamesProjects &&
               projects.nftGamesProjects.length > 0 && (
                 <>
                   <Box sx={{ mb: 3, mt: 6 }}>
@@ -1845,7 +1917,7 @@ export const Home: React.FC = () => {
                     ))}
                   </Swiper>
                 </>
-              )}
+              )*/}
 
             {/* Activity */}
             <ActivitySection>

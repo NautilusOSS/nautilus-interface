@@ -11,6 +11,8 @@ import {
   Tooltip,
   CircularProgress,
   Avatar,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import { useCopyToClipboard } from "usehooks-ts";
 import { toast } from "react-toastify";
@@ -45,19 +47,26 @@ import { useOwnedStakingContract } from "@/hooks/staking";
 import { useOwnedARC72Token } from "@/hooks/arc72";
 import { getStakingWithdrawableAmount } from "@/utils/staking";
 import { useEnvoiResolver } from "@/hooks/useEnvoiResolver";
+import { useName } from "@/hooks/useName";
+import { namehash, uint8ArrayToBigInt } from "@/utils/namehash";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 const AccountIcon = () => {
+  const isDarkTheme = useSelector(
+    (state: RootState) => state.theme.isDarkTheme
+  );
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="33"
-      height="32"
-      viewBox="0 0 33 32"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
       fill="none"
     >
       <path
-        d="M27.5 28C27.5 26.1392 27.5 25.2089 27.2632 24.4518C26.7299 22.7473 25.3544 21.4134 23.5966 20.8963C22.8159 20.6667 21.8564 20.6667 19.9375 20.6667H13.0625C11.1436 20.6667 10.1841 20.6667 9.40343 20.8963C7.64563 21.4134 6.27006 22.7473 5.73683 24.4518C5.5 25.2089 5.5 26.1392 5.5 28M22.6875 10C22.6875 13.3137 19.9173 16 16.5 16C13.0827 16 10.3125 13.3137 10.3125 10C10.3125 6.68629 13.0827 4 16.5 4C19.9173 4 22.6875 6.68629 22.6875 10Z"
-        stroke="#9933FF"
+        d="M20 21C20 19.6044 20 18.9067 19.8278 18.3389C19.44 17.0605 18.4395 16.0601 17.1611 15.6722C16.5933 15.5 15.8956 15.5 14.5 15.5H9.5C8.10444 15.5 7.40665 15.5 6.83886 15.6722C5.56045 16.0601 4.56004 17.0605 4.17224 18.3389C4 18.9067 4 19.6044 4 21M16.5 7.5C16.5 9.98528 14.4853 12 12 12C9.51472 12 7.5 9.98528 7.5 7.5C7.5 5.01472 9.51472 3 12 3C14.4853 3 16.5 5.01472 16.5 7.5Z"
+        stroke={isDarkTheme ? "#717579" : "#161717"}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -69,6 +78,9 @@ const AccountIcon = () => {
 const WalletIcon2 = () => {
   const navigate = useNavigate();
   const { activeAccount } = useWallet();
+  const isDarkTheme = useSelector(
+    (state: RootState) => state.theme.isDarkTheme
+  );
 
   return (
     <div
@@ -81,15 +93,15 @@ const WalletIcon2 = () => {
       style={{ cursor: activeAccount ? "pointer" : "default" }}
     >
       <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
+        xmlns="http://www.w3.org/2/000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
         fill="none"
       >
         <path
-          d="M11 9.33333H11.0067M2 3.33333V12.6667C2 13.403 2.59695 14 3.33333 14H12.6667C13.403 14 14 13.403 14 12.6667V6C14 5.26362 13.403 4.66667 12.6667 4.66667L3.33333 4.66667C2.59695 4.66667 2 4.06971 2 3.33333ZM2 3.33333C2 2.59695 2.59695 2 3.33333 2H11.3333M11.3333 9.33333C11.3333 9.51743 11.1841 9.66667 11 9.66667C10.8159 9.66667 10.6667 9.51743 10.6667 9.33333C10.6667 9.14924 10.8159 9 11 9C11.1841 9 11.3333 9.14924 11.3333 9.33333Z"
-          stroke="#161717"
+          d="M16.5 14H16.51M3 5V19C3 20.1045 3.89543 21 5 21H19C20.1046 21 21 20.1045 21 19V9C21 7.89543 20.1046 7 19 7L5 7C3.89543 7 3 6.10457 3 5ZM3 5C3 3.89543 3.89543 3 5 3H17M17 14C17 14.2761 16.7761 14.5 16.5 14.5C16.2239 14.5 16 14.2761 16 14C16 13.7239 16.2239 13.5 16.5 13.5C16.7761 13.5 17 13.7239 17 14Z"
+          stroke={isDarkTheme ? "#717579" : "#161717"}
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -106,33 +118,27 @@ const Navbar: React.FC = () => {
 
   const { activeAccount, signTransactions } = useWallet();
 
-  const resolver = useEnvoiResolver();
+  const resolver = useName();
 
-  const [accountName, setAccountName] = useState<string | null>(null);
-  const [accountProfile, setAccountProfile] = useState<any>(null);
+  const {
+    resolver: envoiResolver,
+    activeProfile,
+    setActiveProfile,
+  } = useEnvoiResolver();
+
   useEffect(() => {
     if (activeAccount) {
-      resolver.http
-        .getNameFromAddress(activeAccount.address)
-        .then((result: string) => {
-          if (!!result) {
-            setAccountName(result);
-            resolver.http.search(result).then((results: any[]) => {
-              if (results.length === 1) {
-                setAccountProfile(results[0]);
-              }
+      resolver.fetchName(activeAccount.address).then((name) => {
+        namehash(name).then((hash) => {
+          envoiResolver.http
+            .getTokenInfo(uint8ArrayToBigInt(hash).toString())
+            .then((res) => {
+              setActiveProfile(res[0]);
             });
-          }
         });
+      });
     }
   }, [activeAccount]);
-
-  // const { data: stakingContractData, isLoading: stakingContractLoading } =
-  //   useOwnedStakingContract(activeAccount?.address);
-  // const { data: arc72TokenData, isLoading: arc72TokenLoading } =
-  //   useOwnedARC72Token(activeAccount?.address, TOKEN_NAUT_VOI_STAKING, {
-  //     includeStaking: true,
-  //   });
 
   // EFFECT: get voi account info
   const {
@@ -171,103 +177,41 @@ const Navbar: React.FC = () => {
   const canBeOpen = open && Boolean(anchorEl);
   const id = canBeOpen ? "transition-popper" : undefined;
 
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [withdrawableBalance, setWithdrawableBalance] = useState("0");
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  // Separate state for each dropdown menu
+  const [tokensAnchorEl, setTokensAnchorEl] = useState<null | HTMLElement>(
+    null
+  );
+  const [earnAnchorEl, setEarnAnchorEl] = useState<null | HTMLElement>(null);
 
-  const handleWithdrawClick = async () => {
-    if (!balanceData || isBalanceDataLoading) return;
-    if (!balanceData.success) {
-      toast.info("Failed to get balance");
-      return;
-    }
+  const isTokensMenuOpen = Boolean(tokensAnchorEl);
+  const isEarnMenuOpen = Boolean(earnAnchorEl);
 
-    setIsLoadingBalance(true);
-    try {
-      let withdrawableBalance = Number(balanceData.returnValue) / 1e6;
-      // const { algodClient } = getAlgorandClients();
-      // for (const stakingContract of stakingContractData || []) {
-      //   const withdrawable = await getStakingWithdrawableAmount(
-      //     algodClient,
-      //     stakingContract.contractId,
-      //     activeAccount?.address || ""
-      //   );
-      //   withdrawableBalance += withdrawable;
-      // }
-      // for (const arc72Token of arc72TokenData || []) {
-      //   console.log({ arc72Token });
-      //   const withdrawable = await getStakingWithdrawableAmount(
-      //     algodClient,
-      //     arc72Token.tokenId,
-      //     activeAccount?.address || ""
-      //   );
-      //   withdrawableBalance += withdrawable;
-      // }
-      setWithdrawableBalance(withdrawableBalance.toString());
-      setShowWithdrawModal(true);
-    } catch (error) {
-      console.error("Error fetching withdrawable balance:", error);
-      toast.error("Failed to fetch withdrawable balance");
-    } finally {
-      setIsLoadingBalance(false);
-    }
+  const handleTokensMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setTokensAnchorEl(event.currentTarget);
   };
 
-  const handleWithdraw = async (includeStaking: boolean) => {
-    setIsWithdrawing(true);
-    try {
-      // Withdraw wVOI balance
-      const ci = new CONTRACT(
-        TOKEN_WVOI,
-        getAlgorandClients().algodClient,
-        getAlgorandClients().indexerClient,
-        abi.nt200,
-        {
-          addr: activeAccount?.address || "",
-          sk: new Uint8Array(0),
-        }
-      );
-      ci.setFee(2000);
-      const withdrawR = await ci.withdraw(
-        balanceData?.returnValue || BigInt(0)
-      );
-      if (!withdrawR.success) return;
+  const handleEarnMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setEarnAnchorEl(event.currentTarget);
+  };
 
-      // If including staking, withdraw from staking contracts
-      // if (includeStaking) {
-      //   // Add staking contract withdrawal logic here
-      //   for (const stakingContract of stakingContractData || []) {
-      //     const withdrawable = await getStakingWithdrawableAmount(
-      //       algodClient,
-      //       stakingContract.contractId,
-      //       activeAccount?.address || ""
-      //     );
-      //     // Add withdrawal transaction
-      //   }
-      // }
+  const handleTokensMenuClose = () => {
+    setTokensAnchorEl(null);
+  };
 
-      const stxns = await signTransactions(
-        withdrawR.txns.map((t: string) => {
-          return new Uint8Array(Buffer.from(t, "base64"));
-        })
-      );
-      const res = await getAlgorandClients()
-        .algodClient.sendRawTransaction(stxns as Uint8Array[])
-        .do();
-      console.log("withdraw", res);
-      setTimeout(() => {
-        refetchBalance();
-        refetchBalanceData();
-      }, 6000);
-      toast.success("Withdrawal successful!");
-      setShowWithdrawModal(false);
-    } catch (error) {
-      console.error("Withdrawal failed:", error);
-      toast.error("Withdrawal failed");
-    } finally {
-      setIsWithdrawing(false);
-    }
+  const handleEarnMenuClose = () => {
+    setEarnAnchorEl(null);
+  };
+
+  // Add state for Stats dropdown
+  const [statsAnchorEl, setStatsAnchorEl] = useState<null | HTMLElement>(null);
+  const isStatsMenuOpen = Boolean(statsAnchorEl);
+
+  const handleStatsMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setStatsAnchorEl(event.currentTarget);
+  };
+
+  const handleStatsMenuClose = () => {
+    setStatsAnchorEl(null);
   };
 
   return (
@@ -279,22 +223,261 @@ const Navbar: React.FC = () => {
         }}
       >
         <NavContainer>
-          <Link to="/">
-            <NavLogo
-              className="w-40 lg:w-48 "
-              src={isDarkTheme ? DarkLogo : LightLogo}
-            />
-          </Link>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "24px",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+            <Link to="/">
+              <NavLogo
+                className="w-40 lg:w-48 "
+                src={isDarkTheme ? DarkLogo : LightLogo}
+              />
+            </Link>
             <NavLinks>
-              {navlinks.map((item, key) =>
-                linkLabels[location.pathname] === item.label ? (
+              {/* Replace the navlinks mapping with custom rendering for Tokens dropdown */}
+              {navlinks.map((item, key) => {
+                if (
+                  item.label === "Launchpad" ||
+                  item.label === "Community Chest" ||
+                  item.label === "Staking"
+                ) {
+                  return null;
+                }
+
+                if (item.label === "Tokens") {
+                  return (
+                    <React.Fragment key={key}>
+                      <div key="tokens-menu">
+                        <Button
+                          onClick={handleTokensMenuClick}
+                          endIcon={
+                            <KeyboardArrowDownIcon
+                              sx={{
+                                transform: isTokensMenuOpen
+                                  ? "rotate(180deg)"
+                                  : "rotate(0)",
+                                transition: "transform 0.2s",
+                              }}
+                            />
+                          }
+                          style={{
+                            color: isDarkTheme ? "#717579" : "#000",
+                            textTransform: "none",
+                            fontSize: "16px",
+                            padding: "6px 8px",
+                            minWidth: "unset",
+                          }}
+                        >
+                          Tokens
+                        </Button>
+                        <Menu
+                          anchorEl={tokensAnchorEl}
+                          open={isTokensMenuOpen}
+                          onClose={handleTokensMenuClose}
+                          PaperProps={{
+                            style: {
+                              backgroundColor: isDarkTheme ? "#161717" : "#fff",
+                              color: isDarkTheme ? "#717579" : "#000",
+                              marginTop: "8px",
+                            },
+                          }}
+                        >
+                          <MenuItem
+                            onClick={() => {
+                              navigate("/create-arc200");
+                              handleTokensMenuClose();
+                            }}
+                            style={{
+                              fontSize: "16px",
+                              padding: "8px 16px",
+                            }}
+                          >
+                            Launchpad
+                          </MenuItem>
+                          <MenuItem
+                            onClick={() => {
+                              navigate("/community-chest");
+                              handleTokensMenuClose();
+                            }}
+                            style={{
+                              fontSize: "16px",
+                              padding: "8px 16px",
+                            }}
+                          >
+                            Wrapped Voi Hub
+                          </MenuItem>
+                        </Menu>
+                      </div>
+                    </React.Fragment>
+                  );
+                }
+
+                if (item.label === "Earn") {
+                  return (
+                    <div key="earn-menu">
+                      <Button
+                        onClick={handleEarnMenuClick}
+                        endIcon={
+                          <KeyboardArrowDownIcon
+                            sx={{
+                              transform: isEarnMenuOpen
+                                ? "rotate(180deg)"
+                                : "rotate(0)",
+                              transition: "transform 0.2s",
+                            }}
+                          />
+                        }
+                        style={{
+                          color: isDarkTheme ? "#717579" : "#000",
+                          textTransform: "none",
+                          fontSize: "16px",
+                          padding: "6px 8px",
+                          minWidth: "unset",
+                        }}
+                      >
+                        Earn
+                      </Button>
+                      <Menu
+                        anchorEl={earnAnchorEl}
+                        open={isEarnMenuOpen}
+                        onClose={handleEarnMenuClose}
+                        PaperProps={{
+                          style: {
+                            backgroundColor: isDarkTheme ? "#161717" : "#fff",
+                            color: isDarkTheme ? "#717579" : "#000",
+                            marginTop: "8px",
+                          },
+                        }}
+                      >
+                        {/*<MenuItem
+                          onClick={() => {
+                            navigate("/nft-games");
+                            handleEarnMenuClose();
+                          }}
+                          style={{
+                            fontSize: "16px",
+                            padding: "8px 16px",
+                          }}
+                        >
+                          NFT Games
+                        </MenuItem>*/}
+                        <MenuItem
+                          onClick={() => {
+                            navigate("/staking");
+                            handleEarnMenuClose();
+                          }}
+                          style={{
+                            fontSize: "16px",
+                            padding: "8px 16px",
+                          }}
+                        >
+                          Nautilus Voi Staking
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => {
+                            navigate("/community-chest?contract=390001");
+                            handleEarnMenuClose();
+                            window.location.reload();
+                          }}
+                        >
+                          Wrapped Voi LP Incentives
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => {
+                            navigate("/community-chest?contract=770561");
+                            handleEarnMenuClose();
+                            window.location.reload();
+                          }}
+                        >
+                          Fountain Voi
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => {
+                            navigate("/community-chest?contract=664258");
+                            handleEarnMenuClose();
+                            window.location.reload();
+                          }}
+                        >
+                          Community Chest Voi
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => {
+                            navigate("/community-chest?contract=913147");
+                            handleEarnMenuClose();
+                            window.location.reload();
+                          }}
+                        >
+                          NFT Voi
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => {
+                            navigate("/community-chest?contract=8372092");
+                            handleEarnMenuClose();
+                            window.location.reload();
+                          }}
+                        >
+                          Liquid Voi
+                        </MenuItem>
+                      </Menu>
+                    </div>
+                  );
+                }
+
+                if (item.label === "Stats") {
+                  return (
+                    <div key="stats-menu">
+                      <Button
+                        onClick={handleStatsMenuClick}
+                        endIcon={
+                          <KeyboardArrowDownIcon
+                            sx={{
+                              transform: isStatsMenuOpen
+                                ? "rotate(180deg)"
+                                : "rotate(0)",
+                              transition: "transform 0.2s",
+                            }}
+                          />
+                        }
+                        style={{
+                          color: isDarkTheme ? "#717579" : "#000",
+                          textTransform: "none",
+                          fontSize: "16px",
+                          padding: "6px 8px",
+                          minWidth: "unset",
+                        }}
+                      >
+                        Stats
+                      </Button>
+                      <Menu
+                        anchorEl={statsAnchorEl}
+                        open={isStatsMenuOpen}
+                        onClose={handleStatsMenuClose}
+                        PaperProps={{
+                          style: {
+                            backgroundColor: isDarkTheme ? "#161717" : "#fff",
+                            color: isDarkTheme ? "#717579" : "#000",
+                            marginTop: "8px",
+                          },
+                        }}
+                      >
+                        {item.children?.map((child, childKey) => (
+                          <MenuItem
+                            key={childKey}
+                            onClick={() => {
+                              navigate(child.href);
+                              handleStatsMenuClose();
+                            }}
+                            style={{
+                              fontSize: "16px",
+                              padding: "8px 16px",
+                            }}
+                          >
+                            {child.label}
+                          </MenuItem>
+                        ))}
+                      </Menu>
+                    </div>
+                  );
+                }
+
+                return linkLabels[location.pathname] === item.label ? (
                   <ActiveNavLink
                     key={`${key}_${item?.label}`}
                     onClick={() => {
@@ -313,9 +496,17 @@ const Navbar: React.FC = () => {
                   >
                     {item.label}
                   </NavLink>
-                )
-              )}
+                );
+              })}
             </NavLinks>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "24px",
+            }}
+          >
             <ul
               style={{
                 listStyleType: "none",
@@ -323,17 +514,79 @@ const Navbar: React.FC = () => {
                 padding: 0,
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "24px",
+                gap: "12px",
               }}
             >
-              <li style={{ color: isDarkTheme ? "#717579" : undefined }}
+              {activeAccount && (
+                <li
+                  style={{ alignItems: "center", gap: "4px" }}
+                  className="hidden md:flex"
+                >
+                  <img src={VOIIcon} alt="VOI" width={16} height={16} />
+                  <span style={{ color: isDarkTheme ? "#fff" : "#000" }}>
+                    {isAccountInfoLoading ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      ((accountInfoData?.amount || 0) / 1e6).toLocaleString(
+                        undefined,
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }
+                      )
+                    )}
+                  </span>
+                </li>
+              )}
+
+              {activeAccount && (
+                <li
+                  style={{ color: isDarkTheme ? "#717579" : undefined }}
                   className="hidden md:block"
+                >
+                  <WalletIcon2 />
+                </li>
+              )}
+              {activeAccount && (
+                <li
+                  style={{ color: isDarkTheme ? "#717579" : undefined }}
+                  className="hidden md:block"
+                >
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (activeAccount) {
+                        navigate(`/account/${activeAccount.address}`);
+                      }
+                    }}
+                    style={{
+                      cursor: activeAccount ? "pointer" : "default",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <AccountIcon />
+                  </div>
+                </li>
+              )}
+              <li
+                style={{ color: isDarkTheme ? "#717579" : undefined }}
+                className="hidden md:block"
               >
                 <ThemeSelector>
                   {isDarkTheme ? (
-                    <WbSunnyOutlinedIcon className="cursor-pointer" />
+                    <WbSunnyOutlinedIcon
+                      className="cursor-pointer"
+                      sx={{ height: 24, width: 24 }}
+                    />
                   ) : (
-                    <LgIconLink>
+                    <LgIconLink
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
                       <svg
                         width="24"
                         height="24"
@@ -342,9 +595,9 @@ const Navbar: React.FC = () => {
                         xmlns="http://www.w3.org/2000/svg"
                       >
                         <path
-                          d="M22 15.8442C20.6866 16.4382 19.2286 16.7688 17.6935 16.7688C11.9153 16.7688 7.23116 12.0847 7.23116 6.30654C7.23116 4.77135 7.5618 3.3134 8.15577 2C4.52576 3.64163 2 7.2947 2 11.5377C2 17.3159 6.68414 22 12.4623 22C16.7053 22 20.3584 19.4742 22 15.8442Z"
+                          d="M21.5 14.0784C20.3003 14.6123 18.9654 14.9048 17.5647 14.9048C12.2974 14.9048 8.03513 10.6425 8.03513 5.37522C8.03513 3.97447 8.32756 2.63959 8.86155 1.43991C5.61474 2.91119 3.35 6.20455 3.35 10.0451C3.35 15.3124 7.61231 19.5747 12.8796 19.5747C16.7202 19.5747 20.0135 17.31 21.5 14.0784Z"
                           stroke="currentColor"
-                          strokeWidth="2"
+                          strokeWidth="1.7"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
@@ -354,138 +607,17 @@ const Navbar: React.FC = () => {
                 </ThemeSelector>
               </li>
             </ul>
-            {activeAccount && accountInfoData ? (
-              <StyledLink to={`/account/${activeAccount?.address}`}>
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  sx={{ alignItems: "center" }}
-                >
-                  <div
-                    style={{
-                      color: isDarkTheme ? "#717579" : undefined,
-                    }}
-                  >
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      sx={{
-                        display: { xs: "none", sm: "flex" },
-                      }}
-                    >
-                      <Stack
-                        direction="row"
-                        spacing={2}
-                        sx={{
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <img src={VOIIcon} style={{ height: "12px" }} />
-                        <div style={{ flexShrink: 0 }}>
-                          {(
-                            (accountInfoData.amount -
-                              accountInfoData["min-balance"]) /
-                            1e6
-                          ).toLocaleString()}{" "}
-                          VOI
-                        </div>
-                        {/*balanceData && balanceData.success ? (
-                          <Tooltip title="Click to withdraw VOI">
-                            <Button
-                              size="small"
-                              variant="contained"
-                              sx={{
-                                flexShrink: 0,
-                                borderRadius: "25px",
-                                color: isDarkTheme ? "#fff" : "inherit",
-                                backgroundColor: isDarkTheme
-                                  ? "rgba(255, 255, 255, 0.1)"
-                                  : undefined,
-                                "&:hover": {
-                                  backgroundColor: isDarkTheme
-                                    ? "rgba(255, 255, 255, 0.15)"
-                                    : undefined,
-                                },
-                                "&.Mui-disabled": {
-                                  backgroundColor: isDarkTheme
-                                    ? "rgba(255, 255, 255, 0.05)"
-                                    : undefined,
-                                  color: isDarkTheme
-                                    ? "rgba(255, 255, 255, 0.3)"
-                                    : undefined,
-                                },
-                              }}
-                              onClick={(ev: any) => {
-                                ev.preventDefault();
-                                handleWithdrawClick();
-                              }}
-                              disabled={isLoadingBalance}
-                            >
-                              {isLoadingBalance ? (
-                                <CircularProgress
-                                  size={16}
-                                  sx={{
-                                    color: isDarkTheme
-                                      ? "rgba(255, 255, 255, 0.7)"
-                                      : "inherit",
-                                  }}
-                                />
-                              ) : (
-                                <>
-                                  <img
-                                    src={VIAIcon}
-                                    style={{ height: "12px" }}
-                                  />
-                                  {(
-                                    Number(balanceData.returnValue) / 1e6
-                                  ).toLocaleString()}{" "}
-                                  VOI
-                                </>
-                              )}
-                            </Button>
-                          </Tooltip>
-                        ) : null*/}
-                      </Stack>
-                    </Stack>
-                  </div>
-                </Stack>
-              </StyledLink>
-            ) : null}
             <AccountContainer>
-              {activeAccount ? (
-                <Link to={`/account/${activeAccount?.address}`} className="hidden md:block">
-                  {accountProfile?.metadata?.avatar ? (
-                    <Avatar
-                      src={accountProfile?.metadata?.avatar}
-                      sx={{ width: 47, height: 47 }}
-                    />
-                  ) : (
-                    <AccountIconContainer>
-                      <AccountIcon />
-                    </AccountIconContainer>
-                  )}
-                </Link>
-              ) : null}
               <div className="hidden md:block">
                 <ConnectWallet />
               </div>
             </AccountContainer>
             <div className="md:hidden">
-              <SideBar />
+              <SideBar exclude={["Tokens", "Earn"]} />
             </div>
           </div>
         </NavContainer>
       </NavRoot>
-
-      {/*<WithdrawModal
-        open={showWithdrawModal}
-        onClose={() => setShowWithdrawModal(false)}
-        isDarkTheme={isDarkTheme}
-        balance={withdrawableBalance}
-        isLoading={isWithdrawing}
-        onWithdraw={handleWithdraw}
-      />*/}
     </>
   );
 };

@@ -58,6 +58,21 @@ interface ListBatchModalProps {
   clearSelection?: () => void;
 }
 
+// Add new interface for sale history
+interface SaleHistory {
+  price: number;
+  timestamp: number;
+  buyer: string;
+  seller: string;
+}
+
+// Update the FloorPriceInfo interface to include collection ID
+interface FloorPriceInfo {
+  floorPrice: number;
+  lastUpdate: number;
+  collectionId: string;
+}
+
 const ListBatchModal: React.FC<ListBatchModalProps> = ({
   action,
   open,
@@ -89,13 +104,103 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
     }));
   };
 
-  // Initialize individual prices when entering review step
-  const handleEnterReview = () => {
+  // Add new state for token names
+  const [tokenNames, setTokenNames] = useState<{ [key: string]: string }>({});
+
+  // Add function to fetch token name
+  const fetchTokenName = async (contractId: string, tokenId: string) => {
+    try {
+      const response = await axios.get(
+        `https://api.envoi.sh/api/token/${tokenId}`
+      );
+      const name = response.data?.results?.[0]?.name;
+      return name || `#${tokenId}`;
+    } catch (error) {
+      console.error("Error fetching token name:", error);
+      return `#${tokenId}`;
+    }
+  };
+
+  // Add new state for sales history
+  const [salesHistory, setSalesHistory] = useState<{
+    [key: string]: SaleHistory[];
+  }>({});
+
+  // Add function to fetch sales history
+  const fetchSalesHistory = async (contractId: string, tokenId: string) => {
+    try {
+      // here
+      const response = await axios.get(
+        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales?collectionId=${contractId}&tokenId=${tokenId}`
+      );
+      return response.data.sales.map((sale: any) => ({
+        price: sale.price / 1e6,
+        timestamp: sale.timestamp,
+        buyer: sale.buyer,
+        seller: sale.seller,
+      }));
+    } catch (error) {
+      console.error("Error fetching sales history:", error);
+      return [];
+    }
+  };
+
+  // Add new state for mint price
+  const [mintPrice, setMintPrice] = useState<number | null>(null);
+
+  // Add function to fetch mint price
+  const fetchMintPrice = async (contractId: string) => {
+    try {
+      const response = await axios.get(
+        `https://prod-voi.api.highforge.io/projects/info/${contractId}`
+      );
+      console.log({ response });
+      return response.data.blockchain.state.price / 1e6; // Convert from nano to VOI
+    } catch (error) {
+      console.error("Error fetching mint price:", error);
+      return null;
+    }
+  };
+
+  // Update handleEnterReview to fetch floor prices for all collections
+  const handleEnterReview = async () => {
     const newPrices: { [key: string]: string } = {};
-    nfts.forEach((nft) => {
-      newPrices[getPriceKey(nft)] = initialPrice;
-    });
+    const newNames: { [key: string]: string } = {};
+    const newSalesHistory: { [key: string]: SaleHistory[] } = {};
+
+    await Promise.all(
+      nfts.map(async (nft) => {
+        const key = getPriceKey(nft);
+        newPrices[key] = initialPrice;
+        newNames[key] = await fetchTokenName(nft.contractId, nft.tokenId);
+        newSalesHistory[key] = await fetchSalesHistory(
+          nft.contractId,
+          nft.tokenId
+        );
+      })
+    );
+
+    // Fetch mint price for the first NFT's contract
+    if (nfts.length > 0) {
+      const mintPriceValue = await fetchMintPrice(nfts[0].contractId);
+      setMintPrice(mintPriceValue);
+    }
+
+    console.log({ nfts });
+
+    // Get unique collection IDs
+    const collectionIds = [...new Set(nfts.map((nft) => nft.contractId))];
+
+    console.log({ collectionIds });
+
+    // Fetch floor prices for all collections
+    await Promise.all(
+      collectionIds.map((collectionId) => fetchFloorPrice(collectionId))
+    );
+
     setPrices(newPrices);
+    setTokenNames(newNames);
+    setSalesHistory(newSalesHistory);
     setStep("review");
   };
 
@@ -141,6 +246,48 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
   // Helper function to check if we're on the last NFT
   const isLastNFT = currentReviewIndex === nfts.length - 1;
 
+  // Add state declarations here
+  const [floorPrices, setFloorPrices] = useState<{
+    [key: string]: FloorPriceInfo;
+  }>({});
+
+  // Rest of the component logic including fetchFloorPrice function
+  const fetchFloorPrice = async (collectionId: number) => {
+    try {
+      // Skip if we already have recent floor price (less than 5 minutes old)
+      const existingPrice = floorPrices[collectionId];
+      if (
+        existingPrice &&
+        Date.now() - existingPrice.lastUpdate < 5 * 60 * 1000
+      ) {
+        return existingPrice;
+      }
+      const response = await axios.get(
+        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/listings?collectionId=${collectionId}&active=true`
+      );
+      const listings = response.data.listings || [];
+      if (listings.length > 0) {
+        const prices = listings.map((sale: any) => Number(sale.price) / 1e6);
+        const floor = Math.min(...prices);
+        const floorPriceInfo = {
+          floorPrice: floor,
+          lastUpdate: Date.now(),
+          collectionId,
+        };
+        setFloorPrices((prev) => ({
+          ...prev,
+          [collectionId]: floorPriceInfo,
+        }));
+        return floorPriceInfo;
+      }
+    } catch (error) {
+      console.error("Error fetching floor price:", error);
+    }
+    return null;
+  };
+
+  console.log({ floorPrices });
+
   /* Modal */
 
   // Update handleSave to use individual prices
@@ -178,7 +325,7 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
   const [mpFee, royaltyFee, gameFee] = useMemo(() => {
     const mpFee = 500 / 10000;
     const royaltyFee = (royaltyInfo?.royaltyPoints || 0) / 10000;
-    const gameFee = 0.1; // 10% game fee
+    const gameFee = 0.0; // 10% game fee
     return [mpFee, royaltyFee, gameFee];
   }, [initialPrice, royaltyInfo]);
 
@@ -392,10 +539,20 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
                         </Box>
                       </Grid>
                       <Grid item xs={8}>
-                        <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                          {nfts[currentReviewIndex].name ||
-                            `#${nfts[currentReviewIndex].tokenId}`}
-                        </Typography>
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          sx={{ mb: 1 }}
+                        >
+                          <Typography variant="subtitle1">
+                            {tokenNames[
+                              getPriceKey(nfts[currentReviewIndex])
+                            ] ||
+                              nfts[currentReviewIndex].name ||
+                              `#${nfts[currentReviewIndex].tokenId}`}
+                          </Typography>
+                        </Stack>
                         <TextField
                           variant="outlined"
                           value={getNFTPrice(nfts[currentReviewIndex])}
@@ -464,6 +621,137 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
                   >
                     Reviewing {currentReviewIndex + 1} of {nfts.length}
                   </Typography>
+
+                  {/* Move floor price to appear right after mint price */}
+                  {mintPrice !== null && (
+                    <Box sx={{ mt: 2, mb: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ color: "rgba(255, 255, 255, 0.7)" }}
+                      >
+                        Mint Price
+                      </Typography>
+                      <Box
+                        sx={{
+                          p: 1,
+                          borderRadius: "8px",
+                          backgroundColor: "rgba(255, 255, 255, 0.05)",
+                          mt: 0.5,
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "rgba(255, 255, 255, 0.9)" }}
+                        >
+                          {mintPrice.toFixed(2)} VOI
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+
+                  {/* Floor price section */}
+                  {floorPrices[nfts[currentReviewIndex].contractId] && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ color: "rgba(255, 255, 255, 0.7)" }}
+                      >
+                        Collection Floor Price
+                      </Typography>
+                      <Box
+                        sx={{
+                          p: 1,
+                          borderRadius: "8px",
+                          backgroundColor: "rgba(255, 255, 255, 0.05)",
+                          mt: 0.5,
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "rgba(255, 255, 255, 0.9)",
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>
+                            {floorPrices[
+                              nfts[currentReviewIndex].contractId
+                            ].floorPrice.toFixed(2)}{" "}
+                            VOI
+                          </span>
+                          <span
+                            style={{
+                              color: "rgba(255, 255, 255, 0.5)",
+                              fontSize: "0.8em",
+                            }}
+                          >
+                            Last updated:{" "}
+                            {new Date(
+                              floorPrices[
+                                nfts[currentReviewIndex].contractId
+                              ].lastUpdate
+                            ).toLocaleTimeString()}
+                          </span>
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+
+                  {/* Add sales history section */}
+                  <Box sx={{ mt: 2 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ mb: 1, color: "rgba(255, 255, 255, 0.7)" }}
+                    >
+                      Sales History
+                    </Typography>
+                    {salesHistory[getPriceKey(nfts[currentReviewIndex])]
+                      ?.length > 0 ? (
+                      <Stack spacing={1}>
+                        {salesHistory[getPriceKey(nfts[currentReviewIndex])]
+                          .sort((a, b) => b.timestamp - a.timestamp)
+                          .slice(0, 3)
+                          .map((sale, index) => (
+                            <Box
+                              key={index}
+                              sx={{
+                                p: 1,
+                                borderRadius: "8px",
+                                backgroundColor: "rgba(255, 255, 255, 0.05)",
+                              }}
+                            >
+                              <Stack
+                                direction="row"
+                                justifyContent="space-between"
+                              >
+                                <Typography
+                                  variant="body2"
+                                  sx={{ color: "rgba(255, 255, 255, 0.9)" }}
+                                >
+                                  {sale.price.toFixed(2)} VOI
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ color: "rgba(255, 255, 255, 0.6)" }}
+                                >
+                                  {new Date(
+                                    sale.timestamp * 1000
+                                  ).toLocaleDateString()}
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          ))}
+                      </Stack>
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "rgba(255, 255, 255, 0.5)" }}
+                      >
+                        No previous sales found
+                      </Typography>
+                    )}
+                  </Box>
                 </Stack>
 
                 <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
@@ -610,6 +898,21 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
                           </Stack>
                         </Grid>
                       </Grid>
+
+                      {floorPrices[nft.contractId] && (
+                        <Typography
+                          sx={{
+                            color: "rgba(255, 255, 255, 0.6)",
+                            fontSize: "0.8rem",
+                            mt: 0.5,
+                            pl: 1,
+                          }}
+                        >
+                          Floor:{" "}
+                          {floorPrices[nft.contractId].floorPrice.toFixed(2)}{" "}
+                          VOI
+                        </Typography>
+                      )}
                     </Box>
                   ))}
                 </Stack>

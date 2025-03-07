@@ -947,11 +947,11 @@ const PositionRow: React.FC<PositionRowProps> = ({
         .sendRawTransaction(stxns as Uint8Array[])
         .do();
       await waitForConfirmation(algodClient, txId, 4);
-      await refetch();
       party.confetti(document.body, {
         count: party.variation.range(200, 300),
         size: party.variation.range(1, 1.4),
       });
+      setIsMintModalOpen(false);
       toast.success("Claimed");
     } catch (error) {
       console.error("Error claiming rewards:", error);
@@ -1299,7 +1299,6 @@ const PositionRow: React.FC<PositionRowProps> = ({
 
       await waitForConfirmation(algodClient, txId, 4);
 
-      await refetch();
       setIsMintModalOpen(false);
 
       // Set success state
@@ -1353,21 +1352,21 @@ const PositionRow: React.FC<PositionRowProps> = ({
         tabIndex={-1}
         selected={isSelected}
         sx={{
-          cursor: 'pointer',
-          '&.Mui-selected': {
-            backgroundColor: isDarkTheme 
-              ? 'rgba(153, 51, 255, 0.08)' 
-              : 'rgba(153, 51, 255, 0.08)',
+          cursor: "pointer",
+          "&.Mui-selected": {
+            backgroundColor: isDarkTheme
+              ? "rgba(153, 51, 255, 0.08)"
+              : "rgba(153, 51, 255, 0.08)",
           },
-          '&.Mui-selected:hover': {
-            backgroundColor: isDarkTheme 
-              ? 'rgba(153, 51, 255, 0.12)' 
-              : 'rgba(153, 51, 255, 0.12)',
+          "&.Mui-selected:hover": {
+            backgroundColor: isDarkTheme
+              ? "rgba(153, 51, 255, 0.12)"
+              : "rgba(153, 51, 255, 0.12)",
           },
         }}
       >
         <TableCell padding="checkbox" style={cellStyle}>
-          <Checkbox 
+          <Checkbox
             checked={isSelected}
             onChange={(event) => {
               event.stopPropagation();
@@ -1377,9 +1376,9 @@ const PositionRow: React.FC<PositionRowProps> = ({
               event.stopPropagation();
             }}
             sx={{
-              color: isDarkTheme ? 'white' : undefined,
-              '&.Mui-checked': {
-                color: '#9933ff',
+              color: isDarkTheme ? "white" : undefined,
+              "&.Mui-checked": {
+                color: "#9933ff",
               },
             }}
           />
@@ -1640,9 +1639,7 @@ const PositionRow: React.FC<PositionRowProps> = ({
               minWidth: "40px",
               color: isDarkTheme ? "#FFFFFF" : undefined,
               backgroundColor: isDarkTheme ? "transparent" : undefined,
-              borderColor: isDarkTheme
-                ? "rgba(255, 255, 255, 0.3)"
-                : undefined,
+              borderColor: isDarkTheme ? "rgba(255, 255, 255, 0.3)" : undefined,
             }}
           >
             <MoreVerticalIcon />

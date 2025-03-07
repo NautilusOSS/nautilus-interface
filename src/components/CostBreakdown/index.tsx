@@ -31,20 +31,24 @@ const CostBreakdown: React.FC<CostBreakdownProps> = ({
       sx={{
         padding: 2,
         margin: "0 auto",
-        background: darkMode ? 'rgba(255, 255, 255, 0.05)' : '#F0F0F0',
-        color: darkMode ? 'white' : 'inherit',
-        ...sx
+        background: darkMode ? "rgba(255, 255, 255, 0.05)" : "#F0F0F0",
+        color: darkMode ? "white" : "inherit",
+        ...sx,
       }}
     >
-      <Typography variant="h6" gutterBottom color={darkMode ? 'white' : 'inherit'}>
+      <Typography
+        variant="h6"
+        gutterBottom
+        color={darkMode ? "white" : "inherit"}
+      >
         Cost Breakdown
       </Typography>
 
       <Grid container spacing={2}>
         <Grid item xs={6}>
-          <Typography 
-            variant="body1" 
-            color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}
+          <Typography
+            variant="body1"
+            color={darkMode ? "rgba(255, 255, 255, 0.7)" : "textSecondary"}
           >
             Price:
           </Typography>
@@ -56,9 +60,9 @@ const CostBreakdown: React.FC<CostBreakdownProps> = ({
         </Grid>
 
         <Grid item xs={6}>
-          <Typography 
-            variant="body1" 
-            color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}
+          <Typography
+            variant="body1"
+            color={darkMode ? "rgba(255, 255, 255, 0.7)" : "textSecondary"}
           >
             Marketplace Fee ({(marketplaceFeeRate * 100).toFixed(2)}%):
           </Typography>
@@ -71,9 +75,9 @@ const CostBreakdown: React.FC<CostBreakdownProps> = ({
         {royaltyFee > 0 ? (
           <>
             <Grid item xs={6}>
-              <Typography 
-                variant="body1" 
-                color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}
+              <Typography
+                variant="body1"
+                color={darkMode ? "rgba(255, 255, 255, 0.7)" : "textSecondary"}
               >
                 Royalty Fee ({(royaltyFeeRate * 100).toFixed(2)}%):
               </Typography>
@@ -85,23 +89,27 @@ const CostBreakdown: React.FC<CostBreakdownProps> = ({
             </Grid>
           </>
         ) : null}
+        {gamesFee > 0 ? (
+          <>
+            <Grid item xs={6}>
+              <Typography
+                variant="body1"
+                color={darkMode ? "rgba(255, 255, 255, 0.7)" : "textSecondary"}
+              >
+                Games Fee ({(gamesFeeRate * 100).toFixed(2)}%):
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body1" align="right">
+                {gamesFee.toFixed(2)} {symbol}
+              </Typography>
+            </Grid>
+          </>
+        ) : null}
         <Grid item xs={6}>
-          <Typography 
-            variant="body1" 
-            color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}
-          >
-            Games Fee ({(gamesFeeRate * 100).toFixed(2)}%):
-          </Typography>
-        </Grid>
-        <Grid item xs={6}>
-          <Typography variant="body1" align="right">
-            {gamesFee.toFixed(2)} {symbol}
-          </Typography>
-        </Grid>
-        <Grid item xs={6}>
-          <Typography 
-            variant="body1" 
-            color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}
+          <Typography
+            variant="body1"
+            color={darkMode ? "rgba(255, 255, 255, 0.7)" : "textSecondary"}
           >
             Proceeds:
           </Typography>

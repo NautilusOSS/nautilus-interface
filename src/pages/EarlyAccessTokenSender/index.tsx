@@ -292,6 +292,18 @@ const EarlyAccessTokenSender: React.FC = () => {
     // Optionally add a toast notification here
   };
 
+  const handleIncrementCount = (address: string) => {
+    setRecipients(recipients.map(r => 
+      r.address === address ? { ...r, count: r.count + 1 } : r
+    ));
+  };
+
+  const handleDecrementCount = (address: string) => {
+    setRecipients(recipients.map(r => 
+      r.address === address ? { ...r, count: Math.max(1, r.count - 1) } : r
+    ));
+  };
+
   if (!activeAddress) {
     return (
       <Layout>
@@ -752,7 +764,29 @@ const EarlyAccessTokenSender: React.FC = () => {
                                   fontSize: "0.875rem",
                                 }}
                               >
-                                {recipient.count}
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                                  <IconButton
+                                    onClick={() => handleDecrementCount(recipient.address)}
+                                    size="small"
+                                    sx={{
+                                      color: isDarkTheme ? "#fff" : "inherit",
+                                      padding: "4px",
+                                    }}
+                                  >
+                                    <Typography sx={{ fontSize: '1.2rem' }}>-</Typography>
+                                  </IconButton>
+                                  {recipient.count}
+                                  <IconButton
+                                    onClick={() => handleIncrementCount(recipient.address)}
+                                    size="small"
+                                    sx={{
+                                      color: isDarkTheme ? "#fff" : "inherit",
+                                      padding: "4px",
+                                    }}
+                                  >
+                                    <Typography sx={{ fontSize: '1.2rem' }}>+</Typography>
+                                  </IconButton>
+                                </Box>
                               </td>
                               <td
                                 style={{
@@ -764,18 +798,20 @@ const EarlyAccessTokenSender: React.FC = () => {
                                       : "rgba(0, 0, 0, 0.12)"
                                   }`,
                                   fontSize: "0.875rem",
-                                  color: recipient.isOptedIn
-                                    ? isDarkTheme
-                                      ? "#4caf50"
-                                      : "#2e7d32"
-                                    : isDarkTheme
-                                    ? "#f44336"
-                                    : "#d32f2f",
                                 }}
                               >
-                                {recipient.isOptedIn
-                                  ? "Opted In"
-                                  : "Not Opted In"}
+                                <Box
+                                  sx={{
+                                    display: 'inline-block',
+                                    px: 1,
+                                    py: 0.5,
+                                    borderRadius: 1,
+                                    backgroundColor: recipient.isOptedIn ? '#4caf5033' : '#f4433633',
+                                    color: recipient.isOptedIn ? '#4caf50' : '#f44336',
+                                  }}
+                                >
+                                  {recipient.isOptedIn ? 'Opted In' : 'Not Opted In'}
+                                </Box>
                               </td>
                               <td
                                 style={{

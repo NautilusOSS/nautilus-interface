@@ -249,5 +249,5 @@ export const getRankings = (
   return rankings; //.filter((r: RankingI) => r.name != "undefined");
 };
 
-export const compactAddress = (address: string) =>
-  `${address.slice(0, 4)}...${address.slice(-4)}`;
+export const compactAddress = (address: string, length = 4) =>
+  `${address.slice(0, length)}...${address.slice(-length)}`;

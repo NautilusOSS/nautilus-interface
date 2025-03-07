@@ -27,7 +27,6 @@ import CartNftCard from "../../components/CartNFTCard";
 import { ARC72_INDEXER_API, HIGHFORGE_API } from "../../config/arc72-idx";
 import { useWallet } from "@txnlab/use-wallet-react";
 import { useName } from "@/hooks/useName";
-import { useEnvoiResolver } from "@/hooks/useEnvoiResolver";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -459,8 +458,9 @@ export const Token: React.FC = () => {
           tokens: [nftData],
         },
       } = await axios.get(
-        //`${ARC72_INDEXER_API}/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}`
-        `https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}`
+        id !== "421076"
+          ? `https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}`
+          : `${ARC72_INDEXER_API}/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}&includes=all`
       );
       // TODO handle missing data
 
@@ -565,18 +565,41 @@ export const Token: React.FC = () => {
   ]);
   console.log({ nft });
 
+  const [tokenName, setTokenName] = React.useState<string | null>(null);
+  useEffect(() => {
+    console.log({ tid });
+    if ([797609].includes(Number(id))) {
+      axios
+        .get(`https://api.envoi.sh/api/token/${tid}`)
+        .then(({ data }) => {
+          if (data.results.length > 0) {
+            const result = data.results[0];
+            setTokenName(result.name);
+          }
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+    }
+  }, [id, tid]);
+
   /* NFT Navigator Listings */
 
   const [listings2, setListings] = React.useState<any>([]);
   React.useEffect(() => {
     try {
       axios
-        .get(`${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`, {
-          params: {
-            active: true,
-            collectionId: id,
-          },
-        })
+        .get(
+          id !== "421076"
+            ? `https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/mp/listings`
+            : `${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`,
+          {
+            params: {
+              active: true,
+              collectionId: id,
+            },
+          }
+        )
         .then(({ data }) => {
           setListings(data.listings);
         });
@@ -645,6 +668,7 @@ export const Token: React.FC = () => {
         <Container sx={{ pt: 5 }} maxWidth="xl">
           <Stack style={{ gap: "64px" }}>
             <NFTInfo
+              tokenName={tokenName}
               collectionName={nft?.collectionName}
               nft={nft}
               collection={collection}

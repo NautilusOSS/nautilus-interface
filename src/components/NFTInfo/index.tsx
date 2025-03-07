@@ -44,6 +44,8 @@ import { TOKEN_WVOI } from "@/contants/tokens";
 import { useAccountInfo } from "../Navbar/hooks";
 import { useStakingContract } from "@/hooks/staking";
 import { useEnvoiResolver } from "@/hooks/useEnvoiResolver";
+import { fetchTokenInfo } from "@/utils/dex";
+import OfferModal from "../modals/OfferModal";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -191,7 +193,10 @@ const BuyButton = styled.img`
   cursor: pointer;
 `;
 
-const OfferButton = styled(BuyButton)``;
+const OfferButton = styled(BuyButton)`
+  width: auto;
+  display: block;
+`;
 
 const BidButton = styled(BuyButton)``;
 
@@ -260,6 +265,7 @@ interface NFTInfoProps {
   loading: boolean;
   exchangeRate: number;
   collectionName?: string;
+  tokenName?: string;
 }
 
 export const NFTInfo: React.FC<NFTInfoProps> = ({
@@ -269,16 +275,19 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
   loading,
   exchangeRate,
   collectionName,
+  tokenName,
 }) => {
   /* Wallet */
   const { activeAccount, signTransactions } = useWallet();
   // EnVoi
-  const resolver = useEnvoiResolver();
+  const { resolver } = useEnvoiResolver();
   /* Modal */
   const [openBuyModal, setOpenBuyModal] = React.useState(false);
   const [isBuying, setIsBuying] = React.useState(false);
   const [openListSale, setOpenListSale] = React.useState(false);
   const [isListing, setIsListing] = React.useState(false);
+  const [openOfferModal, setOpenOfferModal] = useState(false);
+  const [isOffering, setIsOffering] = useState(false);
   /* Router */
   const { id, tid } = useParams();
   const navigate = useNavigate();
@@ -897,13 +906,23 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
 
   // handleBuy
   const handleBuyClick = async (pool: any, discount: any) => {
-    if (!activeAccount) {
-      toast.info("Please connect wallet!");
-      return;
-    }
     try {
+      if (!activeAccount) {
+        toast.info("Please connect wallet!");
+        return;
+      }
+      // doWithdraw
       setIsBuying(true);
       const { algodClient, indexerClient } = getAlgorandClients();
+
+      const defaultPaymentToken = {
+        contractId: 390001,
+        name: "Wrapped Voi",
+        symbol: "wVOI",
+        decimals: 6,
+        tokenId: "0",
+      };
+
       let customR;
       for (const skipEnsure of [true, false]) {
         if (pool) {
@@ -914,12 +933,8 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
             poolBalA,
             poolBalB,
           } = pool;
-          const tokA: TokenType = smartTokens.find(
-            (el: any) => `${el.contractId}` === tokAId
-          );
-          const tokB: TokenType = smartTokens.find(
-            (el: any) => `${el.contractId}` === tokBId
-          );
+          const tokA = await fetchTokenInfo(tokAId);
+          const tokB = await fetchTokenInfo(tokBId);
           const inToken = tokA?.tokenId === "0" ? tokA : tokB;
           const outToken = tokA?.tokenId !== "0" ? tokA : tokB;
           const ratio =
@@ -968,13 +983,10 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
           });
         } else {
           // no pool
-          const paymentToken = smartTokens.find(
-            (el: any) => `${el.contractId}` === `${nft.listing.currency}`
-          );
           customR = await mp.buy(
             activeAccount.address,
             nft.listing,
-            paymentToken,
+            defaultPaymentToken,
             {
               paymentTokenId:
                 nft.listing.currency === 0 ? TOKEN_WVOI : nft.listing.currency,
@@ -1171,8 +1183,9 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
     if (!nft) return;
     setLoadingOwnerProfile(true);
     const ci = new arc72(nft.contractId, algodClient, indexerClient);
-    const tokenId = Number(nft.tokenId);
+    const tokenId = BigInt(nft.tokenId);
     ci.arc72_ownerOf(tokenId).then((res: any) => {
+      console.log({ res });
       if (res.success) {
         const owner = res.returnValue;
         setOwner(owner);
@@ -1180,6 +1193,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
           if (!!res) {
             setOwnerName(res);
             resolver.http.search(res).then((res) => {
+              console.log({ res });
               if (res.length === 1) {
                 setOwnerProfile(res[0]);
                 setLoadingOwnerProfile(false);
@@ -1209,6 +1223,198 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
 
     return priceN < totalN ? formatter.format(totalN) : "";
   }, [nft, priceAU, stakingAccountData, isLoadingStakingAccountData]);
+
+  // Add handler for making offers
+  const handleMakeOffer = async (offerAmount: string) => {
+    try {
+      if (!activeAccount) {
+        toast.info("Please connect wallet!");
+        return;
+      }
+      setIsOffering(true);
+      const offerAmountBI = BigInt(
+        new BigNumber(offerAmount).multipliedBy(1e6).toFixed(0)
+      );
+      const approvalIncrementBI = BigInt(
+        new BigNumber(offerAmount)
+          .multipliedBy(1e6)
+          .multipliedBy(0.2)
+          .toFixed(0)
+      );
+      const totalPaymentBI = offerAmountBI + approvalIncrementBI;
+      // -------------------------------------
+      const ctcInfoMP213 = 8329112; // mp213 offers
+      const ctcInfoNV = 8324600; // Nautilus Voi NV
+      const ci = new CONTRACT(
+        ctcInfoMP213,
+        algodClient,
+        indexerClient,
+        abi.custom,
+        { addr: activeAccount.address, sk: new Uint8Array(0) }
+      );
+      const ciARC200 = new CONTRACT(
+        ctcInfoNV,
+        algodClient,
+        indexerClient,
+        abi.nt200,
+        { addr: activeAccount.address, sk: new Uint8Array(0) }
+      );
+      const builder = {
+        arc200: new CONTRACT(
+          ctcInfoNV,
+          algodClient,
+          indexerClient,
+          abi.nt200,
+          {
+            addr: activeAccount?.address || "",
+            sk: new Uint8Array(0),
+          },
+          true,
+          false,
+          true
+        ),
+        mp: new CONTRACT(
+          ctcInfoMP213,
+          algodClient,
+          indexerClient,
+          {
+            name: "mp213",
+            desc: "mp213",
+            methods: [
+              // a_offer_listSC(uint64,uint256,uint64,uint256)uint256
+              {
+                name: "a_offer_listSC",
+                args: [
+                  { type: "uint64", name: "contractId" },
+                  { type: "uint256", name: "tokenId" },
+                  { type: "uint64", name: "paymentTokenId" },
+                  { type: "uint256", name: "price" },
+                ],
+                returns: {
+                  type: "uint256",
+                },
+              },
+            ],
+            events: [],
+          },
+          {
+            addr: activeAccount.address,
+            sk: new Uint8Array(0),
+          },
+          true,
+          false,
+          true
+        ),
+      };
+      const buildN = [];
+      // -------------------------------------
+      // get approval
+      // -------------------------------------
+      let arc200_allowance = BigInt(0);
+      {
+        const arc200_allowanceR = await ciARC200.arc200_allowance(
+          activeAccount.address,
+          algosdk.getApplicationAddress(ctcInfoMP213)
+        );
+        if (arc200_allowanceR.success) {
+          arc200_allowance = arc200_allowanceR.returnValue;
+        }
+      }
+      // -------------------------------------
+      // createBalanceBox if needed
+      // -------------------------------------
+      {
+        ciARC200.setPaymentAmount(28500);
+        const createBalanceBoxR = await ciARC200.createBalanceBox(
+          activeAccount.address
+        );
+        if (createBalanceBoxR.success) {
+          const txnO = (
+            await builder.arc200.createBalanceBox(activeAccount.address)
+          )?.obj;
+          buildN.push({
+            ...txnO,
+            payment: 28500,
+            note: new TextEncoder().encode(
+              `createBalanceBox:${activeAccount.address}`
+            ),
+          });
+        }
+      }
+      // -------------------------------------
+      // deposit
+      // -------------------------------------
+      {
+        const txn = (await builder.arc200.deposit(totalPaymentBI))?.obj;
+        buildN.push({
+          ...txn,
+          note: new TextEncoder().encode(`deposit:${totalPaymentBI}`),
+          payment: totalPaymentBI,
+        });
+      }
+      // -------------------------------------
+      // approve spending
+      // -------------------------------------
+      {
+        const newAllowance = arc200_allowance + totalPaymentBI;
+        const txn = (
+          await builder.arc200.arc200_approve(
+            algosdk.getApplicationAddress(ctcInfoMP213),
+            newAllowance
+          )
+        )?.obj;
+        buildN.push({
+          ...txn,
+          note: new TextEncoder().encode(
+            `arc20_approve:${ctcInfoNV}:${algosdk.getApplicationAddress(
+              ctcInfoMP213
+            )}:${activeAccount.address}:${newAllowance}`
+          ),
+          payment: 28100, // conditionally set
+        });
+      }
+      // -------------------------------------
+      // list offer sc
+      // -------------------------------------
+      {
+        const txnO = (
+          await builder.mp.a_offer_listSC(
+            BigInt(nft.contractId),
+            BigInt(nft.tokenId),
+            BigInt(ctcInfoNV),
+            offerAmountBI
+          )
+        )?.obj;
+        buildN.push({
+          ...txnO,
+          note: new TextEncoder().encode(
+            `a_offer_listSC:${nft.contractId}:${nft.tokenId}:${ctcInfoNV}:${offerAmountBI}`
+          ),
+          payment: 73700, // must be set
+        });
+      }
+      // -------------------------------------
+      ci.setEnableGroupResourceSharing(true);
+      ci.setExtraTxns(buildN);
+      const cutsomR = await ci.custom();
+      console.log({ cutsomR });
+      const stxns = await signTransactions(
+        cutsomR.txns.map((el: any) => new Uint8Array(Buffer.from(el, "base64")))
+      );
+      const txn = await algodClient
+        .sendRawTransaction(stxns as Uint8Array[])
+        .do();
+      await algosdk.waitForConfirmation(algodClient, txn.txId, 4);
+      // -------------------------------------
+      toast.success("Offer submitted successfully!");
+      setOpenOfferModal(false);
+    } catch (e: any) {
+      console.log(e);
+      toast.error(e.message);
+    } finally {
+      setIsOffering(false);
+    }
+  };
 
   return !loading ? (
     <>
@@ -1276,7 +1482,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                 </AvatarWithName>
               ))(algosdk.getApplicationAddress(nft?.contractId || 0))}
               <NFTName style={{ color: isDarkTheme ? "#FFFFFF" : undefined }}>
-                {displayName}
+                {tokenName || displayName}
               </NFTName>
               {loadingOwnerProfile ? (
                 <Skeleton variant="text" width={150} height={24} />
@@ -1349,17 +1555,6 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                   >
                     <RowingIcon sx={{ color: "white" }} />
                   </Avatar>
-                  {/*<ProjectIcon
-                    height="25"
-                    width="25"
-                    style={{
-                      borderRadius: "50%",
-                    }}
-                    src={
-                      "https://nftnavigator.xyz/_app/immutable/assets/android-chrome-192x192.BJQGzsFc.png"
-                    }
-                    alt="Navigator Icon"
-                  />*/}
                 </Link>
               </ProjectLinkContainer>
             </Stack>
@@ -1391,7 +1586,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                       alt={`${nft.listing.currency}` === "0" ? "VOI" : "VIA"}
                     />
                   ) : null}
-                  {discount ? (
+                  {/*discount ? (
                     <div
                       className="price-value"
                       style={{
@@ -1401,7 +1596,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                     >
                       {discount} {currencySymbol}
                     </div>
-                  ) : null}
+                  ) : null*/}
                   <div
                     className="price-value"
                     style={{
@@ -1413,114 +1608,78 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                       "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
                       ? "Not Available"
                       : `${price} ${currencySymbol}`}
-                    {/*!nft.listing ||
-                    nft.approved ===
-                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ" ? null : (
-                      <span
-                        style={{
-                          fontSize: "16px",
-                          color: "#68727d",
-                        }}
-                      >
-                        {`${nft.listing.currency}` === "0"
-                          ? `(~${Math.round(
-                              nft.listing.price / exchangeRate / 1e6
-                            ).toLocaleString()} VIA)`
-                          : `(~${Math.round(
-                              (nft.listing.price * exchangeRate) / 1e6
-                            ).toLocaleString()} VOI)`}
-                      </span>
-                          )*/}
                   </div>
                 </Stack>
               </PriceDisplay>
             ) : (
               <Skeleton variant="text" width={150} height={24} />
             )}
-            {nft.approved !==
-            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ" ? (
-              <>
-                <Stack direction="row" gap={2} sx={{ alignItems: "center" }}>
-                  {nft?.listing || "" ? (
-                    nft.owner !== activeAccount?.address ? (
-                      <BuyButton
-                        src={ButtonBuy}
-                        alt="Buy Button"
-                        onClick={handleBuyButtonClick}
-                      />
-                    ) : (
-                      <>
-                        {/*<Button
-                          variant="text"
-                          onClick={() => {
-                            setOpenListSale(true);
-                          }}
-                        >
-                          Update
-                        </Button>*/}
-                        <Button
-                          variant="text"
-                          onClick={() => {
-                            handleDeleteListing(nft.listing.mpListingId);
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    )
-                  ) : nft.owner === activeAccount?.address ? null /*
+            <Stack direction="row" gap={2} sx={{ alignItems: "center" }}>
+              {nft.approved !==
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ" &&
+              nft?.listing ? (
+                nft.owner !== activeAccount?.address ? (
+                  <BuyButton
+                    src={ButtonBuy}
+                    alt="Buy Button"
+                    onClick={handleBuyButtonClick}
+                  />
+                ) : (
+                  <>
                     <Button
                       variant="text"
-                      onClick={() => setOpenListSale(true)}
+                      onClick={() => {
+                        handleDeleteListing(nft.listing.mpListingId);
+                      }}
                     >
-                      List for Sale
+                      Cancel
                     </Button>
-                    */ : null}
-                  {false && (
-                    <OfferButton src={ButtonOffer} alt="Offer Button" />
-                  )}
-                  {activeAccount?.address === manager ? (
-                    <Button color="warning" onClick={handleMangerDelete}>
-                      Delete
-                    </Button>
-                  ) : null}
-                </Stack>
-                {false ? (
-                  <AuctionContainer direction="row">
-                    <div className="auction-left">
-                      <Stack gap={0.5}>
-                        <div className="auction-label">Auction</div>
-                        <div
-                          className="auction-value"
-                          style={{
-                            color: isDarkTheme ? "#FFFFFF" : undefined,
-                          }}
-                        >
-                          1,000 VOI
-                        </div>
-                      </Stack>
+                  </>
+                )
+              ) : nft.owner === activeAccount?.address ? null : null}
+              {nft.owner !== activeAccount?.address && (
+                <OfferButton
+                  src={ButtonOffer}
+                  alt="Offer Button"
+                  onClick={() => setOpenOfferModal(true)}
+                />
+              )}
+              {activeAccount?.address === manager ? (
+                <Button color="warning" onClick={handleMangerDelete}>
+                  Delete
+                </Button>
+              ) : null}
+            </Stack>
+            {false ? (
+              <AuctionContainer direction="row">
+                <div className="auction-left">
+                  <Stack gap={0.5}>
+                    <div className="auction-label">Auction</div>
+                    <div
+                      className="auction-value"
+                      style={{
+                        color: isDarkTheme ? "#FFFFFF" : undefined,
+                      }}
+                    >
+                      1,000 VOI
                     </div>
-                    <div className="auction-right">
-                      <Stack
-                        className="alarm-container"
-                        direction="row"
-                        gap={2}
-                      >
-                        <img src={IconAlarm} alt="Alarm Icon" />
-                        <div
-                          className="time-remaining"
-                          style={{
-                            color: isDarkTheme ? "#FFFFFF" : undefined,
-                          }}
-                        >
-                          36h 10m 34s
-                        </div>
-                      </Stack>
-                      <BidButton src={ButtonBid} alt="Bid Button" />
+                  </Stack>
+                </div>
+                <div className="auction-right">
+                  <Stack className="alarm-container" direction="row" gap={2}>
+                    <img src={IconAlarm} alt="Alarm Icon" />
+                    <div
+                      className="time-remaining"
+                      style={{
+                        color: isDarkTheme ? "#FFFFFF" : undefined,
+                      }}
+                    >
+                      36h 10m 34s
                     </div>
-                  </AuctionContainer>
-                ) : null}
-              </>
+                  </Stack>
+                  <BidButton src={ButtonBid} alt="Bid Button" />
+                </div>
+              </AuctionContainer>
             ) : null}
           </Stack>
         </Grid>
@@ -1552,6 +1711,17 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
           paymentAltTokenId={currency?.tokenId || "0"}
         />
       ) : null}
+      <OfferModal
+        token={nft}
+        image={nft?.metadata?.image}
+        title="Make an Offer"
+        loading={isOffering}
+        open={openOfferModal}
+        handleClose={() => setOpenOfferModal(false)}
+        onSave={handleMakeOffer}
+        buttonText="Make Offer"
+        marketplaceFeePercentage={20}
+      />
     </>
   ) : null;
 };

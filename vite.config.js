@@ -30,9 +30,4 @@ export default defineConfig({
       "@emotion/styled",
     ],
   },
-
-  //   server: {
-  //     historyApiFallback: true, // Handle client-side routing
-  //   },
-  // Add any other configurations you need here
 });

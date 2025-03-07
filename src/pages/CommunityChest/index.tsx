@@ -502,6 +502,12 @@ const notifications: Notification[] = [
     type: "success",
     contractId: 917261,
   },
+  {
+    date: "2025-03-04",
+    message: "Liquid Voi (LV) launches with automated rewards distribution",
+    type: "success",
+    contractId: 8372092,
+  },
 ];
 
 // Add these near the top with other interfaces
@@ -509,43 +515,71 @@ interface ContractOption {
   id: number;
   name: string;
   description: string;
+  iconPath: string;
 }
 
 const CONTRACT_OPTIONS: ContractOption[] = [
   {
     id: 664258,
-    name: "CCV",
-    description: "Community Chest Voi",
+    name: "Community Chest Voi (CCV)",
+    description:
+      "The original Community Chest token with weekly draws and holder distributions.",
+    iconPath: "M3 3h18v18H3V3m15 15V6H6v12h12Z",
+  },
+  {
+    id: 913147,
+    name: "NFT Voi (NFV)",
+    description:
+      "Weekly NFT prizes for holders. Stake VOI for a chance to win unique digital collectibles.",
+    iconPath:
+      "M19 19H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 3c-3.86 0-7 3.14-7 7s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7m0 12.5c-3.03 0-5.5-2.47-5.5-5.5s2.47-5.5 5.5-5.5 5.5 2.47 5.5 5.5-2.47 5.5-5.5 5.5",
   },
   {
     id: 390001,
     name: "wVOI",
     description: "Wrapped VOI",
+    iconPath:
+      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
   },
   {
     id: 770561,
     name: "FV",
     description: "Fountain VOI",
+    iconPath:
+      "M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zM12 20c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2z",
   },
   {
     id: 828295,
     name: "EV",
     description: "En VOI",
+    iconPath:
+      "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0-6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 7c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4zm6 5H6v-.99c.2-.72 3.3-2.01 6-2.01s5.8 1.29 6 2v1z",
   },
   {
     id: 888305,
     name: "WV",
     description: "Womp VOI",
+    iconPath:
+      "M4 2C2.9 2 2 2.9 2 4v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2H4zm0 2h16v16H4V4zm4 4h8v8H8V8zm0 4h10v2H7v-2z",
   },
   {
-    id: 913147,
-    name: "NFV",
-    description: "NFT VOI",
+    id: 8324600,
+    name: "Nautilus Voi (NV)",
+    description: "Support Nautilus development and ecosystem.",
+    iconPath: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
   },
   {
     id: 917261,
-    name: "ARV",
+    name: "Arb Voi (ARV)",
     description: "Arb Voi",
+    iconPath:
+      "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2h2V7h-4v2h2z",
+  },
+  {
+    id: 8372092,
+    name: "Liquid Voi (LV)",
+    description: "Liquid staking solution for VOI with automatic rewards distribution.",
+    iconPath: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2V8h-2v8z",
   },
 ];
 
@@ -718,6 +752,16 @@ const getContractInfo = (contractId: number) => {
         iconPath:
           "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2h2V7h-4v2h2z",
       };
+    case 8324600:
+      return {
+        title: "Nautilus Voi (NV)",
+        iconPath: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+      };
+    case 8372092:
+      return {
+        title: "Liquid Voi",
+        iconPath: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2V8h-2v8z",
+      };
     default:
       return {
         title: "Community Chest",
@@ -747,6 +791,10 @@ const getContractDescription = (
       return "Welcome to NFT VOI (NFV) - the token that bridges the gap between VOI and NFTs. NFV enables unique interactions with digital collectibles while maintaining the security and value of the VOI ecosystem. Join us in exploring the intersection of DeFi and NFTs!";
     case 917261:
       return "Welcome to Arb Voi (ARV) - a token designed for arbitrage opportunities within the Voi ecosystem. ARV enables users to participate in cross-platform trading and take advantage of price differentials while maintaining the security of the Voi network.";
+    case 8324600:
+      return "Welcome to Nautilus Voi (NV) - support Nautilus development and ecosystem. NV represents staked VOI in the Nautilus project, enabling users to support the project by holding NV";
+    case 8372092:
+      return "Welcome to Liquid Voi (LV) - a liquid staking solution that allows you to stake your VOI while maintaining liquidity. Your staked VOI automatically earns rewards which are distributed to all LV holders proportionally. Stake, earn, and trade without lockups!";
     default:
       return "";
   }
@@ -1055,22 +1103,22 @@ const NFT_RELEASES: NFTRelease[] = [
     date: "2025-02-14 00:00:00 UTC",
     name: "DORKS29",
     url: "https://nautilus.sh/#/collection/894888/token/29",
-    winnerAddress: "",
-    txid: "",
+    winnerAddress: "MUTS5EI5IYSNNM2QDLNPBJ2NNRSRRMUC4S6OTCXM3JZMHUAJOSJT6YUKRA",
+    txid: "G7IQFGOMS367XPXYUQDYK4F7UXVKDQJWA53WGU5N7CZRYGTXDUKA",
   },
   {
     date: "2025-02-21 00:00:00 UTC",
     name: "Mermaid4",
     url: "https://nautilus.sh/#/collection/864075/token/4",
-    winnerAddress: "",
-    txid: "",
+    winnerAddress: "VDEVK22RGTKEE4EVKRTWVBPBPBB3IOFGO25RQCKDZCLZMRBKFBNNECRDLI",
+    txid: "ZKPEMRSL3G6JK6I2554J3RII7RNZDTFFGTG5VQLAF6WLNELCFHQA",
   },
   {
     date: "2025-02-28 00:00:00 UTC",
     name: "Mermaid2",
     url: "https://nautilus.sh/#/collection/864075/token/2",
-    winnerAddress: "",
-    txid: "",
+    winnerAddress: "ZYOUQ7CP7JLNYYQJXMICT3CGUBJZUGOJ5L4HZRION4RIIBXZCWXM2XJ6XI",
+    txid: "6YRO7WXK6IMNAEJG4T46IB2MEXRYBFMJQORNIDVXAUB4ZS3YDQIQ",
   },
   {
     date: "2025-03-07 00:00:00 UTC",
@@ -1472,7 +1520,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         );
 
         const relevantTokens = [
-          664258, 390001, 770561, 828295, 888305, 913147, 917261,
+          664258, 390001, 770561, 828295, 888305, 913147, 917261, 8324600,
         ];
         const filteredBalances = balancesResponse.data.balances.filter(
           (balance: any) =>
@@ -2132,14 +2180,17 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                           </Link>
                         </Tooltip>
                       )}
-                      {(option.id === 390001 ||
-                        option.id === 828295 ||
-                        option.id === 888305) && (
+                      {(option.id === 828295 || option.id === 888305) && (
                         <RewardBadge
                           $isDarkTheme={isDarkTheme}
                           $variant="ecosystem"
                         >
                           Ecosystem
+                        </RewardBadge>
+                      )}
+                      {option.id === 390001 && (
+                        <RewardBadge $isDarkTheme={isDarkTheme}>
+                          LP Incentives
                         </RewardBadge>
                       )}
                       {option.id === 913147 && (
@@ -2326,7 +2377,30 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
               {(() => {
                 switch (selectedContract) {
                   case 390001:
-                    return "Wrapped VOI (wVOI) is a wrapped version of the native VOI token, enabling easier integration with DeFi protocols and smart contracts while maintaining 1:1 parity with VOI. There are no incentives to hold wVOI. However, community members may support the project by holding wVOI.";
+                    return (
+                      <>
+                        Wrapped VOI (wVOI) is a wrapped version of the native
+                        VOI token, enabling easier integration with DeFi
+                        protocols and smart contracts while maintaining 1:1
+                        parity with VOI. There are no incentives to hold wVOI.
+                        However, community members may support the project by
+                        holding wVOI.{" "}
+                        <Link
+                          href="https://voi.humble.sh/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{
+                            color: isDarkTheme ? "#90caf9" : "#1976d2",
+                            textDecoration: "none",
+                            "&:hover": {
+                              textDecoration: "underline",
+                            },
+                          }}
+                        >
+                          Provide liquidity on Humble Swap →
+                        </Link>
+                      </>
+                    );
                   case 770561:
                     return "Fountain VOI (FV) is a wrapped VOI token that represents staked VOI in the Voi Fountain, allowing users to support the project by holding Fountain VOI and earn extra rewards provided by the Fountain.";
                   case 828295:
@@ -2940,7 +3014,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                     </Box>
                   </Label>
                   <NFTImage
-                    src="https://prod.cdn.highforge.io/m/894888/29.png"
+                    src="https://prod.cdn.highforge.io/m/603303/16.webp"
                     alt="Weekly NFT Prize"
                     $isDarkTheme={isDarkTheme}
                   />
@@ -2952,7 +3026,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                       mb: 1,
                     }}
                   >
-                    DORKS29
+                    Chrisbro 16
                   </Typography>
                   <Typography
                     variant="body2"

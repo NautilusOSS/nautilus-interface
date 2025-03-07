@@ -84,8 +84,8 @@ export const useListings = (options?: { seller?: string[] }) => {
     queryFn: () => {
       return axios
         .get(
-          //`${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`
-          `https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/mp/listings`,
+          `${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`,
+          //`https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/mp/listings`,
           {
             params: {
               active: true,

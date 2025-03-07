@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { getAlgorandClients } from "@/wallets";
 import { CONTRACT } from "ulujs";
-import { namehash } from "@/lib/utils";
 import { stringToUint8Array, stripTrailingZeroBytes } from "@/utils/string";
+import { namehash } from "@/utils/namehash";
 
 const resolverSpec = {
   name: "vns public resolver",
@@ -49,6 +49,7 @@ const nameTextCache: Record<string, string> = {};
 
 const fetchCollectionName = async (id: string) => {
   const name = `${id}.collection.reverse`;
+  console.log("fetching collection name for", name);
   const node = await namehash(name);
   console.log({
     name,

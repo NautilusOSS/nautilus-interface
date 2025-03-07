@@ -41,6 +41,11 @@ import { RootState } from "../../store/store";
 import { fetchTokenInfo } from "@/utils/dex";
 import { decodeRoyalties } from "@/utils/hf";
 import { useNFTDrips } from "@/hooks/useNFTDrips";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import DiamondIcon from "@mui/icons-material/Diamond";
+import { useName } from "@/hooks/useName";
+import PersonIcon from "@mui/icons-material/Person";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -391,43 +396,267 @@ const getRarityColor = (rarity: string) => {
   }
 };
 
+// Update the RarityBadge styled component
 const RarityBadge = styled.div<{ rarity: string }>`
   position: absolute;
-  top: 12px;
+  bottom: 16px;
   right: 12px;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 12px;
+  padding: 8px 16px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 16px;
+  font-size: 16px;
   font-weight: 600;
   color: #fff;
   background: ${(props) => getRarityColor(props.rarity)};
+  z-index: 2;
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 85px;
+  z-index: 999;
+  &:hover {
+    max-width: 240px;
+    transform: scale(1.05);
+  }
+
+  .rank {
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 6px;
+    .gem-icon {
+      font-size: 24px;
+      opacity: 0.9;
+    }
+  }
+
+  .label {
+    opacity: 0.9;
+    margin-right: 6px;
+    font-size: 16px;
+  }
+`;
+
+// Update the PriceTag styled component
+const PriceTag = styled.div<{ isDark?: boolean }>`
+  position: absolute;
+  top: 16px;
+  left: 12px;
+  padding: 8px 16px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #2b2b2b, #1a1a1a);
   z-index: 999;
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
-  gap: 4px;
-  pointer-events: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  gap: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 85px;
 
-  .rank {
-    font-size: 10px;
+  &:hover {
+    max-width: 240px;
+    transform: scale(1.05);
+  }
+
+  .chip {
+    background: rgba(255, 255, 255, 0.9);
+    color: #161717;
+    border: none;
+    font-weight: 500;
+    height: 20px;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  span {
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+`;
+
+// Add this styled component near the other styled components
+const OwnershipBadge = styled.div<{ showDrip?: boolean; isDark?: boolean }>`
+  position: absolute;
+  top: ${(props) => (props.showDrip ? "52px" : "16px")};
+  right: 12px;
+  padding: 8px;
+  border-radius: 50%;
+  background: ${(props) => (props.isDark ? "#2b2b2b" : "#fff")};
+  color: ${(props) => (props.isDark ? "#fff" : "#161717")};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 999;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  svg {
+    font-size: 20px;
+  }
+`;
+
+// Update the OwnerText component to include the icon
+const OwnerText = styled.div`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .person-icon {
+    font-size: 16px;
+    opacity: 0.8;
+  }
+`;
+
+// Add this styled component near the other styled components
+const CompactViewWrapper = styled.div<{ isDark?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  background: ${(props) => (props.isDark ? "#202020" : "#fff")};
+  border: 1px solid ${(props) => (props.isDark ? "#2b2b2b" : "#eaebf0")};
+  cursor: pointer;
+  transition: all 0.1s ease;
+  width: 100%;
+  position: relative;
+
+  &:hover {
+    transform: scale(1.01);
+    z-index: 1;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .compact-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .compact-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .compact-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: ${(props) => (props.isDark ? "#fff" : "#161717")};
+  }
+
+  .compact-price {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: ${(props) => (props.isDark ? "rgba(255,255,255,0.7)" : "#666")};
+
+    span {
+      font-family: monospace;
+      font-weight: 600;
+    }
+  }
+
+  .compact-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+
+    img {
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+  }
+`;
+
+// Add this styled component near the other styled components
+const HighestOfferBadge = styled.div<{ isDark?: boolean }>`
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 8px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #2b2b2b80, #1a1a1a80);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 999;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 120px;
+
+  &:hover {
+    max-width: 240px;
+    transform: scale(1.05);
+  }
+
+  .offer-icon {
+    font-size: 18px;
     opacity: 0.9;
+  }
+
+  span {
+    font-family: monospace;
+    font-weight: 700;
   }
 `;
 
 interface NFTCardProps {
   token: ListingTokenI | NFTIndexerTokenI;
   listing?: NFTIndexerListingI;
+  offers?: any[];
   onClick?: () => void;
   selected?: boolean;
   size?: "small" | "medium" | "large";
   imageOnly?: boolean;
-  viewMode?: "grid" | "list";
+  viewMode?: "grid" | "list" | "compact";
   sx?: SxProps<Theme>;
   hideOverlay?: boolean;
   rarity?: any;
   showDrip?: boolean;
+  isOwned?: boolean;
 }
 
 const CartNftCard: React.FC<NFTCardProps> = ({
@@ -435,6 +664,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
   size = "medium",
   token,
   listing,
+  offers,
   onClick,
   selected,
   viewMode = "grid",
@@ -442,13 +672,14 @@ const CartNftCard: React.FC<NFTCardProps> = ({
   hideOverlay = false,
   rarity,
   showDrip = false,
+  isOwned = false,
 }) => {
   const { drips, loading, error } = useNFTDrips();
   const { activeAccount, signTransactions } = useWallet();
 
-  const metadata = JSON.parse(token.metadata || "{}");
+  const { fetchName } = useName();
 
-  console.log({ metadata });
+  const metadata = JSON.parse(token.metadata || "{}");
 
   const [display, setDisplay] = React.useState(true);
 
@@ -484,15 +715,68 @@ const CartNftCard: React.FC<NFTCardProps> = ({
 
   const [resolvedName, setResolvedName] = React.useState<string | null>(null);
 
+  // Add this helper function for IndexedDB operations
+  const initDB = async () => {
+    return new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("envoiNamesDB", 1);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains("names")) {
+          db.createObjectStore("names", { keyPath: "tokenId" });
+        }
+      };
+    });
+  };
+
+  // Update the useEffect hook
   useEffect(() => {
     const resolveEnVoiName = async () => {
       if (metadata.name?.toLowerCase().includes("envoi name")) {
         try {
+          const db = await initDB();
+
+          // Check IndexedDB first
+          const cachedData = await new Promise((resolve, reject) => {
+            const transaction = db.transaction("names", "readonly");
+            const store = transaction.objectStore("names");
+            const request = store.get(token.tokenId);
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+
+          if (cachedData) {
+            const { name, timestamp } = cachedData as {
+              name: string;
+              timestamp: number;
+            };
+            // Check if cache is still valid (less than 24 hours old)
+            if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+              setResolvedName(name);
+              return;
+            }
+          }
+
+          // If no valid cache, fetch from API
           const response = await fetch(
             `https://api.envoi.sh/api/token/${token.tokenId}`
           );
           const data = await response.json();
+
           if (data.results?.[0]?.name) {
+            // Cache the result with timestamp in IndexedDB
+            const transaction = db.transaction("names", "readwrite");
+            const store = transaction.objectStore("names");
+            store.put({
+              tokenId: token.tokenId,
+              name: data.results[0].name,
+              timestamp: Date.now(),
+            });
+
             setResolvedName(data.results[0].name);
           }
         } catch (error) {
@@ -500,21 +784,60 @@ const CartNftCard: React.FC<NFTCardProps> = ({
         }
       }
     };
-
     resolveEnVoiName();
   }, [token.tokenId, metadata.name]);
 
-  // useEffect(() => {
-  //   console.log({ metadata });
-  //   if (metadata.properties) {
-  //     const name = Object.entries(metadata.properties).find(
-  //       ([key, value]) => key === "Name"
-  //     );
-  //     if (name) {
-  //       setResolvedName(name[1] as string);
-  //     }
-  //   }
-  // }, [metadata.properties]);
+  const [ownerName, setOwnerName] = React.useState<string | null>(null);
+
+  useEffect(() => {
+    const resolveOwnerName = async () => {
+      if (token.owner) {
+        try {
+          const db = await initDB();
+
+          // Check IndexedDB first
+          const cachedData = await new Promise((resolve, reject) => {
+            const transaction = db.transaction("names", "readonly");
+            const store = transaction.objectStore("names");
+            const request = store.get(token.owner);
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+
+          if (cachedData) {
+            const { name, timestamp } = cachedData as {
+              name: string;
+              timestamp: number;
+            };
+            // Check if cache is still valid (less than 24 hours old)
+            if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+              setOwnerName(name);
+              return;
+            }
+          }
+
+          // If no valid cache, fetch from API
+          const name = await fetchName(token.owner);
+          if (name) {
+            // Cache the result with timestamp in IndexedDB
+            const transaction = db.transaction("names", "readwrite");
+            const store = transaction.objectStore("names");
+            store.put({
+              tokenId: token.owner, // Using owner address as key
+              name: name,
+              timestamp: Date.now(),
+            });
+
+            setOwnerName(name);
+          }
+        } catch (error) {
+          console.error("Failed to resolve owner's enVoi name:", error);
+        }
+      }
+    };
+    resolveOwnerName();
+  }, [token.owner]);
 
   const displayName = useMemo(() => {
     if (resolvedName) return resolvedName;
@@ -623,12 +946,11 @@ const CartNftCard: React.FC<NFTCardProps> = ({
     discount: any,
     simulationResults: any
   ) => {
-    console.log({ pool, discount, simulationResults });
-    if (!activeAccount || !listing) {
-      toast.info("Please connect wallet!");
-      return;
-    }
     try {
+      if (!activeAccount || !listing) {
+        toast.info("Please connect wallet!");
+        return;
+      }
       const doWithdraw = listing.currency === 0;
       setIsBuying(true);
 
@@ -754,13 +1076,17 @@ const CartNftCard: React.FC<NFTCardProps> = ({
       setOpenBuyModal(false);
     }
   };
-  const collectionsMissingImage = [35720076];
+  const collectionsMissingImage = [35720076, 797609];
 
-  const url = metadata.image?.includes("ipfs://")
+  const url = metadata.image?.startsWith("https://ipfs.io/ipfs/")
+    ? metadata.image
+    : metadata.image?.startsWith("ipfs://")
     ? `https://ipfs.io/ipfs/${metadata.image.split("ipfs://")[1]}`
     : !collectionsMissingImage?.includes(Number(token.contractId))
     ? `${HIGHFORGE_CDN}/i/${encodeURIComponent(token.metadataURI)}?w=400`
     : metadata.image;
+
+  console.log({ metadata, url });
 
   const isDarkTheme = useSelector(
     (state: RootState) => state.theme.isDarkTheme
@@ -800,59 +1126,139 @@ const CartNftCard: React.FC<NFTCardProps> = ({
     return drip;
   }, [drips, token.contractId]);
 
-  console.log({ drips, getDrips, token });
+  // Add this helper function to get highest offer
+  const getHighestOffer = useMemo(() => {
+    if (!offers || offers.length === 0) return null;
+
+    const highestOffer = offers.reduce((max, offer) => {
+      const offerAmount = new BigNumber(offer.price || 0).div(
+        new BigNumber(10).pow(currencyDecimals)
+      );
+      const maxAmount = new BigNumber(max.price || 0).div(
+        new BigNumber(10).pow(currencyDecimals)
+      );
+
+      return offerAmount.gt(maxAmount) ? offer : max;
+    }, offers[0]);
+
+    return {
+      amount: new BigNumber(highestOffer.price).div(
+        new BigNumber(10).pow(currencyDecimals)
+      ),
+      currency: highestOffer.currency,
+    };
+  }, [offers, currencyDecimals]);
 
   // Add this debug log right before the render
-  console.log("Rarity:", getRarity, rarity);
+  // console.log("Rarity:", getRarity, rarity);
 
-  // Add this debug log right before the render
+  if (
+    displayName.indexOf("undefined") !== -1 ||
+    displayName === "enVoi name .voi"
+  )
+    return null;
+
+  // Add this before the return statement
+  if (viewMode === "compact") {
+    return (
+      <>
+        <CompactViewWrapper isDark={isDarkTheme} onClick={onClick} sx={sx}>
+          <img className="compact-image" src={url} alt={displayName} />
+          <div className="compact-content">
+            <div className="compact-name">{displayName}</div>
+            {listing?.price && Number(listing.price) > 0 && (
+              <div className="compact-price">
+                <span>
+                  {`${priceNormal || price} ${
+                    priceNormal ? "VOI" : currencySymbol
+                  }`}
+                </span>
+                {priceNormal && currencySymbol !== "VOI" && (
+                  <Chip
+                    className="chip"
+                    size="small"
+                    sx={{
+                      background: isDarkTheme ? "#2b2b2b" : "#fff",
+                      color: isDarkTheme ? "#fff" : "#161717",
+                      border: isDarkTheme ? "none" : "1px solid #eaebf0",
+                      height: "16px",
+                      fontSize: "10px",
+                      padding: "0 4px",
+                    }}
+                    label={`${price} ${currencySymbol}`}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+          {listing?.price && Number(listing.price) > 0 && (
+            <div className="compact-actions">
+              <img
+                height="24"
+                width="24"
+                src="/static/icon-cart.png"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleBuyButtonClick();
+                }}
+              />
+            </div>
+          )}
+        </CompactViewWrapper>
+        {activeAccount && openBuyModal && listing ? (
+          <BuySaleModal
+            token={token}
+            listing={listing}
+            seller={listing.seller}
+            open={openBuyModal}
+            loading={isBuying}
+            handleClose={() => setOpenBuyModal(false)}
+            onSave={handleCartIconClick}
+            title="Buy NFT"
+            buttonText="Buy"
+            image={metadata.image}
+            price={price}
+            priceNormal={priceNormal || ""}
+            priceAU={listing.price.toString()}
+            currency={currencySymbol}
+            paymentTokenId={listing.currency}
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  // Add list view condition here
   if (viewMode === "list") {
     return (
       <>
         <ListViewWrapper isDark={isDarkTheme} onClick={onClick} sx={sx}>
-          {rarity ? (
-            <RarityBadge rarity={getRarity.label}>
-              {getRarity.label}
-              {getRarity.rank && (
-                <span className="rank">#{getRarity.rank}</span>
-              )}
-            </RarityBadge>
-          ) : null}
-          {showDrip && getDrips.length > 0 && (
-            <Tooltip
-              title={
-                <DripTooltipContent>
-                  {getDrips.map((drip, index) => (
-                    <div key={index} className="drip-item">
-                      <span className="drip-amount">
-                        {formatter.format(drip.dripAmount)}
-                      </span>
-                      <span>{drip.symbol}/wk</span>
-                    </div>
-                  ))}
-                </DripTooltipContent>
-              }
-              arrow
-              placement="right"
-            >
-              <DripBadge>
-                <DripIcon />
-              </DripBadge>
-            </Tooltip>
-          )}
           <img className="list-image" src={url} alt={displayName} />
           <div className="list-content">
             <div className="list-header">
-              <Stack gap={0.25}>
-                <CollectionName isDark={isDarkTheme} inList>
-                  {displayName}
-                </CollectionName>
+              <CollectionName isDark={isDarkTheme} inList>
+                {displayName}
+              </CollectionName>
+              {listing?.price && Number(listing.price) > 0 && (
+                <div className="list-actions">
+                  <img
+                    height="24"
+                    width="24"
+                    src="/static/icon-cart.png"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleBuyButtonClick();
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="list-footer">
+              {listing?.price && Number(listing.price) > 0 && (
                 <CollectionVolume isDark={isDarkTheme} inList>
-                  <Stack
-                    direction="row"
-                    gap={0.5}
-                    sx={{ alignItems: "center" }}
-                  >
+                  <Stack direction="row" gap={1} alignItems="center">
                     <span>
                       {`${priceNormal || price} ${
                         priceNormal ? "VOI" : currencySymbol
@@ -862,32 +1268,11 @@ const CartNftCard: React.FC<NFTCardProps> = ({
                       <Chip
                         className="chip"
                         size="small"
-                        sx={{
-                          background: isDarkTheme ? "#2b2b2b" : "#fff",
-                          color: isDarkTheme ? "#fff" : "#161717",
-                          border: isDarkTheme ? "none" : "1px solid #eaebf0",
-                          height: "20px",
-                          fontSize: "11px",
-                          padding: "0 6px",
-                        }}
                         label={`${price} ${currencySymbol}`}
                       />
                     )}
                   </Stack>
                 </CollectionVolume>
-              </Stack>
-              {listing?.price && Number(listing.price) > 0 && (
-                <img
-                  style={{ zIndex: 2 }}
-                  height="32"
-                  width="32"
-                  src="/static/icon-cart.png"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    handleBuyButtonClick();
-                  }}
-                />
               )}
             </div>
           </div>
@@ -915,7 +1300,7 @@ const CartNftCard: React.FC<NFTCardProps> = ({
     );
   }
 
-  // Grid view
+  // Grid view (default)
   return display ? (
     <>
       <Box
@@ -923,15 +1308,46 @@ const CartNftCard: React.FC<NFTCardProps> = ({
           border: `4px solid ${selected ? "green" : "transparent"}`,
           borderRadius: "25px",
           position: "relative",
+          overflow: "visible",
+          width: size === "medium" ? "305px" : "100%",
           ...sx,
         }}
       >
         {rarity ? (
           <RarityBadge rarity={getRarity.label}>
-            {getRarity.label}
-            {getRarity.rank && <span className="rank">#{getRarity.rank}</span>}
+            <span className="rank">
+              <DiamondIcon className="gem-icon" />
+              {padRarityRank(getRarity.rank)}
+            </span>
+            <span className="label">{getRarity.label}</span>
           </RarityBadge>
         ) : null}
+        {listing?.price && Number(listing.price) > 0 && (
+          <PriceTag isDark={isDarkTheme}>
+            <span>
+              {`${priceNormal || price} ${
+                priceNormal ? "VOI" : currencySymbol
+              }`}
+            </span>
+            {priceNormal && currencySymbol !== "VOI" && (
+              <Chip
+                className="chip"
+                size="small"
+                label={`${price} ${currencySymbol}`}
+              />
+            )}
+          </PriceTag>
+        )}
+        {isOwned && (
+          <Tooltip title="You own this NFT" arrow placement="right">
+            <OwnershipBadge
+              showDrip={showDrip && getDrips.length > 0}
+              isDark={isDarkTheme}
+            >
+              <AccountBalanceWalletIcon />
+            </OwnershipBadge>
+          </Tooltip>
+        )}
         {showDrip && getDrips.length > 0 && (
           <Tooltip
             title={
@@ -953,6 +1369,15 @@ const CartNftCard: React.FC<NFTCardProps> = ({
               <DripIcon />
             </DripBadge>
           </Tooltip>
+        )}
+        {getHighestOffer && (
+          <HighestOfferBadge isDark={isDarkTheme}>
+            <CurrencyExchangeIcon className="offer-icon" />
+            <span>
+              {formatter.format(getHighestOffer.amount.toNumber())}{" "}
+              {currencySymbol}
+            </span>
+          </HighestOfferBadge>
         )}
         <Box
           style={{
@@ -993,11 +1418,10 @@ const CartNftCard: React.FC<NFTCardProps> = ({
                   right: 0,
                   height: "90px",
                   background: `linear-gradient(to top,
-                    rgba(255, 255, 255, 0.08) 0%,
-                    rgba(255, 255, 255, 0.05) 50%,
-                    rgba(255, 255, 255, 0) 100%)`,
-                  backdropFilter: "blur(2px) brightness(60%)",
-                  boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.1)",
+                    rgba(0, 0, 0, 0.7) 0%,
+                    rgba(0, 0, 0, 0.4) 50%,
+                    rgba(0, 0, 0, 0) 100%)`,
+                  //backdropFilter: "blur(2px)",
                   zIndex: 1,
                 }}
               />
@@ -1018,50 +1442,11 @@ const CartNftCard: React.FC<NFTCardProps> = ({
                 >
                   <Stack gap={1}>
                     <CollectionName isDark={true}>{displayName}</CollectionName>
-                    <CollectionVolume isDark={true}>
-                      {listing?.price && Number(listing.price) > 0 && (
-                        <Stack
-                          direction="row"
-                          gap={1}
-                          sx={{
-                            alignItems: "center",
-                            textShadow: "0px 1px 2px rgba(0,0,0,0.5)",
-                          }}
-                        >
-                          <span>
-                            {`${priceNormal || price} ${
-                              priceNormal ? "VOI" : currencySymbol
-                            }`}
-                          </span>
-                          {priceNormal && currencySymbol !== "VOI" && (
-                            <Chip
-                              sx={{
-                                background: "rgba(255, 255, 255, 0.9)",
-                                color: "#161717",
-                                border: "none",
-                                fontWeight: 500,
-                                backdropFilter: "blur(4px)",
-                              }}
-                              label={`${price} ${currencySymbol}`}
-                            />
-                          )}
-                        </Stack>
-                      )}
-                    </CollectionVolume>
+                    <OwnerText>
+                      <PersonIcon className="person-icon" />
+                      {ownerName}
+                    </OwnerText>
                   </Stack>
-                  {listing?.price && Number(listing.price) > 0 && (
-                    <img
-                      style={{ zIndex: 2 }}
-                      height="40"
-                      width="40"
-                      src="/static/icon-cart.png"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleBuyButtonClick();
-                      }}
-                    />
-                  )}
                 </Stack>
               )}
             </>
@@ -1089,6 +1474,11 @@ const CartNftCard: React.FC<NFTCardProps> = ({
       ) : null}
     </>
   ) : null;
+};
+
+// Add this helper function near the top of the file
+const padRarityRank = (rank: number) => {
+  return rank.toString().padStart(3, "0");
 };
 
 export default CartNftCard;

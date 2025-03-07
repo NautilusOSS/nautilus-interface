@@ -23,7 +23,7 @@ export function intToColorCode(n: number): string {
 
 export const stripTrailingZeroBytes = (str: string) => {
   const index = str.indexOf("\x00");
-  if (index > 0) {
+  if (index >= 0) {
     return str.slice(0, str.indexOf("\x00"));
   } else {
     return str;
@@ -35,3 +35,8 @@ export function stringToUint8Array(str: string, length: number): Uint8Array {
   bytes.set(new Uint8Array(Buffer.from(str, "utf8")), 0);
   return bytes;
 }
+
+export const shortenAddress = (address: string): string => {
+  if (!address) return '';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};

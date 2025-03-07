@@ -98,7 +98,7 @@ const NFTCollectionTable: React.FC<Props> = ({
   const isDarkTheme = useSelector(
     (state: RootState) => state.theme.isDarkTheme
   );
-  const resolver = useEnvoiResolver();
+  const { resolver } = useEnvoiResolver();
 
   // Add sort state
   const [sortField, setSortField] = useState<SortField>("volumeAllTime");
@@ -119,13 +119,13 @@ const NFTCollectionTable: React.FC<Props> = ({
       if (collection.creator) {
         resolver.http
           .getNameFromAddress(collection.creator)
-          .then((res: string) => {
-            if (!!res) {
+          .then((res: string[]) => {
+            if (res.length > 0 && !!res[0]) {
               setCreatorNames((prev) => ({
                 ...prev,
-                [collection.creator]: res,
+                [collection.creator]: res[0],
               }));
-              resolver.http.search(res).then((searchRes: any) => {
+              resolver.http.search(res[0]).then((searchRes: any) => {
                 if (searchRes.length === 1) {
                   setCreatorProfiles((prev) => ({
                     ...prev,
@@ -185,14 +185,13 @@ const NFTCollectionTable: React.FC<Props> = ({
     }
   };
 
-  // Update the table headers to be clickable
+  // Update the table headers
   const headers = [
     { label: "#", sortable: false },
     { label: "", sortable: false },
     { label: "Collection", field: "name" as SortField, sortable: true },
-    //{ label: "Price", field: "price" as SortField, sortable: true },
     { label: "Floor", field: "floorPrice" as SortField, sortable: true },
-    { label: "Volume (24h)", field: "volume24" as SortField, sortable: true },
+    { label: "Volume (24h)", field: "volume24h" as SortField, sortable: true },
     { label: "Volume (7d)", field: "volume7d" as SortField, sortable: true },
     { label: "Volume (30d)", field: "volume30d" as SortField, sortable: true },
     {
@@ -200,10 +199,6 @@ const NFTCollectionTable: React.FC<Props> = ({
       field: "volumeAllTime" as SortField,
       sortable: true,
     },
-    //{ label: "Supply", field: "totalSupply" as SortField, sortable: true },
-    //{ label: "Owners", field: "uniqueOwners" as SortField, sortable: true },
-    //{ label: "Listings", field: "activeListings" as SortField, sortable: true },
-    //{ label: "Launch Date", field: "launchStart" as SortField, sortable: true },
     { label: "Creator", field: "creator" as SortField, sortable: true },
   ];
 

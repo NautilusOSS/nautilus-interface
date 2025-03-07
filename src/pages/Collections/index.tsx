@@ -115,7 +115,7 @@ type VolumeData = {
   contractId: number;
   vol24h: string;
   vol7d: string;
-  vol30d: string;
+  vol30: number;
   alltime: string;
   floor: string;
 };
@@ -186,7 +186,7 @@ export const Collections: React.FC = () => {
           acc[volume.contractId] = {
             volume24h: Number(volume.vol24h) / 1_000_000,
             volume7d: Number(volume.vol7d) / 1_000_000,
-            volume30d: Number(volume.vol30d) / 1_000_000,
+            volume30d: volume.vol30 / 1_000_000,
             volumeAllTime: Number(volume.alltime) / 1_000_000,
             floor: Number(volume.floor) / 1_000_000,
           };
@@ -337,7 +337,25 @@ export const Collections: React.FC = () => {
           floor: volumeInfo[collection.contractId]?.floor || 0,
         };
       })
-      .sort((a, b) => (b.activeListings || 0) - (a.activeListings || 0));
+      .sort((a, b) => {
+        // First sort by volume24h
+        const volume24hDiff = (b.volume24h || 0) - (a.volume24h || 0);
+        if (volume24hDiff !== 0) return volume24hDiff;
+        
+        // If 24h volumes are equal, sort by active listings
+        const listingSort = (b.activeListings || 0) - (a.activeListings || 0);
+        if (listingSort !== 0) return listingSort;
+        
+        // If both are equal, continue with other volume metrics
+        const volume7dDiff = (b.volume7d || 0) - (a.volume7d || 0);
+        if (volume7dDiff !== 0) return volume7dDiff;
+        
+        const volume30dDiff = (b.volume30d || 0) - (a.volume30d || 0);
+        if (volume30dDiff !== 0) return volume30dDiff;
+        
+        // Finally, check all-time volume
+        return (b.volumeAllTime || 0) - (a.volumeAllTime || 0);
+      });
 
     console.log("Processed collections:", result);
     return result;

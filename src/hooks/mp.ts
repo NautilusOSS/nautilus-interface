@@ -1,5 +1,4 @@
-import { INDEXER_API } from "@/contants/endpoints";
-import { stakingRewards } from "@/static/staking/staking";
+import { ARC72_INDEXER_API, NFT_NAVIGATOR_API } from "@/config/arc72-idx";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
@@ -7,7 +6,7 @@ export const useMarketplaceListings = (contractId: number) => {
   const data = useQuery({
     queryFn: () => {
       return axios
-        .get(`${INDEXER_API}/nft-indexer/v1/mp/listings`, {
+        .get(`${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`, {
           params: {
             active: true,
             collectionId: contractId,

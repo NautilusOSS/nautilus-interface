@@ -22,7 +22,7 @@ import { ActiveNavLink, NavLink, NavLinks } from "../Navbar/components.styled";
 import { linkLabels, navlinks } from "../Navbar/constants";
 import { useLocation, useNavigate } from "react-router-dom";
 
-export function SideBar() {
+export function SideBar({ exclude }: { exclude?: string[] }) {
   const isDarkTheme = useSelector(
     (state: RootState) => state.theme.isDarkTheme
   );
@@ -50,6 +50,9 @@ export function SideBar() {
         </SheetHeader>
         <NavLinks className="!flex !flex-col !items-start !justify-start !gap-2 !my-8">
           {navlinks.map((item, key) => {
+            if (exclude?.includes(item.label)) {
+              return null;
+            }
             return linkLabels[location.pathname] === item.label ? (
               <SheetClose asChild>
                 <ActiveNavLink
@@ -84,7 +87,7 @@ export function SideBar() {
         <SheetFooter>
           <SheetClose asChild>
             <Profile>
-              <ConnectWallet />
+              <ConnectWallet expanded={true} />
             </Profile>
           </SheetClose>
         </SheetFooter>
