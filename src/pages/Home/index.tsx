@@ -58,6 +58,7 @@ import { useProjects } from "@/hooks/useProjects";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import algosdk from "algosdk";
 import { getAlgorandClients } from "@/wallets";
+import { FixedSizeList } from "react-window";
 
 const formatPrice = (price: number) => {
   const value = price / 1e6; // Convert to VOI
@@ -506,6 +507,9 @@ const ActivityTableRow = ({
   );
 };
 
+// 1. Memoize expensive computations and components
+const MemoizedActivityTableRow = React.memo(ActivityTableRow);
+
 // Add new styled component for the animated background
 const AnimatedBackground = styled.div`
   position: absolute;
@@ -745,6 +749,46 @@ const StatItem = styled.div<{ $isDarkTheme: boolean }>`
   }
 `;
 
+// Add these styled components after the existing styled components
+const FeaturedSection = styled.div`
+  padding: 24px 0;
+  margin: -48px 0 48px;
+  background: ${(props) =>
+    props.theme.isDarkTheme
+      ? "rgba(255, 255, 255, 0.05)"
+      : "rgba(153, 51, 255, 0.05)"};
+`;
+
+const FeaturedContainer = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FeaturedCard = styled.div<{ $isDarkTheme: boolean }>`
+  background: ${(props) =>
+    props.theme.isDarkTheme
+      ? "rgba(255, 255, 255, 0.1)"
+      : "rgba(153, 51, 255, 0.1)"};
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+`;
+
 // Add these type definitions near the top of the file where other interfaces are defined
 interface ListingResponse {
   listings: ListingI[];
@@ -799,6 +843,95 @@ const getCachedStats = (): MarketStats | null => {
   }
 
   return stats;
+};
+
+// Add this styled component near other styled components
+const ActivityHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center; // This centers items vertically
+  margin-bottom: 24px;
+`;
+
+// Add these styled components
+const CollectionGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px; // Reduced from 24px
+  margin-bottom: 32px; // Reduced from 48px
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+const CollectionCard = styled.div<{ $isDarkTheme: boolean }>`
+  position: relative;
+  cursor: pointer;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s ease-in-out;
+  background: ${(props) =>
+    props.$isDarkTheme
+      ? "rgba(255, 255, 255, 0.05)"
+      : "rgba(153, 51, 255, 0.05)"};
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme
+        ? "rgba(255, 255, 255, 0.1)"
+        : "rgba(153, 51, 255, 0.1)"};
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  gap: 12px;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px
+      ${(props) =>
+        props.$isDarkTheme ? "rgba(0, 0, 0, 0.2)" : "rgba(153, 51, 255, 0.1)"};
+
+    .ranking-overlay {
+      opacity: 0;
+      background: transparent;
+    }
+  }
+`;
+
+// Update the RankingOverlay styled component
+const RankingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: ${(props) =>
+    props.theme.isDarkTheme
+      ? "rgba(0, 0, 0, 0.5)"
+      : "rgba(255, 255, 255, 0.5)"};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${(props) => (props.theme.isDarkTheme ? "#fff" : "#93f")};
+  font-weight: 700;
+  font-size: 32px;
+  text-shadow: ${(props) =>
+    props.theme.isDarkTheme
+      ? "2px 2px 4px rgba(0, 0, 0, 0.3)"
+      : "2px 2px 4px rgba(153, 51, 255, 0.3)"};
+  border-radius: 12px;
+  z-index: 1;
+  transition: all 0.3s ease;
+
+  &:hover {
+    opacity: 0;
+    background: transparent;
+  }
+`;
+
+// Add this helper function near the top of the file
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
 export const Home: React.FC = () => {
@@ -935,6 +1068,7 @@ export const Home: React.FC = () => {
   // Helper function to get collection name
   const getCollectionName = (collectionId: number) => {
     const collection = collectionInfo[collectionId];
+    console.log({ collection });
     if (collection?.firstToken?.metadata) {
       try {
         const metadata = JSON.parse(collection.firstToken.metadata);
@@ -965,7 +1099,6 @@ export const Home: React.FC = () => {
     font-family: "Plus Jakarta Sans";
     font-size: 24px;
     font-weight: 600;
-    margin-bottom: 24px;
   `;
 
   const StyledTableContainer = styled(TableContainer)<{
@@ -1202,7 +1335,7 @@ export const Home: React.FC = () => {
             (a: CollectionStats, b: CollectionStats) =>
               b.totalVolume - a.totalVolume
           )
-          .slice(0, 5);
+          .slice(0, 10);
 
         setTopCollections(sortedCollections);
       } catch (error) {
@@ -1215,93 +1348,93 @@ export const Home: React.FC = () => {
     fetchTopCollections();
   }, []);
 
-  const [tabValue, setTabValue] = useState(0);
-  const [trendingCollections, setTrendingCollections] = useState<
-    CollectionStats[]
-  >([]);
-  const [isLoadingTrendingCollections, setIsLoadingTrendingCollections] =
-    useState(false);
+  // const [tabValue, setTabValue] = useState(0);
+  // const [trendingCollections, setTrendingCollections] = useState<
+  //   CollectionStats[]
+  // >([]);
+  // const [isLoadingTrendingCollections, setIsLoadingTrendingCollections] =
+  //   useState(false);
 
   // Add tab change handler
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
+  // const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  //   setTabValue(newValue);
+  // };
 
   // Add effect to fetch trending collections
-  useEffect(() => {
-    const fetchTrendingCollections = async () => {
-      setIsLoadingTrendingCollections(true);
-      try {
-        // Get only the last 100 sales
-        const response = await axios.get(
-          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales?sort=-round&limit=100"
-        );
+  // useEffect(() => {
+  //   const fetchTrendingCollections = async () => {
+  //     setIsLoadingTrendingCollections(true);
+  //     try {
+  //       // Get only the last 100 sales
+  //       const response = await axios.get(
+  //         "https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales?sort=-round&limit=100"
+  //       );
 
-        // Group sales by collection and calculate totals from ONLY these 100 sales
-        const collectionMap = response.data.sales.reduce(
-          (acc: Record<number, CollectionStats>, sale: any) => {
-            const collectionId = sale.collectionId;
-            if (!acc[collectionId]) {
-              acc[collectionId] = {
-                collectionId: collectionId,
-                totalSales: 0,
-                totalVolume: 0,
-                lastSale: sale.timestamp,
-                recentSales: [], // Add array to track recent sales
-              };
-            }
+  //       // Group sales by collection and calculate totals from ONLY these 100 sales
+  //       const collectionMap = response.data.sales.reduce(
+  //         (acc: Record<number, CollectionStats>, sale: any) => {
+  //           const collectionId = sale.collectionId;
+  //           if (!acc[collectionId]) {
+  //             acc[collectionId] = {
+  //               collectionId: collectionId,
+  //               totalSales: 0,
+  //               totalVolume: 0,
+  //               lastSale: sale.timestamp,
+  //               recentSales: [], // Add array to track recent sales
+  //             };
+  //           }
 
-            // Add this sale to recent sales and update totals
-            acc[collectionId].totalSales += 1;
-            acc[collectionId].totalVolume += Number(sale.price);
-            acc[collectionId].recentSales.push(sale);
+  //           // Add this sale to recent sales and update totals
+  //           acc[collectionId].totalSales += 1;
+  //           acc[collectionId].totalVolume += Number(sale.price);
+  //           acc[collectionId].recentSales.push(sale);
 
-            return acc;
-          },
-          {}
-        );
+  //           return acc;
+  //         },
+  //         {}
+  //       );
 
-        // Convert to array and sort by recent volume
-        const sortedCollections = Object.values(collectionMap)
-          .map((collection: any) => ({
-            collectionId: collection.collectionId,
-            totalSales: collection.totalSales,
-            totalVolume: collection.recentSales.reduce(
-              (sum: number, sale: any) => sum + Number(sale.price),
-              0
-            ),
-            lastSale: collection.lastSale,
-          }))
-          .sort((a, b) => b.totalVolume - a.totalVolume)
-          .slice(0, 5);
+  //       // Convert to array and sort by recent volume
+  //       const sortedCollections = Object.values(collectionMap)
+  //         .map((collection: any) => ({
+  //           collectionId: collection.collectionId,
+  //           totalSales: collection.totalSales,
+  //           totalVolume: collection.recentSales.reduce(
+  //             (sum: number, sale: any) => sum + Number(sale.price),
+  //             0
+  //           ),
+  //           lastSale: collection.lastSale,
+  //         }))
+  //         .sort((a, b) => b.totalVolume - a.totalVolume)
+  //         .slice(0, 5);
 
-        // Fetch metadata for each collection
-        for (const collection of sortedCollections) {
-          try {
-            const collectionResponse = await axios.get(
-              `https://mainnet-idx.nautilus.sh/nft-indexer/v1/collections?contractId=${collection.collectionId}`
-            );
-            if (collectionResponse.data.collections?.[0]) {
-              collection.metadata = collectionResponse.data.collections[0];
-            }
-          } catch (error) {
-            console.error(
-              `Error fetching collection ${collection.collectionId} metadata:`,
-              error
-            );
-          }
-        }
+  //       // Fetch metadata for each collection
+  //       for (const collection of sortedCollections) {
+  //         try {
+  //           const collectionResponse = await axios.get(
+  //             `https://mainnet-idx.nautilus.sh/nft-indexer/v1/collections?contractId=${collection.collectionId}`
+  //           );
+  //           if (collectionResponse.data.collections?.[0]) {
+  //             collection.metadata = collectionResponse.data.collections[0];
+  //           }
+  //         } catch (error) {
+  //           console.error(
+  //             `Error fetching collection ${collection.collectionId} metadata:`,
+  //             error
+  //           );
+  //         }
+  //       }
 
-        setTrendingCollections(sortedCollections);
-      } catch (error) {
-        console.error("Error fetching trending collections:", error);
-      } finally {
-        setIsLoadingTrendingCollections(false);
-      }
-    };
+  //       setTrendingCollections(sortedCollections);
+  //     } catch (error) {
+  //       console.error("Error fetching trending collections:", error);
+  //     } finally {
+  //       setIsLoadingTrendingCollections(false);
+  //     }
+  //   };
 
-    fetchTrendingCollections();
-  }, []);
+  //   fetchTrendingCollections();
+  // }, []);
 
   // Add useProjects hook
   const { data: projects } = useProjects();
@@ -1381,6 +1514,20 @@ export const Home: React.FC = () => {
     return num.toString();
   };
 
+  // 2. Add loading states for better UX
+  const [isLoadingCollectionInfo, setIsLoadingCollectionInfo] = useState(true);
+
+  // Add error boundaries and fallback UI
+  const [error, setError] = useState<Error | null>(null);
+
+  // Add error handling in data fetching
+  try {
+    // ... fetch data
+  } catch (err) {
+    setError(err as Error);
+    // Show user-friendly error message
+  }
+
   return (
     <>
       {!isLoading ? (
@@ -1418,46 +1565,20 @@ export const Home: React.FC = () => {
                 $isDarkTheme={isDarkTheme}
                 variant="contained"
                 component={Link}
-                to="/collection"
+                to="/offers"
                 className="external-link"
               >
-                Collections
+                Offers
               </HeroButton>
               {/*<HeroButton
                 $isDarkTheme={isDarkTheme}
                 variant="contained"
                 component={Link}
-                to="/nft-games"
+                to="/collection"
                 className="external-link"
               >
-                NFT Games
+                Collections
               </HeroButton>*/}
-              {/*
-              <HeroButton
-                $isDarkTheme={isDarkTheme}
-                variant="outlined"
-                component="a"
-                href="https://highforge.io/launch/new/projectType"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  backgroundColor: "transparent !important",
-                  border: `2px solid ${
-                    isDarkTheme ? "#fff" : "#93f"
-                  } !important`,
-                  color: `${isDarkTheme ? "#fff" : "#93f"} !important`,
-                  "&:hover": {
-                    backgroundColor: `${
-                      isDarkTheme
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(153, 51, 255, 0.1)"
-                    } !important`,
-                  },
-                }}
-              >
-                Create NFT
-              </HeroButton>
-              */}
             </Box>
 
             {/* Add Stats Section */}
@@ -1527,6 +1648,95 @@ export const Home: React.FC = () => {
               </StatItem>
             </StatsContainer>*/}
           </HeroSection>
+
+          <FeaturedSection>
+            <FeaturedContainer>
+              <FeaturedCard
+                $isDarkTheme={isDarkTheme}
+                onClick={() => window.open("/#/nft-drips", "_blank")}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 600,
+                    color: isDarkTheme ? "#fff" : "#000",
+                    mb: 2,
+                    fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  }}
+                >
+                  NFT Drips
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: isDarkTheme
+                      ? "rgba(255, 255, 255, 0.7)"
+                      : "rgba(0, 0, 0, 0.7)",
+                  }}
+                >
+                  Discover and track NFT collections with automated weekly
+                  distributions
+                </Typography>
+              </FeaturedCard>
+
+              <FeaturedCard
+                $isDarkTheme={isDarkTheme}
+                onClick={() => window.open("/#/staking", "_blank")}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 600,
+                    color: isDarkTheme ? "#fff" : "#000",
+                    mb: 2,
+                    fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  }}
+                >
+                  Staking Market
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: isDarkTheme
+                      ? "rgba(255, 255, 255, 0.7)"
+                      : "rgba(0, 0, 0, 0.7)",
+                  }}
+                >
+                  Buy and sell tokenized staking contracts and manage your
+                  positions
+                </Typography>
+              </FeaturedCard>
+
+              <FeaturedCard
+                $isDarkTheme={isDarkTheme}
+                onClick={() => window.open("/#/community-chest", "_blank")}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 600,
+                    color: isDarkTheme ? "#fff" : "#000",
+                    mb: 2,
+                    fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  }}
+                >
+                  Wrapped Voi
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: isDarkTheme
+                      ? "rgba(255, 255, 255, 0.7)"
+                      : "rgba(0, 0, 0, 0.7)",
+                  }}
+                >
+                  Wrap your VOI tokens to use them in DeFi applications and earn
+                  rewards
+                </Typography>
+              </FeaturedCard>
+            </FeaturedContainer>
+          </FeaturedSection>
+
           <Layout>
             {/*<StyledTabs
             value={tabValue}
@@ -1538,147 +1748,216 @@ export const Home: React.FC = () => {
           </StyledTabs>*/}
 
             {/*<TabPanel value={tabValue} index={0}>*/}
-            <Box sx={{ mb: 3 }}>
-              <Typography
-                variant="h4"
+            <Box
+              sx={{
+                mb: 3,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <ActivityTitle $isDarkTheme={isDarkTheme}>
+                Top Collections
+              </ActivityTitle>
+
+              <HeroButton
+                $isDarkTheme={isDarkTheme}
+                variant="outlined"
+                component={Link}
+                to="/collection"
                 sx={{
-                  fontWeight: 600,
-                  color: isDarkTheme ? "#fff" : "#000",
-                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  backgroundColor: "transparent !important",
+                  border: `2px solid ${
+                    isDarkTheme ? "#fff" : "#93f"
+                  } !important`,
+                  color: `${isDarkTheme ? "#fff" : "#93f"} !important`,
+                  height: "fit-content",
+                  "&:hover": {
+                    backgroundColor: `${
+                      isDarkTheme
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(153, 51, 255, 0.1)"
+                    } !important`,
+                  },
                 }}
               >
-                Featured Collections
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  mt: 1,
-                  color: isDarkTheme
-                    ? "rgba(255, 255, 255, 0.7)"
-                    : "rgba(0, 0, 0, 0.7)",
-                  fontFamily: '"Plus Jakarta Sans", sans-serif',
-                }}
-              >
-                Explore the most popular NFT collections on Voi Network, ranked
-                by all-time volume
-              </Typography>
+                View More
+              </HeroButton>
             </Box>
             {isLoadingTopCollections ? (
-              <div className="w-full">
-                <Skeleton
-                  variant="rectangular"
-                  height={400}
-                  sx={{ borderRadius: 2 }}
-                />
-              </div>
+              <CollectionGrid>
+                {[1, 2, 3, 4].map((i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      display: "flex",
+                      gap: 1.5,
+                      p: 1.5,
+                      borderRadius: 1.5,
+                      border: "1px solid",
+                      borderColor: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.1)",
+                    }}
+                  >
+                    <Skeleton
+                      variant="rectangular"
+                      width={80}
+                      height={80}
+                      sx={{ borderRadius: 1.5 }}
+                    />
+                    <Box sx={{ flex: 1 }}>
+                      <Skeleton
+                        variant="text"
+                        width="80%"
+                        height={24}
+                        sx={{ mb: 0.5 }}
+                      />
+                      <Grid container spacing={1}>
+                        <Grid item xs={6}>
+                          <Skeleton variant="text" width={50} height={16} />
+                          <Skeleton variant="text" width={30} height={20} />
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Skeleton variant="text" width={50} height={16} />
+                          <Skeleton variant="text" width={30} height={20} />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </Box>
+                ))}
+              </CollectionGrid>
             ) : (
-              <Swiper
-                modules={[Navigation, Pagination]}
-                spaceBetween={30}
-                slidesPerView={3}
-                centeredSlides={true}
-                loop={true}
-                navigation
-                pagination={{ clickable: true }}
-                autoplay={false}
-                className="w-full mb-12"
-                style={{
-                  borderRadius: "16px",
-                  height: "400px",
-                }}
-                breakpoints={{
-                  // when window width is >= 320px
-                  320: {
-                    slidesPerView: 1,
-                    spaceBetween: 20,
-                  },
-                  // when window width is >= 640px
-                  640: {
-                    slidesPerView: 2,
-                    spaceBetween: 30,
-                  },
-                  // when window width is >= 1024px
-                  1024: {
-                    slidesPerView: 3,
-                    spaceBetween: 30,
-                  },
-                }}
-              >
-                {topCollections.map((collection) => {
+              <CollectionGrid>
+                {topCollections.map((collection, index) => {
                   const metadata = collection.metadata?.firstToken?.metadata
                     ? JSON.parse(collection.metadata.firstToken.metadata)
                     : null;
 
                   return (
-                    <SwiperSlide key={collection.collectionId}>
-                      {({ isActive, isNext, isPrev }) => (
-                        <div
-                          className="relative w-full h-full cursor-pointer transition-all duration-300"
-                          onClick={() =>
-                            navigate(`/collection/${collection.collectionId}`)
+                    <CollectionCard
+                      key={collection.collectionId}
+                      $isDarkTheme={isDarkTheme}
+                      onClick={() => {
+                        scrollToTop();
+                        navigate(`/collection/${collection.collectionId}`);
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 80,
+                          height: 80,
+                          flexShrink: 0,
+                          borderRadius: "12px",
+                          overflow: "hidden",
+                          position: "relative",
+                        }}
+                      >
+                        {/* Add className to the RankingOverlay */}
+                        <RankingOverlay
+                          theme={{ isDarkTheme }}
+                          className="ranking-overlay"
+                        >
+                          {index + 1}
+                        </RankingOverlay>
+
+                        <img
+                          src={
+                            metadata?.image
+                              ? metadata.image.replace(
+                                  "ipfs://",
+                                  "https://ipfs.io/ipfs/"
+                                )
+                              : "/placeholder.png"
+                          }
+                          alt={
+                            metadata?.name ||
+                            `Collection #${collection.collectionId}`
                           }
                           style={{
-                            filter: isActive ? "none" : "blur(2px)",
-                            transform: isActive
-                              ? "scale(1.05)"
-                              : isNext || isPrev
-                              ? "scale(0.9)"
-                              : "scale(0.8)",
-                            opacity: isActive
-                              ? 1
-                              : isNext || isPrev
-                              ? 0.7
-                              : 0.5,
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                          onError={(
+                            e: React.SyntheticEvent<HTMLImageElement>
+                          ) => {
+                            e.currentTarget.src = "/placeholder.png";
+                          }}
+                        />
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="subtitle1" // Changed from h6
+                          sx={{
+                            fontWeight: 600,
+                            mb: 0.5, // Reduced from 1
+                            color: isDarkTheme ? "#fff" : "#000",
+                            fontFamily: '"Plus Jakarta Sans", sans-serif',
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            fontSize: "0.9rem", // Added specific size
                           }}
                         >
-                          <img
-                            src={
-                              metadata?.image
-                                ? metadata.image.replace(
-                                    "ipfs://",
-                                    "https://ipfs.io/ipfs/"
-                                  )
-                                : metadata?.image
-                            }
-                            alt={
-                              metadata?.name ||
-                              `Collection #${collection.collectionId}`
-                            }
-                            className="w-full h-full object-cover rounded-lg"
-                            onError={(
-                              e: React.SyntheticEvent<HTMLImageElement>
-                            ) => {
-                              e.currentTarget.src = "/placeholder.png";
-                            }}
-                          />
-                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 rounded-b-lg">
-                            <h3 className="text-xl font-bold mb-2">
-                              {metadata?.name?.replace(/\s*#\d+$/, "") ||
-                                `Collection #${collection.collectionId}`}
-                            </h3>
-                            <div className="flex justify-between">
-                              <div>
-                                <p className="text-sm opacity-80">
-                                  Total Sales
-                                </p>
-                                <p className="font-bold">
-                                  {collection.totalSales}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm opacity-80">Volume</p>
-                                <p className="font-bold">
-                                  {formatPrice(collection.totalVolume)} VOI
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </SwiperSlide>
+                          {metadata?.name?.replace(/\s*#\d+$/, "") ||
+                            `Collection #${collection.collectionId}`}
+                        </Typography>
+                        <Grid container spacing={1}>
+                          <Grid item xs={6}>
+                            <Typography
+                              variant="caption" // Changed from body2
+                              sx={{
+                                color: isDarkTheme
+                                  ? "rgba(255,255,255,0.7)"
+                                  : "rgba(0,0,0,0.7)",
+                                fontSize: "0.75rem",
+                                display: "block",
+                              }}
+                            >
+                              Total Sales
+                            </Typography>
+                            <Typography
+                              variant="body2" // Changed from body1
+                              sx={{
+                                fontWeight: 600,
+                                color: isDarkTheme ? "#fff" : "#000",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {collection.totalSales}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography
+                              variant="caption" // Changed from body2
+                              sx={{
+                                color: isDarkTheme
+                                  ? "rgba(255,255,255,0.7)"
+                                  : "rgba(0,0,0,0.7)",
+                                fontSize: "0.75rem",
+                                display: "block",
+                              }}
+                            >
+                              Volume
+                            </Typography>
+                            <Typography
+                              variant="body2" // Changed from body1
+                              sx={{
+                                fontWeight: 600,
+                                color: isDarkTheme ? "#fff" : "#000",
+                                fontSize: "0.875rem",
+                              }}
+                            >
+                              {formatPrice(collection.totalVolume)} VOI
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    </CollectionCard>
                   );
                 })}
-              </Swiper>
+              </CollectionGrid>
             )}
             {/*</TabPanel>*/}
 
@@ -1762,7 +2041,6 @@ export const Home: React.FC = () => {
                                   "https://ipfs.io/ipfs/"
                                 )
                               : metadata.image
-                            : ""
                         }
                         alt={metadata?.name || `Token #${listing.tokenId}`}
                         className="w-full h-full object-cover rounded-lg"
@@ -1921,9 +2199,33 @@ export const Home: React.FC = () => {
 
             {/* Activity */}
             <ActivitySection>
-              <ActivityTitle $isDarkTheme={isDarkTheme}>
-                Recent Activity
-              </ActivityTitle>
+              <ActivityHeader>
+                <ActivityTitle $isDarkTheme={isDarkTheme}>
+                  Recent Activity
+                </ActivityTitle>
+                <HeroButton
+                  $isDarkTheme={isDarkTheme}
+                  variant="outlined"
+                  component={Link}
+                  to="/sales-activity"
+                  sx={{
+                    backgroundColor: "transparent !important",
+                    border: `2px solid ${
+                      isDarkTheme ? "#fff" : "#93f"
+                    } !important`,
+                    color: `${isDarkTheme ? "#fff" : "#93f"} !important`,
+                    "&:hover": {
+                      backgroundColor: `${
+                        isDarkTheme
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(153, 51, 255, 0.1)"
+                      } !important`,
+                    },
+                  }}
+                >
+                  View More
+                </HeroButton>
+              </ActivityHeader>
               <StyledTableContainer $isDarkTheme={isDarkTheme}>
                 <Table>
                   <TableHead>
@@ -1947,7 +2249,7 @@ export const Home: React.FC = () => {
                       </TableRow>
                     ) : (
                       paginatedSales.map((sale) => (
-                        <ActivityTableRow
+                        <MemoizedActivityTableRow
                           key={sale.transactionId}
                           sale={sale}
                           isDarkTheme={isDarkTheme}

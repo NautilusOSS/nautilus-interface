@@ -19,6 +19,7 @@ import {
   CircularProgress,
   Switch,
   MenuItem,
+  Tooltip,
 } from "@mui/material";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -2265,6 +2266,25 @@ export const Collection: React.FC = () => {
             </div>
             <div className="stat-label">CEILING PRICE</div>
           </StatItem>
+          {getDrips.length > 0 && (
+            <StatItem $isDarkTheme={isDarkTheme}>
+              <div className="stat-value">
+                {Number(getDrips[0].dripAmount).toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 6
+                })} {getDrips[0].symbol}
+              </div>
+              <Tooltip 
+                title={getDrips[0].note || "Rewards earned per NFT per day"}
+                placement="top"
+                arrow
+              >
+                <div className="stat-label" style={{ cursor: 'help' }}>
+                  DRIPS
+                </div>
+              </Tooltip>
+            </StatItem>
+          )}
         </StatsHighlight>
       </HeroSection>
       <Layout>

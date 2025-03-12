@@ -25,6 +25,8 @@ import CommunityChest from "./pages/CommunityChest";
 import EarlyAccessTokenSender from "./pages/EarlyAccessTokenSender";
 import SalesActivity from "./pages/SalesActivity";
 import AccountOffers from './pages/AccountOffers';
+import NFTDripsPage from './pages/NFTDrips';
+import { Offers } from "./pages/Offers";
 
 const BackgroundLayer = styled.div`
   width: 100%;
@@ -89,6 +91,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/eat-wizard" element={<EarlyAccessTokenSender />} />
           <Route path="/sales-activity" element={<SalesActivity />} />
           <Route path="/account/:address/offers" element={<AccountOffers />} />
+          <Route path="/nft-drips" element={<NFTDripsPage />} />
+          <Route path="/offers" element={<Offers />} />
         </Routes>
       </Router>
     </AppContainer>

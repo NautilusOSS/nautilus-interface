@@ -1,6 +1,6 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { useStakingContract } from "@/hooks/staking";
-import { Box, Typography, Skeleton } from "@mui/material";
+import { Box, Typography, Skeleton, IconButton, Snackbar } from "@mui/material";
 import { formatter } from "@/utils/number";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
@@ -9,12 +9,16 @@ import { AIRDROP_FUNDING } from "@/contants/staking";
 import moment from "moment";
 import { useAccountBalance } from "@/hooks/useAccountBalance";
 import algosdk from "algosdk";
+import { compactAddress } from "@/utils/mp";
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 interface StakingInformationProps {
   contractId: number;
 }
 
 const StakingInformation: FC<StakingInformationProps> = ({ contractId }) => {
+  const [showCopyToast, setShowCopyToast] = useState(false);
+  const [copyMessage, setCopyMessage] = useState('');
   const { isDarkTheme } = useSelector((state: RootState) => state.theme);
   const { data: account, isLoading: loadingAccountData } = useStakingContract(
     contractId,
@@ -55,6 +59,12 @@ const StakingInformation: FC<StakingInformationProps> = ({ contractId }) => {
     return balance ? balance / 1e6 : account.global_total / 1e6;
   };
 
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setShowCopyToast(true);
+    setCopyMessage(`${label} copied to clipboard`);
+  };
+
   return !loadingAccountData ? (
     <Box>
       <Typography variant="h6">Account Information</Typography>
@@ -64,7 +74,7 @@ const StakingInformation: FC<StakingInformationProps> = ({ contractId }) => {
         {account.global_parent_id === 400350 ? "Staking" : "Airdrop"}
       </Typography>
       <Typography variant="body2">
-        <strong>Account ID:</strong>
+        <strong>Application ID:</strong>
         {` `}
         <a
           style={{ color: "#93F" }}
@@ -74,6 +84,32 @@ const StakingInformation: FC<StakingInformationProps> = ({ contractId }) => {
         >
           {account.contractId}
         </a>
+        <IconButton
+          onClick={() => handleCopy(account.contractId.toString(), 'Application ID')}
+          size="small"
+          sx={{ ml: 0.5, color: isDarkTheme ? '#fff' : '#000', padding: '2px' }}
+        >
+          <ContentCopyIcon sx={{ fontSize: '16px' }} />
+        </IconButton>
+      </Typography>
+      <Typography variant="body2">
+        <strong>Application Address:</strong>
+        {` `}
+        <a
+          style={{ color: "#93F" }}
+          target="_blank"
+          rel="noreferrer"
+          href={`https://explorer.voi.network/explorer/account/${account.contractAddress}/transactions`}
+        >
+          {compactAddress(account.contractAddress)}
+        </a>
+        <IconButton
+          onClick={() => handleCopy(account.contractAddress, 'Application Address')}
+          size="small"
+          sx={{ ml: 0.5, color: isDarkTheme ? '#fff' : '#000', padding: '2px' }}
+        >
+          <ContentCopyIcon sx={{ fontSize: '16px' }} />
+        </IconButton>
       </Typography>
       <Typography variant="body2">
         <strong>Lockup:</strong>{" "}
@@ -152,9 +188,15 @@ const StakingInformation: FC<StakingInformationProps> = ({ contractId }) => {
           rel="noreferrer"
           href={`https://explorer.voi.network/explorer/account/${account.global_delegate}`}
         >
-          {account.global_delegate.slice(0, 10)}...
-          {account.global_delegate.slice(-10)}
+          {compactAddress(account.global_delegate)}
         </a>
+        <IconButton
+          onClick={() => handleCopy(account.global_delegate, 'Delegate Address')}
+          size="small"
+          sx={{ ml: 0.5, color: isDarkTheme ? '#fff' : '#000', padding: '2px' }}
+        >
+          <ContentCopyIcon sx={{ fontSize: '16px' }} />
+        </IconButton>
       </Typography>
       {account?.withdrawable ? (
         <Typography variant="body2">
@@ -163,6 +205,13 @@ const StakingInformation: FC<StakingInformationProps> = ({ contractId }) => {
           {formatter.format(Number(account?.withdrawable || 0) / 1e6)} VOI
         </Typography>
       ) : null}
+      <Snackbar
+        open={showCopyToast}
+        autoHideDuration={2000}
+        onClose={() => setShowCopyToast(false)}
+        message={copyMessage}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   ) : (
     <Typography

@@ -93,6 +93,14 @@ const RewardDistributionModal: React.FC<RewardDistributionModalProps> = ({
     distributions[selectedContract as keyof typeof distributions] ||
     distributions[664258];
 
+  const pieData = [
+    { name: 'Holders', value: currentDistribution.holders },
+    { name: 'Team', value: currentDistribution.team },
+    { name: 'Treasury', value: currentDistribution.treasury },
+    { name: 'Node Operator', value: currentDistribution.nodeOperator },
+    { name: 'Weekly Draw Winner', value: currentDistribution.weeklyDrawWinner },
+  ].filter(segment => segment.value > 0);
+
   return (
     <StyledDialog
       open={open}

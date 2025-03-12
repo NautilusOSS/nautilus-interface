@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   Avatar,
@@ -46,6 +46,8 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import DiamondIcon from "@mui/icons-material/Diamond";
 import { useName } from "@/hooks/useName";
 import PersonIcon from "@mui/icons-material/Person";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import useNSFW from "@/hooks/useNSFW";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -263,8 +265,8 @@ const NFTCardWrapper = styled.div`
   }
 `;
 
-// Add this styled component for list view
-const ListViewWrapper = styled.div<{ isDark?: boolean }>`
+// Update the ListViewWrapper styled component
+const ListViewWrapper = styled.div<{ isDark?: boolean; isNSFW?: boolean }>`
   display: flex;
   width: 100%;
   padding: 12px 16px;
@@ -318,6 +320,47 @@ const ListViewWrapper = styled.div<{ isDark?: boolean }>`
     .chip {
       background: #2b2b2b;
       color: #fff;
+    }
+  `}
+
+  ${(props) =>
+    props.isNSFW &&
+    `
+    .list-image {
+      filter: blur(8px);
+      transition: filter 0.6s ease;
+    }
+
+    &:hover .list-image {
+      filter: none;
+    }
+
+    .nsfw-overlay {
+      position: absolute;
+      left: 16px;
+      top: 12px;
+      width: 64px;
+      height: 64px;
+      border-radius: 10px;
+      background: rgba(0, 0, 255, 0.3);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(0, 0, 255, 0.4);
+      }
+
+      .eye-icon {
+        font-size: 20px;
+      }
     }
   `}
 `;
@@ -643,6 +686,94 @@ const HighestOfferBadge = styled.div<{ isDark?: boolean }>`
   }
 `;
 
+// Update the NSFWOverlay styled component
+const NSFWOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 255, 0.3);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  z-index: 2;
+  cursor: pointer;
+  border-radius: 20px;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 0, 255, 0.4);
+
+    .eye-icon {
+      transform: scale(1.1);
+    }
+  }
+
+  .eye-icon {
+    font-size: 32px;
+    opacity: 0.9;
+    transition: transform 0.2s ease;
+  }
+`;
+
+// Update the PixelatedImage styled component
+const PixelatedImage = styled(Box)<{ showNSFW: boolean; isNSFW: boolean }>`
+  image-rendering: pixelated;
+  transform: scale(0.1);
+  transform-origin: 0 0;
+  width: 1000%;
+  height: 1000%;
+  filter: ${(props) =>
+    props.isNSFW && !props.showNSFW
+      ? "blur(64px) brightness(0.8) contrast(0.9)"
+      : "none"};
+  transition: filter 0.6s ease;
+
+  ${(props) =>
+    props.isNSFW &&
+    !props.showNSFW &&
+    `
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        45deg,
+        #ff0000,
+        #ff7f00,
+        #ffff00,
+        #00ff00,
+        #0000ff,
+        #4b0082,
+        #8f00ff
+      );
+      background-size: 400% 400%;
+      mix-blend-mode: overlay;
+      opacity: 0.3;
+      animation: rainbow 10s ease infinite;
+      z-index: 1;
+    }
+
+    @keyframes rainbow {
+      0% { background-position: 0% 50% }
+      50% { background-position: 100% 50% }
+      100% { background-position: 0% 50% }
+    }
+  `}
+`;
+
 interface NFTCardProps {
   token: ListingTokenI | NFTIndexerTokenI;
   listing?: NFTIndexerListingI;
@@ -674,6 +805,10 @@ const CartNftCard: React.FC<NFTCardProps> = ({
   showDrip = false,
   isOwned = false,
 }) => {
+  console.log({ token });
+  const { isNSFW: isNSFWCollection } = useNSFW();
+  const isNSFW = isNSFWCollection(Number(token.contractId));
+
   const { drips, loading, error } = useNFTDrips();
   const { activeAccount, signTransactions } = useWallet();
 
@@ -1152,6 +1287,21 @@ const CartNftCard: React.FC<NFTCardProps> = ({
   // Add this debug log right before the render
   // console.log("Rarity:", getRarity, rarity);
 
+  const [showNSFWContent, setShowNSFWContent] = useState(false);
+
+  // Add useEffect to handle auto-hide timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showNSFWContent) {
+      timer = setTimeout(() => {
+        setShowNSFWContent(false);
+      }, 5_000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showNSFWContent]);
+
   if (
     displayName.indexOf("undefined") !== -1 ||
     displayName === "enVoi name .voi"
@@ -1229,12 +1379,23 @@ const CartNftCard: React.FC<NFTCardProps> = ({
     );
   }
 
-  // Add list view condition here
+  // Update the list view condition
   if (viewMode === "list") {
     return (
       <>
-        <ListViewWrapper isDark={isDarkTheme} onClick={onClick} sx={sx}>
+        <ListViewWrapper isDark={isDarkTheme} onClick={onClick} sx={sx} isNSFW={isNSFW}>
           <img className="list-image" src={url} alt={displayName} />
+          {isNSFW && (
+            <div 
+              className="nsfw-overlay"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowNSFWContent(true);
+              }}
+            >
+              <VisibilityIcon className="eye-icon" />
+            </div>
+          )}
           <div className="list-content">
             <div className="list-header">
               <CollectionName isDark={isDarkTheme} inList>
@@ -1395,7 +1556,9 @@ const CartNftCard: React.FC<NFTCardProps> = ({
           }}
           onClick={onClick}
         >
-          <Box
+          <PixelatedImage
+            showNSFW={showNSFWContent}
+            isNSFW={isNSFW}
             sx={{
               position: "absolute",
               top: 0,
@@ -1408,6 +1571,21 @@ const CartNftCard: React.FC<NFTCardProps> = ({
               zIndex: 0,
             }}
           />
+          {isNSFW && !showNSFWContent && (
+            <NSFWOverlay
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowNSFWContent(true);
+              }}
+            >
+              <VisibilityIcon className="eye-icon" />
+              <div>
+                NSFW Content
+                <br />
+                Click to reveal
+              </div>
+            </NSFWOverlay>
+          )}
           {!hideOverlay && (
             <>
               <Box

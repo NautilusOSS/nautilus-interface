@@ -1303,6 +1303,7 @@ export const Listings: React.FC = () => {
                   }}
                 >
                   <CartNftCard
+                    isNSFW={true}
                     token={listedToken}
                     listing={el}
                     viewMode={viewMode}

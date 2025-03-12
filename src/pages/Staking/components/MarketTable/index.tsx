@@ -166,16 +166,14 @@ const MarketTable: React.FC<MarketTableProps> = ({ marketData }) => {
         <Table>
           <TableHead>
             <TableRow style={headRowStyle}>
-              <TableCell style={headCellStyle} align="right">
-                Account Id
-              </TableCell>
+              {/*<TableCell style={headCellStyle} align="right">
+                Token
+              </TableCell>*/}
               <TableCell style={headCellStyle} align="center">
-                Account Address
+                Account
               </TableCell>
               <TableCell style={headCellStyle} align="right">
-                <SortableHeader column="totalStaked">
-                  Total Staked
-                </SortableHeader>
+                <SortableHeader column="totalStaked">Value</SortableHeader>
               </TableCell>
               <TableCell style={headCellStyle} align="right">
                 <SortableHeader column="lockup">Lockup</SortableHeader>

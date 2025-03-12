@@ -25,6 +25,10 @@ import { useName } from "@/hooks/useName";
 import { useEnvoiResolver } from "@/hooks/useEnvoiResolver";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import OfferCard from "@/components/OfferCard";
+import { useWallet } from "@txnlab/use-wallet-react";
+import { getAlgorandClients } from "@/wallets";
+import { abi, CONTRACT } from "ulujs";
+import algosdk from "algosdk";
 
 const ProfileSection = styled(Paper)<{ $isDark?: boolean }>`
   &.MuiPaper-root {
@@ -200,6 +204,8 @@ const AccountOffers: React.FC = () => {
     averageOffer: 0,
   });
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 600);
+  const [approval, setApproval] = useState<any>(null);
+  const { activeAccount } = useWallet();
 
   useEffect(() => {
     if (resolver && address && !profile) {
@@ -254,6 +260,34 @@ const AccountOffers: React.FC = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    const fetchApproval = async () => {
+      if (activeAccount && address && activeAccount.address === address) {
+        const { algodClient } = getAlgorandClients();
+        const ctcInfoNV = 8324600; // Nautilus Voi NV
+        const ctcInfoMP213 = 8329112; // mp213 offers
+        const ci = new CONTRACT(
+          ctcInfoNV, // ctcInfoNV
+          algodClient,
+          undefined,
+          abi.nt200,
+          { addr: address, sk: new Uint8Array(0) }
+        );
+        const arc200_allowanceR = await ci.arc200_allowance(
+          address,
+          algosdk.getApplicationAddress(ctcInfoMP213)
+        );
+        console.log({ arc200_allowanceR });
+        const arc200_allowance = arc200_allowanceR.success
+          ? arc200_allowanceR.returnValue
+          : BigInt(0);
+        setApproval(arc200_allowance);
+      }
+    };
+
+    fetchApproval();
+  }, [activeAccount, address]);
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(address || "");
@@ -454,6 +488,18 @@ const AccountOffers: React.FC = () => {
                 </SecondaryText>
               </StatItem>
             </Grid>
+            {/*<Grid item xs={12} sm={3}>
+              <StatItem>
+                <StyledTypography variant="h6" $isDark={isDarkTheme}>
+                  {approval !== null
+                    ? `${formatAmount(Number(approval))} VOI`
+                    : "-"}
+                </StyledTypography>
+                <SecondaryText $isDark={isDarkTheme}>
+                  Spending Approval
+                </SecondaryText>
+              </StatItem>
+            </Grid>*/}
           </StatsGrid>
         </StatsCard>
 

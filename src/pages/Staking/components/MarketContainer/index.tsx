@@ -80,7 +80,8 @@ const MarketContainer: React.FC = () => {
           Staking Market
         </Typography>
         <Typography variant="body1">
-          Choose a staking contract to participate in the VOI network.
+          Purchase staking contracts to run on your VOI node and participate in
+          the network or use in node as a service.
         </Typography>
       </Box>
       <MarketTable

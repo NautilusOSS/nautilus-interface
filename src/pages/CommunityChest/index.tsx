@@ -8,14 +8,13 @@ import {
   CircularProgress,
   useTheme,
   Link,
-  Tooltip,
   MenuItem,
   ImageList,
   ImageListItem,
   ImageListItemBar,
   Modal,
 } from "@mui/material";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import { toast } from "react-toastify";
 import Layout from "@/layouts/Default";
 import BigNumber from "bignumber.js";
@@ -39,6 +38,9 @@ import { useSearchParams } from "react-router-dom";
 import SwapModal from "./components/SwapModal";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { useCopyToClipboard } from "usehooks-ts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import LaunchIcon from "@mui/icons-material/Launch";
+import CloseIcon from "@mui/icons-material/Close";
 
 const findCommonRatio = (a: number, totalSum: number, n: number) => {
   // Using numerical method (binary search) to find r
@@ -516,203 +518,285 @@ interface ContractOption {
   name: string;
   description: string;
   iconPath: string;
+  tokenomics: {
+    holder: number;
+    lpHolder: number;
+    treasury: number;
+    team: number;
+    node: number;
+    other: number;
+    drawing: number;
+    faucet: number;
+    future: number; // Added future field
+  };
+  tokenomicsNote?: string;
+  url?: string;
 }
+
+// Add color mapping for tokenomics properties
+const TOKENOMICS_COLORS = {
+  holder: "#4CAF50", // Green for holders
+  lpHolder: "#9C27B0", // Purple for LP holders
+  treasury: "#FFC107", // Yellow for treasury
+  team: "#9C27B0", // Purple for team
+  node: "#FF5722", // Orange for node
+  other: "#808080", // Grey for other
+  drawing: "#E91E63", // Pink for drawing/rewards
+  development: "#00BCD4", // Cyan for development
+  faucet: "#00FFFF", // Changed to aqua for faucet
+  future: "#607D8B", // Blue-grey for future
+};
+
+// Update the baseTokenomics object to ensure all properties are included
+const baseTokenomics: ContractOption["tokenomics"] = {
+  holder: 0,
+  lpHolder: 0,
+  treasury: 0,
+  team: 0,
+  node: 0,
+  other: 0,
+  drawing: 0,
+  faucet: 0,
+  future: 0, // Added future field
+};
+
+// Update the defaultTokenomics to include all properties
+const defaultTokenomics: ContractOption["tokenomics"] = {
+  ...baseTokenomics,
+  other: 1, // Default to 100% other if no specific distribution
+};
+
+// Helper function to format tokenomics label - add faucet case
+const formatTokenomicsLabel = (key: string): string => {
+  switch (key) {
+    case "holder":
+      return "Holders";
+    case "lpHolder":
+      return "LP Holders";
+    case "treasury":
+      return "Treasury";
+    case "team":
+      return "Team";
+    case "node":
+      return "Node";
+    case "other":
+      return "Other";
+    case "drawing":
+      return "Drawing";
+    case "faucet":
+      return "Faucet";
+    case "future":
+      return "Future Use";
+    default:
+      return key;
+  }
+};
+
+// Add this function to prepare data for the pie chart
+const prepareTokenomicsData = (tokenomics: ContractOption["tokenomics"]) => {
+  const entries = Object.entries(tokenomics)
+    .filter(([_, value]) => value > 0) // Only include non-zero values
+    .map(([key, value]) => ({
+      name: formatTokenomicsLabel(key),
+      value: value * 100, // Convert to percentage
+      color:
+        TOKENOMICS_COLORS[key as keyof typeof TOKENOMICS_COLORS] || "#808080",
+    }));
+
+  // If there's only one entry, ensure it gets a proper color
+  if (entries.length === 1) {
+    const [entry] = entries;
+    // Find the key that has value 1
+    const fullPropertyKey = Object.entries(tokenomics).find(
+      ([_, val]) => val === 1
+    )?.[0];
+    if (fullPropertyKey) {
+      entry.color =
+        TOKENOMICS_COLORS[fullPropertyKey as keyof typeof TOKENOMICS_COLORS];
+      console.log("Setting color for", fullPropertyKey, "to", entry.color); // Debug log
+    }
+  }
+
+  return entries;
+};
 
 const CONTRACT_OPTIONS: ContractOption[] = [
   {
     id: 664258,
     name: "Community Chest Voi (CCV)",
     description:
-      "The original Community Chest token with weekly draws and holder distributions.",
+      "Community Chest Voi is the original Community Chest token with weekly draws and holder distributions.",
     iconPath: "M3 3h18v18H3V3m15 15V6H6v12h12Z",
+    tokenomics: {
+      holder: 0.35,
+      drawing: 0.5,
+      lpHolder: 0,
+      treasury: 0,
+      team: 0,
+      node: 0.15,
+      other: 0,
+      faucet: 0,
+      future: 0,
+    },
+    tokenomicsNote:
+      "Drawings and holder distributions are held every week on a random day of the week.",
+  },
+  {
+    id: 390001,
+    name: "Wrapped VOI (wVOI)",
+    description:
+      "Wrapped VOI is used for LP incentives on HumbleSwap tied to block rewards. It represents all the VOI held in liquidity pools on HumbleSwap. There is no incentive to hold wVOI, it is only used for LP incentives.",
+    iconPath:
+      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0.9999, // 100% to LP holders (using purple color)
+      treasury: 0,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0,
+    },
+    url: "https://voi.humble.sh/",
+  },
+  {
+    id: 770561,
+    name: "Fountain VOI (FV)",
+    description:
+      "Fountain VOI is a wrapped VOI token that allows holders to contribute to the Voi Fountain project. Voi Fountain provideds a faucet where anyone can claim VOI every 24 hours based on how much they have explored the ecosystem. Holders may increase claim amount by holding FV.",
+    iconPath:
+      "M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z...",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0.9999, // 100% to faucets
+      future: 0, // Added future field
+    },
+    url: "https://faucet.voirewards.com/",
   },
   {
     id: 913147,
     name: "NFT Voi (NFV)",
-    description:
-      "Weekly NFT prizes for holders. Stake VOI for a chance to win unique digital collectibles.",
-    iconPath:
-      "M19 19H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-7 3c-3.86 0-7 3.14-7 7s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7m0 12.5c-3.03 0-5.5-2.47-5.5-5.5s2.47-5.5 5.5-5.5 5.5 2.47 5.5 5.5-2.47 5.5-5.5 5.5",
-  },
-  {
-    id: 390001,
-    name: "wVOI",
-    description: "Wrapped VOI",
-    iconPath:
-      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
-  },
-  {
-    id: 770561,
-    name: "FV",
-    description: "Fountain VOI",
-    iconPath:
-      "M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zM12 20c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2z",
-  },
-  {
-    id: 828295,
-    name: "EV",
-    description: "En VOI",
-    iconPath:
-      "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0-6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 7c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4zm6 5H6v-.99c.2-.72 3.3-2.01 6-2.01s5.8 1.29 6 2v1z",
-  },
-  {
-    id: 888305,
-    name: "WV",
-    description: "Womp VOI",
-    iconPath:
-      "M4 2C2.9 2 2 2.9 2 4v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2H4zm0 2h16v16H4V4zm4 4h8v8H8V8zm0 4h10v2H7v-2z",
-  },
-  {
-    id: 8324600,
-    name: "Nautilus Voi (NV)",
-    description: "Support Nautilus development and ecosystem.",
-    iconPath: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
-  },
-  {
-    id: 917261,
-    name: "Arb Voi (ARV)",
-    description: "Arb Voi",
-    iconPath:
-      "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2h2V7h-4v2h2z",
+    description: "Weekly NFT prizes for holders...",
+    iconPath: "M19 19H5V5h14m0-2H5c-1.1...",
+    tokenomics: {
+      holder: 0.2,
+      drawing: 0.5,
+      lpHolder: 0,
+      treasury: 0.22,
+      team: 0,
+      node: 0.05,
+      other: 0.03,
+      faucet: 0,
+      future: 0,
+    },
+    tokenomicsNote:
+      "NFT draws are held every week on a random day of the week. The NFTs are chosen from the vault. Drawing allocation is used to purchase NFTs for the vault. Holders of GM Simpleton, Pixel Cups, and GN Voiagers recieve 1% of distribution, respectfully.",
   },
   {
     id: 8372092,
     name: "Liquid Voi (LV)",
-    description: "Liquid staking solution for VOI with automatic rewards distribution.",
-    iconPath: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2V8h-2v8z",
+    description:
+      "Liquid staking solution for VOI with automatic rewards distribution.",
+    iconPath:
+      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z...",
+    tokenomics: {
+      holder: 0.95, // 95% to holders
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0,
+      team: 0,
+      node: 0.05, // 5% to nodes
+      other: 0,
+      faucet: 0,
+      future: 0, // Added future field
+    },
+  },
+  // For tokens without specific tokenomics, use the defaultTokenomics
+  {
+    id: 828295,
+    name: "En VOI (EV)",
+    description:
+      "En VOI is the backbone of the enVoi Naming Service. EV represents staked VOI that secures name registrations and renewals in the enVoi ecosystem. While holding EV, you're contributing to the development of Voi's decentralized naming infrastructure.",
+    iconPath: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z...",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0.9999,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0, // Added future field
+    },
+    url: "https://envoi.sh/",
+  },
+  {
+    id: 888305,
+    name: "Womp VOI (WV)",
+    description:
+      "Womp VOI is the token that powers the WompCrew ecosystem. WV represents staked VOI in the WompCrew project, enabling users to participate in various WompCrew activities and support the growing WompCrew community.",
+    iconPath:
+      "M4 2C2.9 2 2 2.9 2 4v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2H4z...",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0.9999,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0, // Added future field
+    },
+  },
+  {
+    id: 917261,
+    name: "Arb Voi (ARV)",
+    description:
+      "Arb Voi is a token that supports future arbitrage opportunities within the Voi ecosystem. ARV represents staked VOI in the Arb Voi project, enabling users to participate in various Arb Voi activities and support the growing Arb Voi community.",
+    iconPath:
+      "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z...",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0.9999, // Added future field
+    },
+  },
+  // Nautilus Voi (NV)
+  {
+    id: 8324600,
+    name: "Nautilus Voi (NV)",
+    description:
+      "Nautilus VOI is a token that supports Nautilus development and ecosystem. NV represents staked VOI in the Nautilus project, enabling users to support the project by holding NV. In addition, it is used to for offers. If you have offers, cancel them instead of withdrawing NV directly to avoid losing your offers.",
+    iconPath: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0.9999,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0, // Added future field
+    },
   },
 ];
-
-// Update the RewardBadge styled component
-const RewardBadge = styled("span")<{
-  $isDarkTheme: boolean;
-  $variant?: string;
-}>`
-  background-color: ${(props) => {
-    if (props.$variant === "ecosystem") {
-      return props.$isDarkTheme ? "#2e7d32" : "#4caf50";
-    }
-    return props.$isDarkTheme ? "#1976d2" : "#90caf9";
-  }};
-  color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  margin-left: 8px;
-  font-weight: 500;
-  white-space: nowrap;
-
-  @media (max-width: 600px) {
-    font-size: 10px;
-    padding: 2px 6px;
-    margin-left: 4px;
-  }
-`;
-
-// Update the ContractSelect styled component
-const ContractSelect = styled(TextField)<{ $isDarkTheme: boolean }>`
-  margin-bottom: 24px;
-
-  .MuiOutlinedInput-root {
-    color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
-    background-color: ${(props) =>
-      props.$isDarkTheme ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.1)"};
-    border-radius: 8px;
-  }
-
-  .MuiOutlinedInput-notchedOutline {
-    border-color: ${(props) =>
-      props.$isDarkTheme ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)"};
-  }
-
-  &:hover .MuiOutlinedInput-notchedOutline {
-    border-color: ${(props) =>
-      props.$isDarkTheme ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.3)"};
-  }
-
-  .MuiSelect-icon {
-    color: ${(props) =>
-      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
-  }
-
-  // Responsive menu item styling
-  .MuiMenuItem-root {
-    padding: 16px;
-    border-bottom: 1px solid
-      ${(props) =>
-        props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    @media (max-width: 600px) {
-      padding: 12px;
-    }
-  }
-`;
-
-// Update ContractStats for responsiveness
-const ContractStats = styled(Box)`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 12px;
-
-  @media (max-width: 600px) {
-    gap: 8px;
-    margin-top: 8px;
-  }
-`;
-
-const StatBox = styled(Box)<{ $isDarkTheme: boolean }>`
-  text-align: center;
-  padding: 8px 4px;
-  border-radius: 4px;
-  background-color: ${(props) =>
-    props.$isDarkTheme ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.2)"};
-
-  .stat-value {
-    font-weight: 600;
-    color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    @media (max-width: 600px) {
-      font-size: 12px;
-    }
-  }
-
-  .stat-label {
-    font-size: 12px;
-    color: ${(props) =>
-      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    @media (max-width: 600px) {
-      font-size: 10px;
-    }
-  }
-`;
-
-// Add this styled component with other styled components
-const CautionBox = styled(Box)<{ $isDarkTheme: boolean }>`
-  background-color: ${(props) =>
-    props.$isDarkTheme ? "rgba(255, 152, 0, 0.1)" : "rgba(255, 152, 0, 0.05)"};
-  border: 1px solid
-    ${(props) =>
-      props.$isDarkTheme ? "rgba(255, 152, 0, 0.3)" : "rgba(255, 152, 0, 0.2)"};
-  border-radius: 8px;
-  padding: 16px;
-  margin: 24px 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
 
 const getContractInfo = (contractId: number) => {
   switch (contractId) {
@@ -755,12 +839,13 @@ const getContractInfo = (contractId: number) => {
     case 8324600:
       return {
         title: "Nautilus Voi (NV)",
-        iconPath: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+        iconPath: "M12 2L2 7l10 5 10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
       };
     case 8372092:
       return {
-        title: "Liquid Voi",
-        iconPath: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2V8h-2v8z",
+        title: "Liquid Voi (LV)",
+        iconPath:
+          "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2V8h-2v8z",
       };
     default:
       return {
@@ -929,11 +1014,11 @@ const StatItem = styled(Box)<{ $isDarkTheme: boolean }>`
 const formatLargeNumber = (value: string): string => {
   const num = parseFloat(value) / 1e6; // Convert to VOI units
   if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1)}M`;
+    return `${Math.floor(num / 1_000_000)}M`;
   } else if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(1)}k`;
+    return `${Math.floor(num / 1_000)}k`;
   }
-  return num.toFixed(1);
+  return Math.floor(num).toString();
 };
 
 // Add this styled component with other styled components
@@ -952,47 +1037,50 @@ const UserBalancesSection = styled(Box)<{ $isDarkTheme: boolean }>`
       props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
 `;
 
+// Create a common table style mixin
+const tableStyles = css<{ $isDarkTheme: boolean }>`
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th,
+  td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid
+      ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+    font-size: 0.875rem;
+  }
+
+  // Add this to ensure last row doesn't have a border if needed
+  tr:last-child td {
+    border-bottom: none;
+  }
+`;
+
+// Update the existing table styled components to use the mixin
 const BalanceTable = styled(Box)`
   width: 100%;
   margin-bottom: 16px;
 
   table {
-    width: 100%;
-    border-collapse: collapse;
+    ${tableStyles}// Additional specific styles for BalanceTable...
+  }
+`;
 
-    th,
-    td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid
-        ${(props) =>
-          props.$isDarkTheme
-            ? "rgba(255, 255, 255, 0.1)"
-            : "rgba(0, 0, 0, 0.1)"};
-    }
+// Update the ComparisonTable styled component to accommodate the pie chart
+const ComparisonTable = styled(Box)`
+  overflow-x: auto;
+  margin-top: 24px;
 
-    th {
-      color: ${(props) =>
-        props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
-      font-weight: 500;
-      font-size: 0.875rem;
-    }
+  table {
+    ${tableStyles}
+    min-width: 800px;
 
-    td {
-      color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
-      font-size: 0.875rem;
-    }
-
-    .balance-value {
-      color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
-      font-weight: 600;
-      text-align: right;
-    }
-
-    .token-symbol {
-      text-align: right;
-      color: ${(props) =>
-        props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+    td:first-child {
+      width: 120px; // Increase width to accommodate pie chart
+      padding: 8px;
     }
   }
 `;
@@ -1124,8 +1212,8 @@ const NFT_RELEASES: NFTRelease[] = [
     date: "2025-03-07 00:00:00 UTC",
     name: "Chrisbro 16",
     url: "https://nautilus.sh/#/collection/603303/token/16",
-    winnerAddress: "",
-    txid: "",
+    winnerAddress: "MUTS5EI5IYSNNM2QDLNPBJ2NNRSRRMUC4S6OTCXM3JZMHUAJOSJT6YUKRA",
+    txid: "SOC43DLHDS4DGKWFM75WOWBGUA2TWS2FVLULGPXH4EZP3LKOIBWA",
   },
   {
     date: "2025-03-14 00:00:00 UTC",
@@ -1194,44 +1282,10 @@ const ReleaseTable = styled(Box)`
   overflow-x: auto;
 
   table {
-    width: 100%;
-    border-collapse: collapse;
+    ${tableStyles}
     min-width: 600px;
 
-    th,
-    td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid
-        ${(props) =>
-          props.$isDarkTheme
-            ? "rgba(255, 255, 255, 0.1)"
-            : "rgba(0, 0, 0, 0.1)"};
-      font-size: 0.875rem;
-    }
-
-    th {
-      color: ${(props) =>
-        props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
-      font-weight: 500;
-    }
-
-    td {
-      color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
-    }
-
-    td a {
-      color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
-      text-decoration: none;
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-
-    .address {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.75rem;
-    }
+    // Additional specific styles for ReleaseTable...
   }
 `;
 
@@ -1322,51 +1376,344 @@ const DrawHistorySection = styled(Box)<{ $isDarkTheme: boolean }>`
       props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
 `;
 
-const DrawTable = styled(Box)<{
-  $isDarkTheme: boolean;
-  selectedContract: number;
-}>`
+const DrawTable = styled(Box)`
   overflow-x: auto;
 
   table {
-    width: 100%;
-    border-collapse: collapse;
+    ${tableStyles}
     min-width: 600px;
 
-    th,
-    td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid
-        ${(props) =>
-          props.$isDarkTheme
-            ? "rgba(255, 255, 255, 0.1)"
-            : "rgba(0, 0, 0, 0.1)"};
-      font-size: 0.875rem;
-    }
+    // Additional specific styles for DrawTable...
+  }
+`;
 
-    th {
-      color: ${(props) =>
-        props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
-      font-weight: 500;
-    }
+// Add this new styled component with other styled components
+const ExpandableDescription = styled(Box)<{ $isDarkTheme: boolean }>`
+  position: relative;
 
-    td {
-      color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
-    }
+  .description-text {
+    transition: max-height 0.3s ease-out;
+    overflow: hidden;
+  }
 
-    .amount {
-      text-align: right;
-      color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
-      font-family: "IBM Plex Mono", monospace;
-    }
+  .show-more-button {
+    color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+    cursor: pointer;
+    margin-top: 8px;
+    font-size: 0.875rem;
 
-    .address {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.75rem;
+    &:hover {
+      text-decoration: underline;
     }
   }
 `;
+
+// Add new styled component for clickable rows
+const ClickableTableRow = styled.tr<{ $isDarkTheme: boolean }>`
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)"};
+  }
+`;
+
+// Add new modal styled components
+const ContractModal = styled(Modal)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+// Update the ModalContent styled component to add cursor pointer
+const ModalContent = styled(Box)<{ $isDarkTheme: boolean }>`
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "rgba(0, 0, 0, 0.9)" : "rgba(255, 255, 255, 0.9)"};
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+
+  .select-button {
+    margin-top: 24px;
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .tokenomics-chart {
+    margin-top: 24px;
+    height: 250px; // Reduced height to make room for legend
+  }
+
+  .tokenomics-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+    justify-content: center;
+    padding: 16px;
+    background-color: ${(props) =>
+      props.$isDarkTheme ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.1)"};
+    border-radius: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: ${(props) =>
+      props.$isDarkTheme ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.2)"};
+  }
+
+  .color-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  .legend-label {
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 0.9)"};
+  }
+
+  .legend-value {
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+    margin-left: 4px;
+  }
+
+  .url-link {
+    color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .close-button {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+    }
+  }
+
+  .tokenomics-note {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)"};
+    font-size: 0.875rem;
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+    font-style: italic;
+  }
+`;
+
+// Add this styled component with other styled components
+const RewardBadge = styled.span<{ $isDarkTheme: boolean; $variant?: string }>`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 8px;
+  background-color: ${(props) =>
+    props.$variant === "ecosystem"
+      ? props.$isDarkTheme
+        ? "rgba(156, 39, 176, 0.2)"
+        : "rgba(156, 39, 176, 0.1)"
+      : props.$isDarkTheme
+      ? "rgba(33, 150, 243, 0.2)"
+      : "rgba(33, 150, 243, 0.1)"};
+  color: ${(props) =>
+    props.$variant === "ecosystem"
+      ? props.$isDarkTheme
+        ? "#ce93d8"
+        : "#9c27b0"
+      : props.$isDarkTheme
+      ? "#90caf9"
+      : "#1976d2"};
+  border: 1px solid
+    ${(props) =>
+      props.$variant === "ecosystem"
+        ? props.$isDarkTheme
+          ? "rgba(156, 39, 176, 0.3)"
+          : "rgba(156, 39, 176, 0.2)"
+        : props.$isDarkTheme
+        ? "rgba(33, 150, 243, 0.3)"
+        : "rgba(33, 150, 243, 0.2)"};
+`;
+
+// Add this styled component with other styled components
+const ContractSelect = styled(TextField)<{ $isDarkTheme: boolean }>`
+  & .MuiOutlinedInput-root {
+    background-color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)"};
+    border-radius: 8px;
+
+    & fieldset {
+      border-color: ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+    }
+
+    &:hover fieldset {
+      border-color: ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)"};
+    }
+
+    &.Mui-focused fieldset {
+      border-color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+    }
+  }
+
+  & .MuiInputLabel-root {
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+
+    &.Mui-focused {
+      color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
+    }
+  }
+
+  & .MuiSelect-select {
+    color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+  }
+
+  & .MuiSvgIcon-root {
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+  }
+`;
+
+// Add these styled components with other styled components
+const ContractStats = styled.div`
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+`;
+
+const StatBox = styled.div<{ $isDarkTheme: boolean }>`
+  flex: 1;
+  min-width: 120px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: ${(props) =>
+    props.$isDarkTheme ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)"};
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+
+  .stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+`;
+
+// Update the TokenomicsPieChart component
+const TokenomicsPieChart: React.FC<{
+  tokenomics: Record<string, number>;
+  isDarkTheme: boolean;
+  size?: number;
+  compact?: boolean;
+}> = ({ tokenomics, isDarkTheme, size = 32, compact = false }) => {
+  const data = prepareTokenomicsData(tokenomics);
+
+  // If there's only one segment and it's "other", use a specific color instead of grey
+  if (data.length === 1 && data[0].name === "Other") {
+    data[0].color = isDarkTheme ? "#90caf9" : "#1976d2"; // Use theme primary color
+  }
+
+  const centerPoint = compact ? 16 : 16;
+  const radius = compact ? 14 : 14;
+
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width={size}
+      height={size}
+      style={{ minWidth: size, minHeight: size }}
+    >
+      <circle
+        cx={centerPoint}
+        cy={centerPoint}
+        r={radius}
+        fill={isDarkTheme ? "#333" : "#eee"}
+      />
+      {(() => {
+        let startAngle = 0;
+        return data.map((segment, i) => {
+          const percentage = segment.value / 100;
+          const endAngle = startAngle + percentage * 2 * Math.PI;
+
+          const x1 = centerPoint + radius * Math.cos(startAngle);
+          const y1 = centerPoint + radius * Math.sin(startAngle);
+          const x2 = centerPoint + radius * Math.cos(endAngle);
+          const y2 = centerPoint + radius * Math.sin(endAngle);
+
+          const largeArcFlag = percentage > 0.5 ? 1 : 0;
+
+          const pathData = [
+            `M ${centerPoint} ${centerPoint}`,
+            `L ${x1} ${y1}`,
+            `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+            `Z`,
+          ].join(" ");
+
+          const path = (
+            <path
+              key={i}
+              d={pathData}
+              fill={segment.color}
+              stroke={isDarkTheme ? "#1a1a1a" : "#fff"}
+              strokeWidth="0.5"
+            />
+          );
+
+          startAngle = endAngle;
+          return path;
+        });
+      })()}
+    </svg>
+  );
+};
 
 const CommunityChest: React.FC<CommunityChestProps> = ({
   isDarkTheme,
@@ -1387,6 +1734,33 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
   const handleContractChange = (newContract: number) => {
     setSelectedContract(newContract);
     setSearchParams({ contract: newContract.toString() });
+  };
+
+  // Add this state near other state declarations
+  const [expandedDescription, setExpandedDescription] = useState(false);
+
+  // Update the contract description rendering in your JSX
+  const renderContractDescription = (description: string) => {
+    const isLongDescription = description.length > 200;
+
+    return (
+      <ExpandableDescription $isDarkTheme={isDarkTheme}>
+        <div
+          className="description-text"
+          style={{ maxHeight: expandedDescription ? "none" : "80px" }}
+        >
+          {description}
+        </div>
+        {isLongDescription && (
+          <div
+            className="show-more-button"
+            onClick={() => setExpandedDescription(!expandedDescription)}
+          >
+            {expandedDescription ? "Show Less" : "Show More"}
+          </div>
+        )}
+      </ExpandableDescription>
+    );
   };
 
   const { signTransactions } = useWallet();
@@ -1428,6 +1802,20 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
   const [statsResponse, setStatsResponse] = useState<StatsResponse | null>(
     null
   );
+
+  // Add new state for modal
+  const [selectedContractDetails, setSelectedContractDetails] =
+    useState<ContractOption | null>(null);
+
+  // Add handler for row click
+  const handleContractRowClick = (contract: ContractOption) => {
+    setSelectedContractDetails(contract);
+  };
+
+  // Add handler for modal close
+  const handleModalClose = () => {
+    setSelectedContractDetails(null);
+  };
 
   useEffect(() => {
     if (connected) {
@@ -1520,7 +1908,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         );
 
         const relevantTokens = [
-          664258, 390001, 770561, 828295, 888305, 913147, 917261, 8324600,
+          664258, 390001, 770561, 828295, 888305, 913147, 917261, 8324600, 8372092
         ];
         const filteredBalances = balancesResponse.data.balances.filter(
           (balance: any) =>
@@ -1957,46 +2345,225 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     overflow-x: auto;
 
     table {
-      width: 100%;
-      border-collapse: collapse;
+      ${tableStyles}
       min-width: 600px;
 
-      th,
-      td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid
-          ${(props) =>
-            props.$isDarkTheme
-              ? "rgba(255, 255, 255, 0.1)"
-              : "rgba(0, 0, 0, 0.1)"};
-        font-size: 0.875rem;
-      }
-
-      th {
-        color: ${(props) =>
-          props.$isDarkTheme
-            ? "rgba(255, 255, 255, 0.7)"
-            : "rgba(0, 0, 0, 0.7)"};
-        font-weight: 500;
-      }
-
-      td {
-        color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
-      }
-
-      .amount {
-        text-align: right;
-        color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
-        font-family: "IBM Plex Mono", monospace;
-      }
-
-      .address {
-        font-family: "IBM Plex Mono", monospace;
-        font-size: 0.75rem;
-      }
+      // Additional specific styles for DrawTable...
     }
   `;
+
+  // Add this styled component with other styled components
+  const ComparisonTable = styled(Box)`
+    overflow-x: auto;
+    margin-top: 24px;
+
+    table {
+      ${tableStyles}
+      min-width: 800px;
+
+      // Additional specific styles for ComparisonTable...
+    }
+  `;
+
+  // Update the comparison table JSX to use clickable rows and sort by holders
+  const renderComparisonTable = () => (
+    <ComparisonTable>
+      <table>
+        <thead>
+          <tr>
+            <th>Distribution</th>
+            <th>Contract</th>
+            <th>Total Value</th>
+            <th>Holders</th>
+          </tr>
+        </thead>
+        <tbody>
+          {CONTRACT_OPTIONS.sort((a, b) => {
+            const statsA = statsResponse?.tokens.find(
+              (token) => token.contractId === a.id
+            );
+            const statsB = statsResponse?.tokens.find(
+              (token) => token.contractId === b.id
+            );
+            return (statsB?.account_count || 0) - (statsA?.account_count || 0);
+          }).map((contract) => {
+            const stats = statsResponse?.tokens.find(
+              (token) => token.contractId === contract.id
+            );
+            return (
+              <ClickableTableRow
+                key={contract.id}
+                $isDarkTheme={isDarkTheme}
+                onClick={() => handleContractRowClick(contract)}
+              >
+                <td>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "4px",
+                    }}
+                  >
+                    {contract.tokenomics && (
+                      <TokenomicsPieChart
+                        tokenomics={contract.tokenomics}
+                        isDarkTheme={isDarkTheme}
+                        size={32}
+                        compact={true}
+                      />
+                    )}
+                  </Box>
+                </td>
+                <td>
+                  {contract.name}
+                  {contract.id === selectedContract && (
+                    <RewardBadge $isDarkTheme={isDarkTheme}>
+                      Selected
+                    </RewardBadge>
+                  )}
+                </td>
+                <td>
+                  {stats
+                    ? `${formatAmount(stats.adjusted_total_balance)} VOI`
+                    : "Loading..."}
+                </td>
+                <td>{stats ? stats.account_count : "Loading..."}</td>
+              </ClickableTableRow>
+            );
+          })}
+        </tbody>
+      </table>
+    </ComparisonTable>
+  );
+
+  // Add modal component to render contract details
+  const renderContractModal = () => {
+    if (!selectedContractDetails) return null;
+
+    const tokenomicsData = prepareTokenomicsData(
+      selectedContractDetails.tokenomics
+    );
+
+    return (
+      <ContractModal
+        open={!!selectedContractDetails}
+        onClose={handleModalClose}
+        aria-labelledby="contract-modal-title"
+      >
+        <ModalContent $isDarkTheme={isDarkTheme}>
+          <CloseIcon className="close-button" onClick={handleModalClose} />
+          <Typography variant="h6" id="contract-modal-title">
+            {selectedContractDetails.name}
+          </Typography>
+          {renderContractDescription(selectedContractDetails.description)}
+
+          <div className="tokenomics-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={tokenomicsData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  label={({ name, value }) => `${name}: ${value.toFixed(1)}%`}
+                >
+                  {tokenomicsData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) => `${value.toFixed(1)}%`}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="tokenomics-legend">
+            {tokenomicsData.map((entry, index) => (
+              <div key={`legend-${index}`} className="legend-item">
+                <div
+                  className="color-box"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="legend-label">{entry.name}</span>
+                <span className="legend-value">{entry.value.toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Add tokenomics note if it exists */}
+          {selectedContractDetails.tokenomicsNote && (
+            <div className="tokenomics-note">
+              {selectedContractDetails.tokenomicsNote}
+            </div>
+          )}
+
+          {/* Add this condition to render the URL link */}
+          {selectedContractDetails.url && (
+            <Link
+              href={selectedContractDetails.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="url-link"
+            >
+              Visit Project <LaunchIcon />
+            </Link>
+          )}
+
+          <Button
+            variant="contained"
+            className="select-button"
+            onClick={() => {
+              handleContractChange(selectedContractDetails.id);
+              handleModalClose();
+            }}
+          >
+            Select Contract
+          </Button>
+        </ModalContent>
+      </ContractModal>
+    );
+  };
+
+  // Add this styled component with other styled components
+  const CautionBox = styled(Box)<{ $isDarkTheme: boolean }>`
+    padding: 16px;
+    margin: 16px 0;
+    border-radius: 8px;
+    background-color: ${(props) =>
+      props.$isDarkTheme
+        ? "rgba(255, 193, 7, 0.1)"
+        : "rgba(255, 193, 7, 0.05)"};
+    border: 1px solid
+      ${(props) =>
+        props.$isDarkTheme
+          ? "rgba(255, 193, 7, 0.2)"
+          : "rgba(255, 193, 7, 0.1)"};
+    color: ${(props) =>
+      props.$isDarkTheme ? "rgba(255, 193, 7, 0.9)" : "rgba(255, 193, 7, 0.7)"};
+    font-size: 0.875rem;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    svg {
+      color: ${(props) =>
+        props.$isDarkTheme
+          ? "rgba(255, 193, 7, 0.9)"
+          : "rgba(255, 193, 7, 0.7)"};
+    }
+  `;
+
+  // Add a new function to handle contract selection from modal
+  const handleSelectContract = (contract: ContractOption) => {
+    handleContractChange(contract.id);
+    handleModalClose();
+  };
 
   return (
     <>
@@ -2078,6 +2645,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
               </tbody>
             </table>
           </BalanceTable>
+
           <TotalBalance $isDarkTheme={isDarkTheme}>
             <span className="total-label">Total Balance</span>
             <span className="total-value">
@@ -2095,6 +2663,15 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         </UserBalancesSection>
       )}
 
+      <Container
+        $isDarkTheme={isDarkTheme}
+        sx={{ borderRadius: "16px", mb: 5, pt: 3 }}
+      >
+        <Typography variant="h6" gutterBottom>
+          Token Comparison
+        </Typography>
+        {renderComparisonTable()}
+      </Container>
       <Container
         $isDarkTheme={isDarkTheme}
         sx={{ borderRadius: "16px", mb: 5 }}
@@ -2271,7 +2848,9 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         </HeaderContainer>
 
         <StorySection $isDarkTheme={isDarkTheme}>
-          {getContractDescription(selectedContract, isDarkTheme)}
+          {renderContractDescription(
+            getContractDescription(selectedContract, isDarkTheme) as string
+          )}
           {selectedContract === 664258 && (
             <Link
               component="span"
@@ -3014,7 +3593,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                     </Box>
                   </Label>
                   <NFTImage
-                    src="https://prod.cdn.highforge.io/m/603303/16.webp"
+                    src="https://prod.cdn.highforge.io/m/450392/162.webp"
                     alt="Weekly NFT Prize"
                     $isDarkTheme={isDarkTheme}
                   />
@@ -3026,7 +3605,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                       mb: 1,
                     }}
                   >
-                    Chrisbro 16
+                    PixelProphet162
                   </Typography>
                   <Typography
                     variant="body2"
@@ -3250,6 +3829,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           />
         )}
       </Container>
+      {renderContractModal()}
     </>
   );
 };

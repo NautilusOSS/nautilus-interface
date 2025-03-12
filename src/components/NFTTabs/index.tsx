@@ -19,10 +19,10 @@ import TableHead from "@mui/material/TableHead";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
-import { Button } from "@mui/material";
+import { Button, ButtonGroup } from "@mui/material";
 import { useWallet } from "@txnlab/use-wallet-react";
 import { toast } from "react-toastify";
-import { abi, CONTRACT } from "ulujs";
+import { abi, CONTRACT, mp } from "ulujs";
 import { getAlgorandClients } from "@/wallets";
 import algosdk from "algosdk";
 import { CTCINFO_MP206, CTCINFO_MP206_2 } from "@/contants/mp";
@@ -75,6 +75,62 @@ interface NFTTabsProps {
   loading: boolean;
   exchangeRate: number;
 }
+
+const errorToastStyles = {
+  container: {
+    cursor: "pointer",
+  },
+  message: {
+    fontSize: "0.8em",
+    color: "#666",
+    padding: "5px",
+    borderRadius: "5px",
+  },
+  clickPrompt: {
+    fontSize: "0.8em",
+    color: "#93F",
+  },
+};
+
+const ErrorToast = ({
+  error,
+  name,
+  sender,
+}: {
+  error: string;
+  name: string;
+  sender: string;
+}) => {
+  const handleCopyError = async () => {
+    try {
+      toast.success("Error details copied to clipboard");
+    } catch (err) {
+      console.error("Failed to copy error:", err);
+      // Fallback method using a temporary textarea
+      const textarea = document.createElement("textarea");
+      textarea.value = `${name}: ${sender}: ${error}`;
+      textarea.style.position = "fixed"; // Prevent scrolling to bottom
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        document.execCommand("copy");
+        toast.success("Error details copied to clipboard");
+      } catch (e) {
+        toast.error("Failed to copy error details");
+      }
+      document.body.removeChild(textarea);
+    }
+  };
+  return (
+    <div onClick={handleCopyError} style={errorToastStyles.container}>
+      {error}
+      <div style={errorToastStyles.clickPrompt}>
+        Click to copy error details
+      </div>
+    </div>
+  );
+};
 
 const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
   const dispatch = useDispatch();
@@ -146,17 +202,27 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
     }
   }, [nft.contractId, nft.tokenId]);
 
+  const [manager, setManager] = React.useState<string>("");
+  React.useEffect(() => {
+    const { algodClient, indexerClient } = getAlgorandClients();
+    const ctcInfoMP213 = 8329112; // mp213 offers
+    const ci = new CONTRACT(ctcInfoMP213, algodClient, indexerClient, abi.mp, {
+      addr: algosdk.getApplicationAddress(ctcInfoMP213),
+      sk: new Uint8Array(0),
+    });
+    ci.manager().then((r: any) => {
+      setManager(r.returnValue);
+    });
+  }, []);
+
   const handleCancelOffer = async (
     offerId: number,
     offerer: string,
-    offerAmount: number
+    offerAmount: number,
+    simulate?: boolean
   ) => {
     try {
       console.log({ offerId, offerer, offerAmount });
-      if (!activeAccount) {
-        toast.info("Please connect wallet!");
-        return;
-      }
       const feeAmountBI = BigInt(
         new BigNumber(offerAmount).multipliedBy(0.1).toFixed(0)
       );
@@ -172,21 +238,21 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
         algodClient,
         indexerClient,
         abi.custom,
-        { addr: activeAccount.address, sk: new Uint8Array(0) }
+        { addr: offerer, sk: new Uint8Array(0) }
       );
       const ciARC200 = new CONTRACT(
         ctcInfoNV,
         algodClient,
         indexerClient,
         abi.nt200,
-        { addr: activeAccount.address, sk: new Uint8Array(0) }
+        { addr: offerer, sk: new Uint8Array(0) }
       );
       const ciARC72 = new CONTRACT(
         ctcInfoNV,
         algodClient,
         indexerClient,
         abi.arc72,
-        { addr: activeAccount.address, sk: new Uint8Array(0) }
+        { addr: offerer, sk: new Uint8Array(0) }
       );
       const builder = {
         arc200: new CONTRACT(
@@ -195,7 +261,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
           indexerClient,
           abi.nt200,
           {
-            addr: activeAccount?.address || "",
+            addr: offerer,
             sk: new Uint8Array(0),
           },
           true,
@@ -207,7 +273,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
           algodClient,
           indexerClient,
           abi.arc72,
-          { addr: activeAccount.address, sk: new Uint8Array(0) },
+          { addr: offerer, sk: new Uint8Array(0) },
           true,
           false,
           true
@@ -232,7 +298,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
             events: [],
           },
           {
-            addr: activeAccount.address,
+            addr: offerer,
             sk: new Uint8Array(0),
           },
           true,
@@ -271,8 +337,107 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
       ci.setEnableGroupResourceSharing(true);
       ci.setExtraTxns(buildN);
       ci.setFee(3000);
+      const customR = await ci.custom();
+      console.log({ buildN, cutsomR: customR });
+      if (simulate && customR.success) {
+        setOffers(offers.filter((offer) => offer.mpListingId !== offerId));
+        toast.success("Offer cancelled successfully!");
+        return;
+      }
+      if (!customR.success) {
+        toast.error("Offer cancellation failed!", customR.error);
+
+        return;
+      }
+      const stxns = await signTransactions(
+        customR.txns.map((el: any) => new Uint8Array(Buffer.from(el, "base64")))
+      );
+      const txn = await algodClient
+        .sendRawTransaction(stxns as Uint8Array[])
+        .do();
+      await algosdk.waitForConfirmation(algodClient, txn.txId, 4);
+      setOffers(offers.filter((offer) => offer.mpListingId !== offerId));
+      toast.success("Offer cancelled successfully!");
+      //setOpenOfferModal(false);
+    } catch (e: any) {
+      console.log(e);
+      toast.error(e.message);
+    } finally {
+      //setIsOffering(false);
+    }
+  };
+
+  const handleManagerCancelOffer = async (
+    offerId: number,
+    offerer: string,
+    offerAmount: number
+  ) => {
+    try {
+      console.log({ offerId, offerer, offerAmount });
+      const feeAmountBI = BigInt(
+        new BigNumber(offerAmount).multipliedBy(0.1).toFixed(0)
+      );
+      const offerAmountBI = BigInt(offerAmount);
+      const totalAmount = offerAmountBI + feeAmountBI;
+      //setIsOffering(true);
+      // -------------------------------------
+      const { algodClient, indexerClient } = getAlgorandClients();
+      const ctcInfoMP213 = 8329112; // mp213 offers
+      const ci = new CONTRACT(
+        ctcInfoMP213,
+        algodClient,
+        indexerClient,
+        abi.custom,
+        { addr: offerer, sk: new Uint8Array(0) }
+      );
+      const builder = {
+        mp: new CONTRACT(
+          ctcInfoMP213,
+          algodClient,
+          indexerClient,
+          {
+            name: "mp213",
+            desc: "mp213",
+            methods: [
+              // a_offer_deleteListing(uint256)void
+              {
+                name: "a_offer_deleteListing",
+                args: [{ type: "uint256", name: "offerId" }],
+                returns: {
+                  type: "void",
+                },
+              },
+            ],
+            events: [],
+          },
+          {
+            addr: offerer,
+            sk: new Uint8Array(0),
+          },
+          true,
+          false,
+          true
+        ),
+      };
+      const buildN = [];
+      // -------------------------------------
+      // delete listing
+      // -------------------------------------
+      {
+        const txnO = (await builder.mp.a_offer_deleteListing(BigInt(offerId)))
+          ?.obj;
+        console.log({ txnO });
+        buildN.push({
+          ...txnO,
+          note: new TextEncoder().encode(`a_offer_deleteListing:${offerId}`),
+        });
+      }
+      // -------------------------------------
+      ci.setEnableGroupResourceSharing(true);
+      ci.setExtraTxns(buildN);
+      ci.setFee(3000);
       const cutsomR = await ci.custom();
-      console.log({ cutsomR });
+      console.log({ buildN, cutsomR });
       const stxns = await signTransactions(
         cutsomR.txns.map((el: any) => new Uint8Array(Buffer.from(el, "base64")))
       );
@@ -294,9 +459,11 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
   };
 
   const handleAcceptOffer = async (
+    owner: string,
     offerId: number,
     offerer: string,
-    offerAmount: number
+    offerAmount: number,
+    simulate?: boolean
   ) => {
     try {
       if (!activeAccount) {
@@ -313,21 +480,14 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
         algodClient,
         indexerClient,
         abi.custom,
-        { addr: activeAccount.address, sk: new Uint8Array(0) }
+        { addr: owner, sk: new Uint8Array(0) }
       );
       const ciARC200 = new CONTRACT(
         ctcInfoNV,
         algodClient,
         indexerClient,
         abi.nt200,
-        { addr: activeAccount.address, sk: new Uint8Array(0) }
-      );
-      const ciARC72 = new CONTRACT(
-        ctcInfoNV,
-        algodClient,
-        indexerClient,
-        abi.arc72,
-        { addr: activeAccount.address, sk: new Uint8Array(0) }
+        { addr: owner, sk: new Uint8Array(0) }
       );
       const builder = {
         arc200: new CONTRACT(
@@ -336,7 +496,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
           indexerClient,
           abi.nt200,
           {
-            addr: activeAccount?.address || "",
+            addr: owner,
             sk: new Uint8Array(0),
           },
           true,
@@ -348,7 +508,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
           algodClient,
           indexerClient,
           abi.arc72,
-          { addr: activeAccount.address, sk: new Uint8Array(0) },
+          { addr: owner, sk: new Uint8Array(0) },
           true,
           false,
           true
@@ -358,7 +518,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
           algodClient,
           indexerClient,
           abi.mp,
-          { addr: activeAccount.address, sk: new Uint8Array(0) },
+          { addr: owner, sk: new Uint8Array(0) },
           true,
           false,
           true
@@ -383,7 +543,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
             events: [],
           },
           {
-            addr: activeAccount.address,
+            addr: owner,
             sk: new Uint8Array(0),
           },
           true,
@@ -394,25 +554,23 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
       const buildN = [];
       // -------------------------------------
       // createBalanceBox if needed
-      // approve spending
+      // arc72 approve
+      // mp206 delete listings
+      // accept offer sc
+      // withdraw
       // -------------------------------------
       // createBalanceBox if needed
       // -------------------------------------
       {
         ciARC200.setPaymentAmount(28500);
-        const createBalanceBoxR = await ciARC200.createBalanceBox(
-          activeAccount.address
-        );
+        const createBalanceBoxR = await ciARC200.createBalanceBox(owner);
+        console.log({ createBalanceBoxR });
         if (createBalanceBoxR.success) {
-          const txnO = (
-            await builder.arc200.createBalanceBox(activeAccount.address)
-          )?.obj;
+          const txnO = (await builder.arc200.createBalanceBox(owner))?.obj;
           buildN.push({
             ...txnO,
             payment: 28500,
-            note: new TextEncoder().encode(
-              `createBalanceBox:${activeAccount.address}`
-            ),
+            note: new TextEncoder().encode(`createBalanceBox:${owner}`),
           });
         }
       }
@@ -426,24 +584,27 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
             BigInt(nft.tokenId)
           )
         )?.obj;
+        console.log({ arc72txn: txn });
         buildN.push({
           ...txn,
           note: new TextEncoder().encode(
-            `arc72_approve:${algosdk.getApplicationAddress(ctcInfoNV)}:${
-              activeAccount.address
-            }:${BigInt(nft.tokenId)}`
+            `arc72_approve:${algosdk.getApplicationAddress(
+              ctcInfoMP213
+            )}:${owner}:${BigInt(nft.tokenId)}`
           ),
+          payment: 28500,
         });
       }
       // -------------------------------------
       // mp206 delete listings
       // -------------------------------------
-      if (nft.listing && nft.listing.seller === activeAccount.address) {
+      if (nft.listing && nft.listing.seller === owner) {
         const txnO = (
           await builder.mp206.a_sale_deleteListing(
             BigInt(nft.listing.mpListingId)
           )
         )?.obj;
+        console.log({ mp206txn: txnO });
         buildN.push({
           ...txnO,
           note: new TextEncoder().encode(
@@ -457,6 +618,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
       {
         const txnO = (await builder.mp213.a_offer_acceptSC(BigInt(offerId)))
           ?.obj;
+        console.log({ mp213txn: txnO });
         buildN.push({
           ...txnO,
           note: new TextEncoder().encode(`a_offer_acceptSC:${offerId}`),
@@ -469,6 +631,7 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
       // -------------------------------------
       {
         const txnO = (await builder.arc200.withdraw(offerAmount))?.obj;
+        console.log({ withdrawtxn: txnO });
         buildN.push({
           ...txnO,
           note: new TextEncoder().encode(`withdraw:${offerAmount}`),
@@ -478,11 +641,42 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
       // -------------------------------------
       ci.setEnableGroupResourceSharing(true);
       ci.setExtraTxns(buildN);
-      ci.setFee(3000);
-      const cutsomR = await ci.custom();
-      console.log({ cutsomR });
+      ci.setFee(4000);
+      const customR = await ci.custom();
+      console.log({ customR });
+      if (simulate && customR.success) {
+        setOffers(offers.filter((offer) => offer.mpListingId !== offerId));
+        toast.success("Offer accepted successfully!");
+        return;
+      }
+      if (!customR.success) {
+        if (
+          customR.error.match(
+            /assert failed pc=\d+\. Details: app=\d+, pc=\d+, opcodes=txn Sender; !=; assert/
+          )
+        ) {
+          toast.error(
+            <ErrorToast
+              name="Offer acceptance failed"
+              sender={offerer}
+              error={
+                "Offer acceptance failed! You can't accept your own offer."
+              }
+            />
+          );
+        } else {
+          toast.error(
+            <ErrorToast
+              name="Offer acceptance failed"
+              sender={offerer}
+              error={customR.error}
+            />
+          );
+        }
+        return;
+      }
       const stxns = await signTransactions(
-        cutsomR.txns.map((el: any) => new Uint8Array(Buffer.from(el, "base64")))
+        customR.txns.map((el: any) => new Uint8Array(Buffer.from(el, "base64")))
       );
       const txn = await algodClient
         .sendRawTransaction(stxns as Uint8Array[])
@@ -494,8 +688,17 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
       toast.success("Offer accepted successfully!");
       //setOpenOfferModal(false);
     } catch (e: any) {
-      console.log(e);
-      toast.error(e.message);
+      console.error("Offer acceptance error:", e);
+      toast.error(
+        <ErrorToast
+          name="Offer acceptance failed"
+          sender={offerer}
+          error={
+            e.message ||
+            "An unexpected error occurred while accepting the offer"
+          }
+        />
+      );
     } finally {
       //setIsOffering(false);
     }
@@ -627,35 +830,88 @@ const NFTTabs: React.FC<NFTTabsProps> = ({ nft, loading, exchangeRate }) => {
                       {offer.currency === 8324600 ? "VOI" : offer.currency}
                     </TableCell>
                     <TableCell>
-                      {offer.offerer !== activeAccount?.address &&
-                        nft.owner === activeAccount?.address && (
+                      <ButtonGroup>
+                        {(manager === activeAccount?.address ||
+                          (offer.offerer !== activeAccount?.address &&
+                            nft.owner === activeAccount?.address)) && (
                           <Button
                             variant="contained"
                             onClick={() =>
                               handleAcceptOffer(
+                                nft.owner,
                                 offer.mpListingId,
                                 offer.offerer,
-                                offer.price
+                                offer.price,
+                                false
                               )
                             }
                           >
                             Accept
                           </Button>
                         )}
-                      {offer.offerer === activeAccount?.address && (
-                        <Button
-                          variant="contained"
-                          onClick={() =>
-                            handleCancelOffer(
-                              offer.mpListingId,
-                              offer.offerer,
-                              offer.price
-                            )
-                          }
-                        >
-                          Cancel
-                        </Button>
-                      )}
+                        {(offer.offerer === activeAccount?.address ||
+                          manager === activeAccount?.address) && (
+                          <Button
+                            variant="contained"
+                            onClick={() =>
+                              handleCancelOffer(
+                                offer.mpListingId,
+                                offer.offerer,
+                                offer.price,
+                                false
+                              )
+                            }
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                        {manager === activeAccount?.address && (
+                          <>
+                            <Button
+                              variant="contained"
+                              color="info"
+                              onClick={() =>
+                                handleAcceptOffer(
+                                  nft.owner,
+                                  offer.mpListingId,
+                                  offer.offerer,
+                                  offer.price,
+                                  true
+                                )
+                              }
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="info"
+                              onClick={() =>
+                                handleCancelOffer(
+                                  offer.mpListingId,
+                                  manager,
+                                  offer.price,
+                                  true
+                                )
+                              }
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="warning"
+                              onClick={() =>
+                                handleManagerCancelOffer(
+                                  offer.mpListingId,
+                                  manager,
+                                  offer.price
+                                )
+                              }
+                            >
+                              Cancel
+                            </Button>
+                          </>
+                        )}
+                      </ButtonGroup>
                     </TableCell>
                   </TableRow>
                 ))}

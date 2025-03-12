@@ -4,38 +4,20 @@ export const navlinks = [
     href: "/listing",
   },
   {
-    label: "Stats",
-    href: "#",
-    children: [
-      {
-        label: "Collections",
-        href: "/collection",
-      },
-      {
-        label: "Sales Activity",
-        href: "/sales-activity",
-      },
-    ],
+    label: "Offers",
+    href: "/offers",
   },
   {
-    label: "Staking",
-    href: "/staking",
+    label: "Collections",
+    href: "/collection",
+  },
+  {
+    label: "Activity",
+    href: "/sales-activity",
   },
   {
     label: "Launchpad",
     href: "/create-arc200",
-  },
-  {
-    label: "Community Chest",
-    href: "/community-chest",
-  },
-  {
-    label: "Earn",
-    href: "/earn",
-  },
-  {
-    label: "Tokens",
-    href: "/tokens",
   },
 ];
 

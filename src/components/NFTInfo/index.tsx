@@ -46,6 +46,8 @@ import { useStakingContract } from "@/hooks/staking";
 import { useEnvoiResolver } from "@/hooks/useEnvoiResolver";
 import { fetchTokenInfo } from "@/utils/dex";
 import OfferModal from "../modals/OfferModal";
+import useNSFW from "@/hooks/useNSFW";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -109,6 +111,14 @@ const AvatarWithName = styled(Stack)`
     font-weight: 500;
     line-height: 140%; /* 22.4px */
   }
+`;
+
+const BlurredAvatar = styled(Avatar)<{ showNSFW: boolean; isNSFW: boolean }>`
+  filter: ${(props) =>
+    props.isNSFW && !props.showNSFW
+      ? "blur(8px) brightness(0.8) contrast(0.9)"
+      : "none"};
+  transition: filter 0.6s ease;
 `;
 
 const OwnerValue = styled.div`
@@ -256,6 +266,92 @@ const MoreFrom = styled.h3`
   margin-top: 48px;
 `;
 
+const NSFWOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 255, 0.3);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  z-index: 2;
+  cursor: pointer;
+  border-radius: 16px;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 0, 255, 0.4);
+
+    .eye-icon {
+      transform: scale(1.1);
+    }
+  }
+
+  .eye-icon {
+    font-size: 32px;
+    opacity: 0.9;
+    transition: transform 0.2s ease;
+  }
+`;
+
+const PixelatedImage = styled.div<{ showNSFW: boolean; isNSFW: boolean }>`
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  background-size: cover;
+  background-position: center;
+  filter: ${(props) =>
+    props.isNSFW && !props.showNSFW
+      ? "blur(64px) brightness(0.8) contrast(0.9)"
+      : "none"};
+  transition: filter 0.6s ease;
+
+  ${(props) =>
+    props.isNSFW &&
+    !props.showNSFW &&
+    `
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        45deg,
+        #ff0000,
+        #ff7f00,
+        #ffff00,
+        #00ff00,
+        #0000ff,
+        #4b0082,
+        #8f00ff
+      );
+      background-size: 400% 400%;
+      mix-blend-mode: overlay;
+      opacity: 0.3;
+      animation: rainbow 10s ease infinite;
+      z-index: 1;
+    }
+
+    @keyframes rainbow {
+      0% { background-position: 0% 50% }
+      50% { background-position: 100% 50% }
+      100% { background-position: 0% 50% }
+    }
+  `}
+`;
+
 const { algodClient, indexerClient } = getAlgorandClients();
 
 interface NFTInfoProps {
@@ -348,6 +444,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
       );
       ci.setFee(3000);
       const a_sale_deleteListingR = await ci.a_sale_deleteListing(listingId);
+      console.log({ a_sale_deleteListingR });
       if (!a_sale_deleteListingR.success) {
         throw new Error("a_sale_deleteListing failed in simulate");
       }
@@ -355,7 +452,11 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
       const stxns = await signTransactions(
         txns.map((txn: string) => new Uint8Array(Buffer.from(txn, "base64")))
       );
-      await algodClient.sendRawTransaction(stxns as Uint8Array[]).do();
+      console.log({ stxns });
+      const res = await algodClient
+        .sendRawTransaction(stxns as Uint8Array[])
+        .do();
+      console.log({ res });
       toast.success("Unlist successful!");
     } catch (e: any) {
       toast.error(e.message);
@@ -878,27 +979,29 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
 
   const handleMangerDelete = useCallback(async () => {
     if (!activeAccount || !manager || !nft.listing) return;
-    const ci = new mp(nft.listing.mpContractId, algodClient, indexerClient, {
-      acc: {
-        addr: activeAccount.address,
-        sk: new Uint8Array(0),
-      },
-    });
-    const res = await ci.deleteListing(nft.listing.mpListingId);
-    if (!res.success) throw new Error("failed to delete listing");
-    await toast.promise(
-      signTransactions(
+    try {
+      const ci = new mp(nft.listing.mpContractId, algodClient, indexerClient, {
+        acc: {
+          addr: activeAccount.address,
+          sk: new Uint8Array(0),
+        },
+      });
+      const res = await ci.deleteListing(nft.listing.mpListingId);
+      if (!res.success) throw new Error("failed to delete listing");
+      const stxns = await signTransactions(
         res.txns.map(
           (txn: string) => new Uint8Array(Buffer.from(txn, "base64"))
         )
-      ),
-      //.then(sendTransactions),
-      {
-        pending: "Transaction pending...",
-        success: "Listing deleted!",
-        error: "Failed to delete listing",
-      }
-    );
+      );
+      const { txId } = await algodClient
+        .sendRawTransaction(stxns as Uint8Array[])
+        .do();
+      await algosdk.waitForConfirmation(algodClient, txId, 4);
+      toast.success("Listing deleted!");
+    } catch (e: any) {
+      console.log(e);
+      toast.error(e.message);
+    }
   }, [activeAccount, manager, nft.listing]);
 
   const { data: stakingAccountData, isLoading: isLoadingStakingAccountData } =
@@ -1185,14 +1288,14 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
     const ci = new arc72(nft.contractId, algodClient, indexerClient);
     const tokenId = BigInt(nft.tokenId);
     ci.arc72_ownerOf(tokenId).then((res: any) => {
-      console.log({ res });
       if (res.success) {
         const owner = res.returnValue;
         setOwner(owner);
         resolver.http.getNameFromAddress(owner).then((res) => {
-          if (!!res) {
-            setOwnerName(res);
-            resolver.http.search(res).then((res) => {
+          console.log({ resA: res });
+          if (!!res && res.length > 0 && res[0] !== "") {
+            setOwnerName(res[0]);
+            resolver.http.search(res[0]).then((res) => {
               console.log({ res });
               if (res.length === 1) {
                 setOwnerProfile(res[0]);
@@ -1416,6 +1519,24 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
     }
   };
 
+  // Add NSFW hook
+  const { isNSFW } = useNSFW();
+
+  const [showNSFWContent, setShowNSFWContent] = useState(false);
+
+  // Add useEffect to handle auto-hide timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showNSFWContent) {
+      timer = setTimeout(() => {
+        setShowNSFWContent(false);
+      }, 5000); // Auto-hide after 5 seconds
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showNSFWContent]);
+
   return !loading ? (
     <>
       <Grid
@@ -1427,23 +1548,29 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
         spacing="60px"
       >
         <Grid item xs={12} md={6}>
-          {!loading ? (
-            <img
-              src={displayImage}
-              style={{ width: "100%", borderRadius: "16px" }}
-            />
-          ) : (
-            <Skeleton
-              variant="rounded"
-              height={600}
-              width={600}
-              sx={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                borderRadius: "16px",
+          <div style={{ position: "relative", width: "100%", aspectRatio: "1" }}>
+            <PixelatedImage
+              showNSFW={showNSFWContent}
+              isNSFW={isNSFW(nft.contractId)}
+              style={{
+                backgroundImage: `url(${displayImage})`,
               }}
             />
-          )}
+            {isNSFW(nft.contractId) && !showNSFWContent && (
+              <NSFWOverlay
+                onClick={() => {
+                  setShowNSFWContent(true);
+                }}
+              >
+                <VisibilityIcon className="eye-icon" />
+                <div>
+                  NSFW Content
+                  <br />
+                  Click to reveal
+                </div>
+              </NSFWOverlay>
+            )}
+          </div>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Stack style={{ gap: "27px" }}>
@@ -1454,7 +1581,9 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                   gap={1}
                   sx={{ alignItems: "end" }}
                 >
-                  <Avatar
+                  <BlurredAvatar
+                    showNSFW={showNSFWContent}
+                    isNSFW={isNSFW(nft.contractId)}
                     sx={{
                       height: "45px",
                       width: "45px",
@@ -1467,7 +1596,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                     }}
                   >
                     &nbsp;
-                  </Avatar>
+                  </BlurredAvatar>
                   <span
                     className="owner-name"
                     onClick={() => {
