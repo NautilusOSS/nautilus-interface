@@ -2672,6 +2672,146 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         </Typography>
         {renderComparisonTable()}
       </Container>
+
+      {/* Add new deposit/withdraw section */}
+      <Container $isDarkTheme={isDarkTheme} sx={{ borderRadius: "16px", mb: 5 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 3 }}>
+          {/* Deposit Card */}
+          <Box sx={{ flex: 1, minWidth: '250px' }}>
+            <Card sx={{ 
+              bgcolor: isDarkTheme ? 'rgba(25, 118, 210, 0.08)' : 'rgba(255, 255, 255, 0.1)',
+              p: 2,
+              borderRadius: 2,
+              border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+              boxShadow: 'none'
+            }}>
+              <Typography variant="h6" gutterBottom sx={{ color: isDarkTheme ? '#fff' : 'inherit' }}>
+                Deposit VOI
+              </Typography>
+              <TextField
+                fullWidth
+                type="number"
+                label="Amount"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                sx={{
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: isDarkTheme ? '#90caf9' : '#1976d2',
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
+                    '&.Mui-focused': {
+                      color: isDarkTheme ? '#90caf9' : '#1976d2',
+                    },
+                  },
+                  '& input': {
+                    color: isDarkTheme ? '#fff' : 'inherit',
+                  },
+                }}
+              />
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={handleDeposit}
+                disabled={!connected || isLoading || !depositAmount}
+                sx={{
+                  bgcolor: isDarkTheme ? '#1976d2' : undefined,
+                  '&:hover': {
+                    bgcolor: isDarkTheme ? '#1565c0' : undefined,
+                  },
+                }}
+              >
+                {isLoading ? <CircularProgress size={24} /> : 'Deposit'}
+              </Button>
+            </Card>
+          </Box>
+
+          {/* Withdraw Card */}
+          <Box sx={{ flex: 1, minWidth: '250px' }}>
+            <Card sx={{ 
+              bgcolor: isDarkTheme ? 'rgba(25, 118, 210, 0.08)' : 'rgba(255, 255, 255, 0.1)',
+              p: 2,
+              borderRadius: 2,
+              border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+              boxShadow: 'none'
+            }}>
+              <Typography variant="h6" gutterBottom sx={{ color: isDarkTheme ? '#fff' : 'inherit' }}>
+                Withdraw VOI
+              </Typography>
+              <TextField
+                fullWidth
+                type="number"
+                label="Amount"
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                sx={{
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: isDarkTheme ? '#90caf9' : '#1976d2',
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
+                    '&.Mui-focused': {
+                      color: isDarkTheme ? '#90caf9' : '#1976d2',
+                    },
+                  },
+                  '& input': {
+                    color: isDarkTheme ? '#fff' : 'inherit',
+                  },
+                }}
+              />
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={handleWithdraw}
+                disabled={!connected || isLoading || !withdrawAmount}
+                sx={{
+                  bgcolor: isDarkTheme ? '#1976d2' : undefined,
+                  '&:hover': {
+                    bgcolor: isDarkTheme ? '#1565c0' : undefined,
+                  },
+                }}
+              >
+                {isLoading ? <CircularProgress size={24} /> : 'Withdraw'}
+              </Button>
+            </Card>
+          </Box>
+        </Box>
+
+        {/* Balance Display */}
+        {connected && (
+          <Box sx={{ 
+            mt: 2,
+            p: 2,
+            borderRadius: 2,
+            bgcolor: isDarkTheme ? 'rgba(25, 118, 210, 0.08)' : 'rgba(255, 255, 255, 0.1)',
+            border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+            color: isDarkTheme ? '#fff' : 'inherit'
+          }}>
+            <Typography variant="body1">
+              Your Balance: {formatAmount(userBalance)} VOI
+            </Typography>
+          </Box>
+        )}
+      </Container>
+
       <Container
         $isDarkTheme={isDarkTheme}
         sx={{ borderRadius: "16px", mb: 5 }}
