@@ -82,14 +82,16 @@ const RankingsModal: React.FC<RankingsModalProps> = ({
 
   // Add useEffect to resolve names
   React.useEffect(() => {
-    if (!top10Holders) return;
+    if (!top10Holders || resolvedNames) return;
     const resolveNames = async () => {
       const names: Record<string, string> = {};
       for (const holder of top10Holders) {
         try {
-          const name = await resolver.http.getNameFromAddress(holder.accountId);
-          if (name) {
-            names[holder.accountId] = name;
+          const profile = await resolver.getProfileFromAddress(
+            holder.accountId
+          );
+          if (profile?.name) {
+            names[holder.accountId] = profile.name;
           }
         } catch (error) {
           console.error(
@@ -101,7 +103,7 @@ const RankingsModal: React.FC<RankingsModalProps> = ({
       setResolvedNames(names);
     };
     resolveNames();
-  }, [top10Holders, resolver]);
+  }, [top10Holders, resolver, resolvedNames]);
 
   // Calculate angles for pie chart
   let startAngle = 0;

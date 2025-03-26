@@ -34,27 +34,23 @@ const SwapField = styled(TextField)<{ $isDarkTheme: boolean }>`
     border-radius: 8px;
 
     &:hover .MuiOutlinedInput-notchedOutline {
-      border-color: ${(props) =>
-        props.$isDarkTheme ? "#90caf9" : "#1976d2"};
+      border-color: ${(props) => (props.$isDarkTheme ? "#90caf9" : "#1976d2")};
     }
   }
 
   .MuiOutlinedInput-notchedOutline {
     border-color: ${(props) =>
-      props.$isDarkTheme
-        ? "rgba(255, 255, 255, 0.2)"
-        : "rgba(0, 0, 0, 0.2)"};
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)"};
   }
 
-  input, .MuiSelect-select {
+  input,
+  .MuiSelect-select {
     color: ${(props) => (props.$isDarkTheme ? "#ffffff" : "#000000")};
   }
 
   .MuiFormLabel-root {
     color: ${(props) =>
-      props.$isDarkTheme
-        ? "rgba(255, 255, 255, 0.7)"
-        : "rgba(0, 0, 0, 0.7)"};
+      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
   }
 `;
 
@@ -81,6 +77,7 @@ interface SwapModalProps {
   isDarkTheme: boolean;
   fromBalance: string;
   onSwap: (
+    address: string,
     fromToken: number,
     toToken: number,
     amount: string
@@ -121,7 +118,7 @@ const SwapModal: React.FC<SwapModalProps> = ({
 
   const handleSwap = async () => {
     if (!error && amount) {
-      await onSwap(fromToken, toToken, amount);
+      await onSwap(address, fromToken, toToken, amount);
       onClose();
       setAmount("");
     }
@@ -182,10 +179,7 @@ const SwapModal: React.FC<SwapModalProps> = ({
           />
 
           <Box display="flex" justifyContent="center">
-            <SwapButton
-              onClick={handleSwapTokens}
-              $isDarkTheme={isDarkTheme}
-            >
+            <SwapButton onClick={handleSwapTokens} $isDarkTheme={isDarkTheme}>
               <SwapVertIcon />
             </SwapButton>
           </Box>
@@ -226,4 +220,4 @@ const SwapModal: React.FC<SwapModalProps> = ({
   );
 };
 
-export default SwapModal; 
+export default SwapModal;

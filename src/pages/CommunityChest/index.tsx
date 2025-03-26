@@ -13,6 +13,7 @@ import {
   ImageListItem,
   ImageListItemBar,
   Modal,
+  IconButton,
 } from "@mui/material";
 import styled, { keyframes, css } from "styled-components";
 import { toast } from "react-toastify";
@@ -41,6 +42,8 @@ import { useCopyToClipboard } from "usehooks-ts";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import LaunchIcon from "@mui/icons-material/Launch";
 import CloseIcon from "@mui/icons-material/Close";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
+import { useAccountBalance } from "@/hooks/useAccountBalance";
 
 const findCommonRatio = (a: number, totalSum: number, n: number) => {
   // Using numerical method (binary search) to find r
@@ -76,7 +79,7 @@ export const getTokensByEpoch = async (epoch: number) => {
 interface CommunityChestProps {
   isDarkTheme: boolean;
   connected: boolean;
-  address?: string;
+  address: string;
 }
 
 function weightedRandomSelect(data: any) {
@@ -455,6 +458,12 @@ const NotificationItem = styled(Box)<{ $isDarkTheme: boolean; $type: string }>`
 // Update notifications with contract IDs
 const notifications: Notification[] = [
   {
+    date: "2025-03-24",
+    message: "Buidl Voi (bVoi) launched to support ecosystem development",
+    type: "success",
+    contractId: 8471125,
+  },
+  {
     date: "2024-11-14",
     message:
       "Update: Weekly rewards now available to CCV holder according to reward distribution",
@@ -621,6 +630,14 @@ const prepareTokenomicsData = (tokenomics: ContractOption["tokenomics"]) => {
 };
 
 const CONTRACT_OPTIONS: ContractOption[] = [
+  {
+    id: 0, // Native VOI
+    name: "VOI",
+    description: "Native Voi token",
+    tokenomics: {
+      other: 100,
+    },
+  },
   {
     id: 664258,
     name: "Community Chest Voi (CCV)",
@@ -796,6 +813,24 @@ const CONTRACT_OPTIONS: ContractOption[] = [
       future: 0, // Added future field
     },
   },
+  {
+    id: 8471125,
+    name: "Buidl Voi (bVoi)",
+    description:
+      "Buidl Voi (bVoi) is a wrapped VOI token that represents staked VOI in the Buidl program, enabling users to support Voi ecosystem development.",
+    iconPath: "M12 3L1 9l11 6 11-6z M2 12l10 6 10-6", // Basic building block icon path
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0.9999, // Added future field
+    },
+  },
 ];
 
 const getContractInfo = (contractId: number) => {
@@ -847,6 +882,11 @@ const getContractInfo = (contractId: number) => {
         iconPath:
           "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2V8h-2v8z",
       };
+    case 8471125:
+      return {
+        title: "Buidl Voi (bVoi)",
+        iconPath: "M12 3L1 9l11 6 11-6z M2 12l10 6 10-6", // Basic building block icon path
+      };
     default:
       return {
         title: "Community Chest",
@@ -880,6 +920,8 @@ const getContractDescription = (
       return "Welcome to Nautilus Voi (NV) - support Nautilus development and ecosystem. NV represents staked VOI in the Nautilus project, enabling users to support the project by holding NV";
     case 8372092:
       return "Welcome to Liquid Voi (LV) - a liquid staking solution that allows you to stake your VOI while maintaining liquidity. Your staked VOI automatically earns rewards which are distributed to all LV holders proportionally. Stake, earn, and trade without lockups!";
+    case 8471125:
+      return "Buidl VOI (bVoi) is a wrapped VOI token that represents staked VOI in the Buidl program. Holders support ecosystem development and may be eligible for future incentives. There are currently no direct rewards for holding bVoi.";
     default:
       return "";
   }
@@ -1042,7 +1084,6 @@ const tableStyles = css<{ $isDarkTheme: boolean }>`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-
   th,
   td {
     padding: 12px;
@@ -1062,10 +1103,8 @@ const tableStyles = css<{ $isDarkTheme: boolean }>`
 // Update the existing table styled components to use the mixin
 const BalanceTable = styled(Box)`
   width: 100%;
-  margin-bottom: 16px;
-
   table {
-    ${tableStyles}// Additional specific styles for BalanceTable...
+    ${tableStyles}
   }
 `;
 
@@ -1073,7 +1112,6 @@ const BalanceTable = styled(Box)`
 const ComparisonTable = styled(Box)`
   overflow-x: auto;
   margin-top: 24px;
-
   table {
     ${tableStyles}
     min-width: 800px;
@@ -1219,8 +1257,8 @@ const NFT_RELEASES: NFTRelease[] = [
     date: "2025-03-14 00:00:00 UTC",
     name: "PixelProphet162",
     url: "https://nautilus.sh/#/collection/450392/token/162",
-    winnerAddress: "",
-    txid: "",
+    winnerAddress: "R7TBR3Y5QCM6Y2OPQP3BPNUQG7TLN75IOC2WTNRUKO4VPNSDQF52MZB4ZE",
+    txid: "PVJ24GYELTZH47QDZ4DVFKQ5N7RFXJGXDW7O3M62LTJNPKSL6M3A",
   },
   {
     date: "2025-03-21 00:00:00 UTC",
@@ -1720,6 +1758,8 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
   connected,
   address,
 }) => {
+  const { balance, refetch: refetchBalance } = useAccountBalance(address);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const contractParam = searchParams.get("contract");
 
@@ -1763,7 +1803,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     );
   };
 
-  const { signTransactions } = useWallet();
+  const { signTransactions, activeAccount } = useWallet();
   const [totalInChest, setTotalInChest] = useState<string>("0");
   const [holders, setHolders] = useState<number>(0);
   const [userBalance, setUserBalance] = useState<string>("0");
@@ -1786,6 +1826,10 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
   >([]);
   const [swapModalOpen, setSwapModalOpen] = useState(false);
   const [userTokenBalances, setUserTokenBalances] = useState<any[]>([]);
+  // Update fromToken default to 0 (VOI)
+  const [fromToken, setFromToken] = useState<number>(0);
+  const [toToken, setToToken] = useState<number>(CONTRACT_OPTIONS[0].id);
+  const [swapAmount, setSwapAmount] = useState<string>("");
 
   interface TokenStats {
     contractId: number;
@@ -1908,7 +1952,8 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         );
 
         const relevantTokens = [
-          664258, 390001, 770561, 828295, 888305, 913147, 917261, 8324600, 8372092
+          664258, 390001, 770561, 828295, 888305, 913147, 917261, 8324600,
+          8372092, 8471125,
         ];
         const filteredBalances = balancesResponse.data.balances.filter(
           (balance: any) =>
@@ -2013,6 +2058,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
       toast.success("Deposit successful!");
       setDepositModalOpen(false);
       fetchData();
+      refetchBalance();
     } catch (error) {
       console.error("Error depositing:", error);
       toast.error("Failed to deposit");
@@ -2063,6 +2109,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
       toast.success("Withdrawal successful!");
       setWithdrawModalOpen(false);
       fetchData();
+      refetchBalance();
     } catch (error) {
       console.error("Error withdrawing:", error);
       toast.error("Failed to withdraw");
@@ -2183,69 +2230,247 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     fetchNFTs();
   }, []);
 
-  // Add handleSwap function
+  // Update handleSwap function
   const handleSwap = async (
+    address: string,
     fromToken: number,
     toToken: number,
     amount: string
   ) => {
-    if (!connected) {
-      toast.error("Please connect your wallet");
-      return;
-    }
-
     try {
       setIsLoading(true);
       const { algodClient } = getAlgorandClients();
-
-      // Create contract instances
-      const fromContract = new CONTRACT(
-        fromToken,
-        algodClient,
-        null,
-        abi.nt200,
-        {
-          addr: address,
-          sk: Uint8Array.from([]),
-        }
-      );
-
-      const toContract = new CONTRACT(toToken, algodClient, null, abi.nt200, {
-        addr: address,
-        sk: Uint8Array.from([]),
-      });
-
       const amountBI = BigInt(
         new BigNumber(amount).multipliedBy(10 ** 6).toFixed(0)
       );
 
-      // First withdraw from the source contract
-      const withdrawR = await fromContract.withdraw(amountBI);
-      if (!withdrawR.success) {
-        toast.error("Failed to withdraw from source contract");
+      // If swapping to VOI (contract 0), just withdraw from source contract
+      if (toToken === 0) {
+        const fromContract = new CONTRACT(
+          fromToken,
+          algodClient,
+          null,
+          abi.nt200,
+          {
+            addr: address,
+            sk: new Uint8Array(),
+          }
+        );
+
+        fromContract.setFee(2000);
+        const withdrawR = await fromContract.withdraw(amountBI);
+        if (!withdrawR.success) {
+          toast.error("Failed to withdraw");
+          return;
+        }
+
+        const stxns = await signTransactions(
+          withdrawR.txns.map(
+            (txn: string) => new Uint8Array(Buffer.from(txn, "base64"))
+          )
+        );
+
+        const [stxn] = stxns;
+        const dstxn = algosdk.decodeSignedTransaction(stxn as Uint8Array);
+        const txId = dstxn.txn.txID();
+
+        await algodClient.sendRawTransaction(stxns as Uint8Array[]).do();
+        await algosdk.waitForConfirmation(algodClient, txId, 4);
+
+        // Optimistically update balances
+        setUserTokenBalances((prevBalances) => {
+          const updatedBalances = [...prevBalances];
+          const fromTokenIndex = updatedBalances.findIndex(
+            (b) => b.contractId === fromToken
+          );
+
+          if (fromTokenIndex !== -1) {
+            const newBalance =
+              BigInt(updatedBalances[fromTokenIndex].balance) - amountBI;
+            if (newBalance <= BigInt(0)) {
+              updatedBalances.splice(fromTokenIndex, 1);
+            } else {
+              updatedBalances[fromTokenIndex] = {
+                ...updatedBalances[fromTokenIndex],
+                balance: newBalance.toString(),
+              };
+            }
+          }
+          return updatedBalances;
+        });
+        refetchBalance();
+        toast.success("Swap successful!");
+        setSwapAmount("");
+        if (swapModalOpen) {
+          setSwapModalOpen(false);
+        }
         return;
       }
 
-      // Then deposit to the destination contract
-      const depositR = await toContract.deposit(amountBI);
-      if (!depositR.success) {
-        toast.error("Failed to deposit to destination contract");
-        return;
+      // Original swap logic for other cases
+      const ci = new CONTRACT(
+        fromToken || toToken,
+        algodClient,
+        null,
+        abi.custom,
+        {
+          addr: address,
+          sk: new Uint8Array(),
+        }
+      );
+
+      const builder = {
+        fromContract: new CONTRACT(
+          fromToken,
+          algodClient,
+          null,
+          abi.nt200,
+          {
+            addr: address,
+            sk: new Uint8Array(),
+          },
+          true,
+          false,
+          true
+        ),
+        toContract: new CONTRACT(
+          toToken,
+          algodClient,
+          null,
+          abi.nt200,
+          {
+            addr: address,
+            sk: new Uint8Array(),
+          },
+          true,
+          false,
+          true
+        ),
+      };
+
+      // build custom contract transactions
+      const buildN = [];
+
+      // If fromToken is not 0 (VOI), include withdraw step
+      if (fromToken !== 0) {
+        const txnO = (await builder.fromContract.withdraw(amountBI)).obj;
+        buildN.push({
+          ...txnO,
+          note: new TextEncoder().encode("Withdraw"),
+        });
       }
 
-      // Combine transactions
-      const combinedTxns = [...withdrawR.txns, ...depositR.txns];
+      // create balance box for deposit if needed
+      {
+        const ciTo = new CONTRACT(toToken, algodClient, null, abi.nt200, {
+          addr: address,
+          sk: new Uint8Array(),
+        });
+        ciTo.setFee(2000);
+        ciTo.setPaymentAmount(28500);
+        const createBalanceBoxR = await ciTo.createBalanceBox(address);
+        if (createBalanceBoxR.success) {
+          const txnO = (await builder.toContract.createBalanceBox(address)).obj;
+          buildN.push({
+            ...txnO,
+            payment: 28500,
+            note: new Uint8Array(Buffer.from("createBalanceBox")),
+          });
+        }
+      }
+
+      // Always include deposit step
+      const txnO = (await builder.toContract.deposit(amountBI)).obj;
+      buildN.push({
+        ...txnO,
+        note: new TextEncoder().encode("Deposit"),
+        payment: amountBI,
+      });
+
+      ci.setFee(2000);
+      ci.setGroupResourceSharingStrategy("merge");
+      ci.setEnableGroupResourceSharing(true);
+      ci.setExtraTxns(buildN);
+
+      const customR = await ci.custom();
+
+      if (!customR.success) {
+        console.log({ customR });
+        toast.error("Failed to swap tokens");
+        return;
+      }
 
       // Sign and send transactions
       const stxns = await signTransactions(
-        combinedTxns.map((txn) => new Uint8Array(Buffer.from(txn, "base64")))
+        customR.txns.map(
+          (txn: string) => new Uint8Array(Buffer.from(txn, "base64"))
+        )
       );
+
+      const [stxn] = stxns;
+      const dstxn = algosdk.decodeSignedTransaction(stxn as Uint8Array);
+      const txId = dstxn.txn.txID();
 
       await algodClient.sendRawTransaction(stxns as Uint8Array[]).do();
       await algosdk.waitForConfirmation(algodClient, txId, 4);
 
+      // Optimistically update balances for both tokens
+      setUserTokenBalances((prevBalances) => {
+        const updatedBalances = [...prevBalances];
+
+        // Update fromToken balance
+        if (fromToken !== 0) {
+          const fromTokenIndex = updatedBalances.findIndex(
+            (b) => b.contractId === fromToken
+          );
+          if (fromTokenIndex !== -1) {
+            const newFromBalance =
+              BigInt(updatedBalances[fromTokenIndex].balance) - amountBI;
+            if (newFromBalance <= BigInt(0)) {
+              updatedBalances.splice(fromTokenIndex, 1);
+            } else {
+              updatedBalances[fromTokenIndex] = {
+                ...updatedBalances[fromTokenIndex],
+                balance: newFromBalance.toString(),
+              };
+            }
+          }
+        }
+
+        // Update toToken balance
+        if (toToken !== 0) {
+          const toTokenIndex = updatedBalances.findIndex(
+            (b) => b.contractId === toToken
+          );
+          if (toTokenIndex !== -1) {
+            // Token already exists in balances
+            updatedBalances[toTokenIndex] = {
+              ...updatedBalances[toTokenIndex],
+              balance: (
+                BigInt(updatedBalances[toTokenIndex].balance) + amountBI
+              ).toString(),
+            };
+          } else {
+            // Add new token to balances
+            const newToken = CONTRACT_OPTIONS.find((opt) => opt.id === toToken);
+            if (newToken) {
+              updatedBalances.push({
+                contractId: toToken,
+                symbol: newToken.name,
+                balance: amountBI.toString(),
+              });
+            }
+          }
+        }
+
+        return updatedBalances;
+      });
+
       toast.success("Swap successful!");
-      fetchData();
+      setSwapAmount("");
+      if (swapModalOpen) {
+        setSwapModalOpen(false);
+      }
     } catch (error) {
       console.error("Error swapping:", error);
       toast.error("Failed to swap tokens");
@@ -2378,60 +2603,64 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           </tr>
         </thead>
         <tbody>
-          {CONTRACT_OPTIONS.sort((a, b) => {
-            const statsA = statsResponse?.tokens.find(
-              (token) => token.contractId === a.id
-            );
-            const statsB = statsResponse?.tokens.find(
-              (token) => token.contractId === b.id
-            );
-            return (statsB?.account_count || 0) - (statsA?.account_count || 0);
-          }).map((contract) => {
-            const stats = statsResponse?.tokens.find(
-              (token) => token.contractId === contract.id
-            );
-            return (
-              <ClickableTableRow
-                key={contract.id}
-                $isDarkTheme={isDarkTheme}
-                onClick={() => handleContractRowClick(contract)}
-              >
-                <td>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "4px",
-                    }}
-                  >
-                    {contract.tokenomics && (
-                      <TokenomicsPieChart
-                        tokenomics={contract.tokenomics}
-                        isDarkTheme={isDarkTheme}
-                        size={32}
-                        compact={true}
-                      />
+          {CONTRACT_OPTIONS.filter((opt) => opt.id !== 0)
+            .sort((a, b) => {
+              const statsA = statsResponse?.tokens.find(
+                (token) => token.contractId === a.id
+              );
+              const statsB = statsResponse?.tokens.find(
+                (token) => token.contractId === b.id
+              );
+              return (
+                (statsB?.account_count || 0) - (statsA?.account_count || 0)
+              );
+            })
+            .map((contract) => {
+              const stats = statsResponse?.tokens.find(
+                (token) => token.contractId === contract.id
+              );
+              return (
+                <ClickableTableRow
+                  key={contract.id}
+                  $isDarkTheme={isDarkTheme}
+                  onClick={() => handleContractRowClick(contract)}
+                >
+                  <td>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "4px",
+                      }}
+                    >
+                      {contract.tokenomics && (
+                        <TokenomicsPieChart
+                          tokenomics={contract.tokenomics}
+                          isDarkTheme={isDarkTheme}
+                          size={32}
+                          compact={true}
+                        />
+                      )}
+                    </Box>
+                  </td>
+                  <td>
+                    {contract.name}
+                    {contract.id === selectedContract && (
+                      <RewardBadge $isDarkTheme={isDarkTheme}>
+                        Selected
+                      </RewardBadge>
                     )}
-                  </Box>
-                </td>
-                <td>
-                  {contract.name}
-                  {contract.id === selectedContract && (
-                    <RewardBadge $isDarkTheme={isDarkTheme}>
-                      Selected
-                    </RewardBadge>
-                  )}
-                </td>
-                <td>
-                  {stats
-                    ? `${formatAmount(stats.adjusted_total_balance)} VOI`
-                    : "Loading..."}
-                </td>
-                <td>{stats ? stats.account_count : "Loading..."}</td>
-              </ClickableTableRow>
-            );
-          })}
+                  </td>
+                  <td>
+                    {stats
+                      ? `${formatAmount(stats.adjusted_total_balance)} VOI`
+                      : "Loading..."}
+                  </td>
+                  <td>{stats ? stats.account_count : "Loading..."}</td>
+                </ClickableTableRow>
+              );
+            })}
         </tbody>
       </table>
     </ComparisonTable>
@@ -2663,6 +2892,308 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         </UserBalancesSection>
       )}
 
+      {/* Token Swap Section - Moved here */}
+      <Container
+        $isDarkTheme={isDarkTheme}
+        sx={{ borderRadius: "16px", mb: 5 }}
+      >
+        <Box sx={{ mt: 0 }}>
+          {/*<Typography
+            variant="h6"
+            gutterBottom
+            sx={{ color: isDarkTheme ? "#fff" : "inherit" }}
+          >
+            Token Swap
+          </Typography>*/}
+
+          <Card
+            sx={{
+              bgcolor: isDarkTheme
+                ? "rgba(25, 118, 210, 0.08)"
+                : "rgba(255, 255, 255, 0.1)",
+              p: 3,
+              borderRadius: 2,
+              border: `1px solid ${
+                isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"
+              }`,
+              boxShadow: "none",
+            }}
+          >
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {/* From Token */}
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    mb: 1,
+                    color: isDarkTheme
+                      ? "rgba(255, 255, 255, 0.7)"
+                      : "rgba(0, 0, 0, 0.6)",
+                  }}
+                >
+                  From
+                </Typography>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <TextField
+                    select
+                    fullWidth
+                    value={fromToken}
+                    onChange={(e) => setFromToken(Number(e.target.value))}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": {
+                          borderColor: isDarkTheme
+                            ? "rgba(255, 255, 255, 0.23)"
+                            : "rgba(0, 0, 0, 0.23)",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: isDarkTheme
+                            ? "rgba(255, 255, 255, 0.4)"
+                            : "rgba(0, 0, 0, 0.4)",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: isDarkTheme ? "#90caf9" : "#1976d2",
+                        },
+                      },
+                      "& .MuiSelect-select": {
+                        color: isDarkTheme ? "#fff" : "inherit",
+                      },
+                    }}
+                    SelectProps={{
+                      MenuProps: {
+                        PaperProps: {
+                          sx: {
+                            bgcolor: isDarkTheme ? "#1a1a1a" : "#fff",
+                            color: isDarkTheme ? "#fff" : "inherit",
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    {CONTRACT_OPTIONS.filter(
+                      (option) =>
+                        option.id === 0 || // Always include VOI
+                        userTokenBalances.some(
+                          (balance) =>
+                            balance.contractId === option.id &&
+                            BigInt(balance.balance) > BigInt(0)
+                        )
+                    ).map((option) => (
+                      <MenuItem key={option.id} value={option.id}>
+                        {option.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Box sx={{ position: "relative", width: "40%" }}>
+                    <TextField
+                      type="number"
+                      label="Amount"
+                      value={swapAmount}
+                      onChange={(e) => setSwapAmount(e.target.value)}
+                      fullWidth
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          "& fieldset": {
+                            borderColor: isDarkTheme
+                              ? "rgba(255, 255, 255, 0.23)"
+                              : "rgba(0, 0, 0, 0.23)",
+                          },
+                          "&:hover fieldset": {
+                            borderColor: isDarkTheme
+                              ? "rgba(255, 255, 255, 0.4)"
+                              : "rgba(0, 0, 0, 0.4)",
+                          },
+                          "&.Mui-focused fieldset": {
+                            borderColor: isDarkTheme ? "#90caf9" : "#1976d2",
+                          },
+                        },
+                        "& .MuiInputLabel-root": {
+                          color: isDarkTheme
+                            ? "rgba(255, 255, 255, 0.7)"
+                            : "rgba(0, 0, 0, 0.6)",
+                        },
+                        "& input": {
+                          color: isDarkTheme ? "#fff" : "inherit",
+                        },
+                      }}
+                    />
+                    <Button
+                      size="small"
+                      sx={{
+                        position: "absolute",
+                        right: "8px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        minWidth: "auto",
+                        color: isDarkTheme ? "#90caf9" : "#1976d2",
+                        "&:hover": {
+                          backgroundColor: isDarkTheme
+                            ? "rgba(144, 202, 249, 0.08)"
+                            : "rgba(25, 118, 210, 0.08)",
+                        },
+                      }}
+                      onClick={() => {
+                        if (fromToken === 0) {
+                          setSwapAmount(
+                            (
+                              Number(balance?.toString() || "0") / 1e6
+                            ).toString()
+                          );
+                        } else {
+                          // Find balance for selected fromToken
+                          const balance =
+                            fromToken === 0
+                              ? activeAccount?.amount || "0"
+                              : userTokenBalances.find(
+                                  (b) => b.contractId === fromToken
+                                )?.balance || "0";
+
+                          // Convert to display format (divide by 1e6)
+                          const maxAmount = new BigNumber(balance)
+                            .dividedBy(1e6)
+                            .toString();
+                          setSwapAmount(maxAmount);
+                        }
+                      }}
+                    >
+                      MAX
+                    </Button>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Swap Icon */}
+              <Box sx={{ display: "flex", justifyContent: "center", my: 1 }}>
+                <IconButton
+                  onClick={() => {
+                    setFromToken(toToken);
+                    setToToken(fromToken);
+                  }}
+                  sx={{
+                    color: isDarkTheme ? "#90caf9" : "#1976d2",
+                    "&:hover": {
+                      bgcolor: isDarkTheme
+                        ? "rgba(144, 202, 249, 0.08)"
+                        : "rgba(25, 118, 210, 0.08)",
+                    },
+                  }}
+                >
+                  <SwapVertIcon />
+                </IconButton>
+              </Box>
+
+              {/* To Token */}
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    mb: 1,
+                    color: isDarkTheme
+                      ? "rgba(255, 255, 255, 0.7)"
+                      : "rgba(0, 0, 0, 0.6)",
+                  }}
+                >
+                  To
+                </Typography>
+                <TextField
+                  select
+                  fullWidth
+                  value={toToken}
+                  onChange={(e) => setToToken(Number(e.target.value))}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.23)"
+                          : "rgba(0, 0, 0, 0.23)",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.4)"
+                          : "rgba(0, 0, 0, 0.4)",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: isDarkTheme ? "#90caf9" : "#1976d2",
+                      },
+                    },
+                    "& .MuiSelect-select": {
+                      color: isDarkTheme ? "#fff" : "inherit",
+                    },
+                  }}
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        sx: {
+                          bgcolor: isDarkTheme ? "#1a1a1a" : "#fff",
+                          color: isDarkTheme ? "#fff" : "inherit",
+                        },
+                      },
+                    },
+                  }}
+                >
+                  {CONTRACT_OPTIONS.filter(
+                    (option) => option.id !== fromToken
+                  ).map((option) => (
+                    <MenuItem key={option.id} value={option.id}>
+                      {option.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+
+              {/* Swap Button */}
+              {activeAccount?.address ? (
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={() =>
+                    handleSwap(
+                      activeAccount.address,
+                      fromToken,
+                      toToken,
+                      swapAmount
+                    )
+                  }
+                  disabled={
+                    !connected ||
+                    isLoading ||
+                    !swapAmount ||
+                    fromToken === toToken
+                  }
+                  sx={{
+                    mt: 2,
+                    bgcolor: isDarkTheme ? "#1976d2" : undefined,
+                    "&:hover": {
+                      bgcolor: isDarkTheme ? "#1565c0" : undefined,
+                    },
+                  }}
+                >
+                  {isLoading ? <CircularProgress size={24} /> : "Swap"}
+                </Button>
+              ) : (
+                <Button fullWidth variant="contained" disabled>
+                  Connect Wallet
+                </Button>
+              )}
+
+              {/* Add warning about fees/slippage if needed */}
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 1,
+                  color: isDarkTheme
+                    ? "rgba(255, 255, 255, 0.5)"
+                    : "rgba(0, 0, 0, 0.5)",
+                }}
+              >
+                Note: Swapping requires two transactions (withdraw + deposit).
+                Standard network fees apply.
+              </Typography>
+            </Box>
+          </Card>
+        </Box>
+      </Container>
+
       <Container
         $isDarkTheme={isDarkTheme}
         sx={{ borderRadius: "16px", mb: 5, pt: 3 }}
@@ -2674,143 +3205,202 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
       </Container>
 
       {/* Add new deposit/withdraw section */}
-      <Container $isDarkTheme={isDarkTheme} sx={{ borderRadius: "16px", mb: 5 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 3 }}>
-          {/* Deposit Card */}
-          <Box sx={{ flex: 1, minWidth: '250px' }}>
-            <Card sx={{ 
-              bgcolor: isDarkTheme ? 'rgba(25, 118, 210, 0.08)' : 'rgba(255, 255, 255, 0.1)',
-              p: 2,
-              borderRadius: 2,
-              border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-              boxShadow: 'none'
-            }}>
-              <Typography variant="h6" gutterBottom sx={{ color: isDarkTheme ? '#fff' : 'inherit' }}>
-                Deposit VOI
-              </Typography>
-              <TextField
-                fullWidth
-                type="number"
-                label="Amount"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
+      {selectedContract !== 0 && (
+        <Container
+          $isDarkTheme={isDarkTheme}
+          sx={{ borderRadius: "16px", mb: 5 }}
+        >
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 3 }}>
+            {/* Deposit Card */}
+            <Box sx={{ flex: 1, minWidth: "250px" }}>
+              <Card
                 sx={{
-                  mb: 2,
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: isDarkTheme ? '#90caf9' : '#1976d2',
-                    },
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
-                    '&.Mui-focused': {
-                      color: isDarkTheme ? '#90caf9' : '#1976d2',
-                    },
-                  },
-                  '& input': {
-                    color: isDarkTheme ? '#fff' : 'inherit',
-                  },
-                }}
-              />
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={handleDeposit}
-                disabled={!connected || isLoading || !depositAmount}
-                sx={{
-                  bgcolor: isDarkTheme ? '#1976d2' : undefined,
-                  '&:hover': {
-                    bgcolor: isDarkTheme ? '#1565c0' : undefined,
-                  },
+                  bgcolor: isDarkTheme
+                    ? "rgba(25, 118, 210, 0.08)"
+                    : "rgba(255, 255, 255, 0.1)",
+                  p: 2,
+                  borderRadius: 2,
+                  border: `1px solid ${
+                    isDarkTheme
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.1)"
+                  }`,
+                  boxShadow: "none",
                 }}
               >
-                {isLoading ? <CircularProgress size={24} /> : 'Deposit'}
-              </Button>
-            </Card>
-          </Box>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ color: isDarkTheme ? "#fff" : "inherit" }}
+                >
+                  Deposit VOI to{" "}
+                  <Typography variant="body2" sx={{ display: "inline" }}>
+                    {CONTRACT_OPTIONS.find((opt) => opt.id === selectedContract)
+                      ?.name || "VOI"}
+                  </Typography>
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Amount"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  sx={{
+                    mb: 2,
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.23)"
+                          : "rgba(0, 0, 0, 0.23)",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.4)"
+                          : "rgba(0, 0, 0, 0.4)",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: isDarkTheme ? "#90caf9" : "#1976d2",
+                      },
+                    },
+                    "& .MuiInputLabel-root": {
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(0, 0, 0, 0.6)",
+                      "&.Mui-focused": {
+                        color: isDarkTheme ? "#90caf9" : "#1976d2",
+                      },
+                    },
+                    "& input": {
+                      color: isDarkTheme ? "#fff" : "inherit",
+                    },
+                  }}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={handleDeposit}
+                  disabled={!connected || isLoading || !depositAmount}
+                  sx={{
+                    bgcolor: isDarkTheme ? "#1976d2" : undefined,
+                    "&:hover": {
+                      bgcolor: isDarkTheme ? "#1565c0" : undefined,
+                    },
+                  }}
+                >
+                  {isLoading ? <CircularProgress size={24} /> : "Deposit"}
+                </Button>
+              </Card>
+            </Box>
 
-          {/* Withdraw Card */}
-          <Box sx={{ flex: 1, minWidth: '250px' }}>
-            <Card sx={{ 
-              bgcolor: isDarkTheme ? 'rgba(25, 118, 210, 0.08)' : 'rgba(255, 255, 255, 0.1)',
-              p: 2,
-              borderRadius: 2,
-              border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-              boxShadow: 'none'
-            }}>
-              <Typography variant="h6" gutterBottom sx={{ color: isDarkTheme ? '#fff' : 'inherit' }}>
-                Withdraw VOI
-              </Typography>
-              <TextField
-                fullWidth
-                type="number"
-                label="Amount"
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
+            {/* Withdraw Card */}
+            <Box sx={{ flex: 1, minWidth: "250px" }}>
+              <Card
                 sx={{
-                  mb: 2,
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: isDarkTheme ? '#90caf9' : '#1976d2',
-                    },
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
-                    '&.Mui-focused': {
-                      color: isDarkTheme ? '#90caf9' : '#1976d2',
-                    },
-                  },
-                  '& input': {
-                    color: isDarkTheme ? '#fff' : 'inherit',
-                  },
-                }}
-              />
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={handleWithdraw}
-                disabled={!connected || isLoading || !withdrawAmount}
-                sx={{
-                  bgcolor: isDarkTheme ? '#1976d2' : undefined,
-                  '&:hover': {
-                    bgcolor: isDarkTheme ? '#1565c0' : undefined,
-                  },
+                  bgcolor: isDarkTheme
+                    ? "rgba(25, 118, 210, 0.08)"
+                    : "rgba(255, 255, 255, 0.1)",
+                  p: 2,
+                  borderRadius: 2,
+                  border: `1px solid ${
+                    isDarkTheme
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.1)"
+                  }`,
+                  boxShadow: "none",
                 }}
               >
-                {isLoading ? <CircularProgress size={24} /> : 'Withdraw'}
-              </Button>
-            </Card>
-          </Box>
-        </Box>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ color: isDarkTheme ? "#fff" : "inherit" }}
+                >
+                  Withdraw{" "}
+                  <Typography variant="body2" sx={{ display: "inline" }}>
+                    {CONTRACT_OPTIONS.find((opt) => opt.id === selectedContract)
+                      ?.name || "VOI"}
+                    → VOI
+                  </Typography>
+                </Typography>
 
-        {/* Balance Display */}
-        {connected && (
-          <Box sx={{ 
-            mt: 2,
-            p: 2,
-            borderRadius: 2,
-            bgcolor: isDarkTheme ? 'rgba(25, 118, 210, 0.08)' : 'rgba(255, 255, 255, 0.1)',
-            border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-            color: isDarkTheme ? '#fff' : 'inherit'
-          }}>
-            <Typography variant="body1">
-              Your Balance: {formatAmount(userBalance)} VOI
-            </Typography>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Amount"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  sx={{
+                    mb: 2,
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.23)"
+                          : "rgba(0, 0, 0, 0.23)",
+                      },
+                      "&:hover fieldset": {
+                        borderColor: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.4)"
+                          : "rgba(0, 0, 0, 0.4)",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: isDarkTheme ? "#90caf9" : "#1976d2",
+                      },
+                    },
+                    "& .MuiInputLabel-root": {
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(0, 0, 0, 0.6)",
+                      "&.Mui-focused": {
+                        color: isDarkTheme ? "#90caf9" : "#1976d2",
+                      },
+                    },
+                    "& input": {
+                      color: isDarkTheme ? "#fff" : "inherit",
+                    },
+                  }}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={handleWithdraw}
+                  disabled={!connected || isLoading || !withdrawAmount}
+                  sx={{
+                    bgcolor: isDarkTheme ? "#1976d2" : undefined,
+                    "&:hover": {
+                      bgcolor: isDarkTheme ? "#1565c0" : undefined,
+                    },
+                  }}
+                >
+                  {isLoading ? <CircularProgress size={24} /> : "Withdraw"}
+                </Button>
+              </Card>
+            </Box>
           </Box>
-        )}
-      </Container>
+
+          {/* Balance Display */}
+          {connected && (
+            <Box
+              sx={{
+                mt: 2,
+                p: 2,
+                borderRadius: 2,
+                bgcolor: isDarkTheme
+                  ? "rgba(25, 118, 210, 0.08)"
+                  : "rgba(255, 255, 255, 0.1)",
+                border: `1px solid ${
+                  isDarkTheme
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.1)"
+                }`,
+                color: isDarkTheme ? "#fff" : "inherit",
+              }}
+            >
+              <Typography variant="body1">
+                Your Balance: {formatAmount(userBalance)} VOI
+              </Typography>
+            </Box>
+          )}
+        </Container>
+      )}
 
       <Container
         $isDarkTheme={isDarkTheme}
@@ -2850,7 +3440,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
             },
           }}
         >
-          {CONTRACT_OPTIONS.map((option) => {
+          {CONTRACT_OPTIONS.sort((a, b) => a.id - b.id).map((option) => {
             const contractStats = statsResponse?.tokens?.find(
               (token) => token.contractId === option.id
             );
@@ -3126,6 +3716,8 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                     return "En VOI (EV) is a wrapped VOI token that represents staked VOI in the enVoi Naming Service. Name registrations and renewals are held in En VOI. There are no incentives to hold En VOI. However, community members may support the project by holding En VOI.";
                   case 888305:
                     return "Womp VOI (WV) is a wrapped VOI token that represents staked VOI in WompCrew. There are no incentives to hold WV. However, community members may support the project by holding WV.";
+                  case 8471125:
+                    return "Buidl VOI (bVoi) is a wrapped VOI token that represents staked VOI in the Buidl program. Holders support ecosystem development and may be eligible for future incentives. There are currently no direct rewards for holding bVoi.";
                   default:
                     return "";
                 }
@@ -3733,7 +4325,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                     </Box>
                   </Label>
                   <NFTImage
-                    src="https://prod.cdn.highforge.io/m/450392/162.webp"
+                    src="https://prod.cdn.highforge.io/m/398796/66.jpeg"
                     alt="Weekly NFT Prize"
                     $isDarkTheme={isDarkTheme}
                   />
@@ -3745,7 +4337,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                       mb: 1,
                     }}
                   >
-                    PixelProphet162
+                    AI Voiager #66"
                   </Typography>
                   <Typography
                     variant="body2"
@@ -3785,12 +4377,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                         fontWeight: "bold",
                       }}
                     >
-                      {new Date(
-                        new Date(
-                          epochSummaries[0]?.end_date || Date.now()
-                        ).getTime() +
-                          3 * 24 * 60 * 60 * 1000
-                      ).toLocaleDateString()}
+                      Mar 20, 2025
                     </Typography>
                   </Box>
                 </NFTPrizeCard>

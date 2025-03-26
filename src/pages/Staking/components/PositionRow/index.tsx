@@ -760,7 +760,7 @@ const MintModal: React.FC<{
                     </Typography>
                   )}
                   <Typography color={isDarkTheme ? "#FFFFFF" : undefined}>
-                    • Transaction Fee: {0.003 * 2 + 100.3367} VOI
+                    • Transaction Fee: {0.003 * 2 + 1.3367} VOI
                   </Typography>
                 </Box>
               </>
@@ -1274,7 +1274,7 @@ const PositionRow: React.FC<PositionRowProps> = ({
       console.log({ mint: txn1 });
       buildN.push({
         ...txn1,
-        payment: 336700 + 100 * 1e6,
+        payment: 336700 + 1e6,
         note: note1,
       });
       ci.setFee(3000);
