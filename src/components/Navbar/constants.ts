@@ -47,6 +47,7 @@ export const navlinks = [
   },
 ] as const;
 
+
 export const linkLabels: { [key: string]: string } = {
   "/listings": "Listings",
   "/collection": "Collections",
