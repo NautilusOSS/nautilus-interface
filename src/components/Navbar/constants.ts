@@ -1,24 +1,46 @@
 export const navlinks = [
   {
-    label: "Listings",
-    href: "/listing",
-  },
-  {
-    label: "Offers",
-    href: "/offers",
-  },
-  {
-    label: "Collections",
-    href: "/collection",
-  },
-  {
-    label: "Activity",
-    href: "/sales-activity",
+    label: "Marketplace",
+    type: "dropdown",
+    children: [
+      {
+        label: "Listings",
+        href: "/listing",
+      },
+      {
+        label: "Offers",
+        href: "/offers",
+      },
+      {
+        label: "Collections",
+        href: "/collection",
+      },
+      {
+        label: "Activity",
+        href: "/sales-activity",
+      },
+    ]
   },
   {
     label: "Launchpad",
     href: "/create-arc200",
+    type: "sub"
   },
+  {
+    label: "NFT Drips",
+    href: "/nft-drips",
+    type: "sub"
+  },
+  {
+    label: "Staking",
+    href: "/staking",
+    type: "sub"
+  },
+  {
+    label: "Wrapped Voi",
+    href: "/community-chest",
+    type: "sub"
+  }
 ];
 
 export const linkLabels: { [key: string]: string } = {

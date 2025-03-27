@@ -111,6 +111,133 @@ const WalletIcon2 = () => {
   );
 };
 
+interface MenuState {
+  anchorEl: HTMLElement | null;
+  isOpen: boolean;
+}
+
+interface MenuConfig {
+  label: string;
+  items: Array<{
+    label: string;
+    href: string;
+    onClick?: () => void;
+  }>;
+}
+
+const useMenu = () => {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const isOpen = Boolean(anchorEl);
+
+  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  return { anchorEl, isOpen, handleOpen, handleClose };
+};
+
+const DropdownMenu: React.FC<{
+  menuState: ReturnType<typeof useMenu>;
+  config: MenuConfig;
+  isDarkTheme: boolean;
+}> = ({ menuState, config, isDarkTheme }) => {
+  const navigate = useNavigate();
+  
+  return (
+    <>
+      <Button
+        onClick={menuState.handleOpen}
+        endIcon={
+          <KeyboardArrowDownIcon
+            sx={{
+              transform: menuState.isOpen ? "rotate(180deg)" : "rotate(0)",
+              transition: "transform 0.2s",
+            }}
+          />
+        }
+        style={{
+          color: isDarkTheme ? "#717579" : "#000",
+          textTransform: "none",
+          fontSize: "16px",
+          padding: "6px 8px",
+          minWidth: "unset",
+        }}
+      >
+        {config.label}
+      </Button>
+      <Menu
+        anchorEl={menuState.anchorEl}
+        open={menuState.isOpen}
+        onClose={menuState.handleClose}
+        PaperProps={{
+          style: {
+            backgroundColor: isDarkTheme ? "#161717" : "#fff",
+            color: isDarkTheme ? "#717579" : "#000",
+            marginTop: "8px",
+          },
+        }}
+      >
+        {config.items.map((item, index) => (
+          <MenuItem
+            key={index}
+            onClick={() => {
+              navigate(item.href);
+              menuState.handleClose();
+              item.onClick?.();
+            }}
+            style={{
+              fontSize: "16px",
+              padding: "8px 16px",
+            }}
+          >
+            {item.label}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+};
+
+const AccountInfo: React.FC<{ isDarkTheme: boolean }> = ({ isDarkTheme }) => {
+  const { activeAccount } = useWallet();
+  const { data: accountInfoData, isLoading: isAccountInfoLoading } = useAccountInfo();
+
+  if (!activeAccount) return null;
+
+  return (
+    <li style={{ alignItems: "center", gap: "4px" }} className="hidden md:flex">
+      <img src={VOIIcon} alt="VOI" width={16} height={16} />
+      <span style={{ color: isDarkTheme ? "#fff" : "#000" }}>
+        {isAccountInfoLoading ? (
+          <CircularProgress size={16} />
+        ) : (
+          ((accountInfoData?.amount || 0) / 1e6).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        )}
+      </span>
+    </li>
+  );
+};
+
+const themeStyles = {
+  dark: {
+    background: "#161717",
+    text: "#717579",
+    activeText: "#fff",
+  },
+  light: {
+    background: "#fff",
+    text: "#000",
+    activeText: "#000",
+  },
+};
+
 const Navbar: React.FC = () => {
   const location = useLocation();
 
@@ -214,6 +341,22 @@ const Navbar: React.FC = () => {
     setStatsAnchorEl(null);
   };
 
+  // Add state for Marketplace dropdown
+  const [marketplaceAnchorEl, setMarketplaceAnchorEl] =
+    useState<null | HTMLElement>(null);
+  const isMarketplaceMenuOpen = Boolean(marketplaceAnchorEl);
+
+  const handleMarketplaceMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setMarketplaceAnchorEl(event.currentTarget);
+  };
+
+  const handleMarketplaceMenuClose = () => {
+    setMarketplaceAnchorEl(null);
+  };
+
+  const tokensMenu = useMenu();
+  const earnMenu = useMenu();
+
   return (
     <>
       <NavRoot
@@ -233,77 +376,30 @@ const Navbar: React.FC = () => {
             <NavLinks>
               {/* Replace the navlinks mapping with custom rendering for Tokens dropdown */}
               {navlinks.map((item, key) => {
-                if (
-                  item.label === "Launchpad" ||
-                  item.label === "Community Chest" ||
-                  item.label === "Staking"
-                ) {
-                  return null;
-                }
+                // if (
+                //   item.label === "Launchpad" ||
+                //   item.label === "Community Chest" ||
+                //   item.label === "Staking"
+                // ) {
+                //   return null;
+                // }
 
                 if (item.label === "Tokens") {
                   return (
                     <React.Fragment key={key}>
                       <div key="tokens-menu">
-                        <Button
-                          onClick={handleTokensMenuClick}
-                          endIcon={
-                            <KeyboardArrowDownIcon
-                              sx={{
-                                transform: isTokensMenuOpen
-                                  ? "rotate(180deg)"
-                                  : "rotate(0)",
-                                transition: "transform 0.2s",
-                              }}
-                            />
-                          }
-                          style={{
-                            color: isDarkTheme ? "#717579" : "#000",
-                            textTransform: "none",
-                            fontSize: "16px",
-                            padding: "6px 8px",
-                            minWidth: "unset",
+                        <DropdownMenu
+                          menuState={tokensMenu}
+                          config={{
+                            label: "Tokens",
+                            items: [
+                              { label: "Launchpad", href: "/launchpad" },
+                              { label: "Wrapped Voi", href: "/wrapped-voi" },
+                              { label: "Drips", href: "/drips" },
+                            ],
                           }}
-                        >
-                          Tokens
-                        </Button>
-                        <Menu
-                          anchorEl={tokensAnchorEl}
-                          open={isTokensMenuOpen}
-                          onClose={handleTokensMenuClose}
-                          PaperProps={{
-                            style: {
-                              backgroundColor: isDarkTheme ? "#161717" : "#fff",
-                              color: isDarkTheme ? "#717579" : "#000",
-                              marginTop: "8px",
-                            },
-                          }}
-                        >
-                          <MenuItem
-                            onClick={() => {
-                              navigate("/create-arc200");
-                              handleTokensMenuClose();
-                            }}
-                            style={{
-                              fontSize: "16px",
-                              padding: "8px 16px",
-                            }}
-                          >
-                            Launchpad
-                          </MenuItem>
-                          <MenuItem
-                            onClick={() => {
-                              navigate("/community-chest");
-                              handleTokensMenuClose();
-                            }}
-                            style={{
-                              fontSize: "16px",
-                              padding: "8px 16px",
-                            }}
-                          >
-                            Wrapped Voi Hub
-                          </MenuItem>
-                        </Menu>
+                          isDarkTheme={isDarkTheme}
+                        />
                       </div>
                     </React.Fragment>
                   );
@@ -312,110 +408,21 @@ const Navbar: React.FC = () => {
                 if (item.label === "Earn") {
                   return (
                     <div key="earn-menu">
-                      <Button
-                        onClick={handleEarnMenuClick}
-                        endIcon={
-                          <KeyboardArrowDownIcon
-                            sx={{
-                              transform: isEarnMenuOpen
-                                ? "rotate(180deg)"
-                                : "rotate(0)",
-                              transition: "transform 0.2s",
-                            }}
-                          />
-                        }
-                        style={{
-                          color: isDarkTheme ? "#717579" : "#000",
-                          textTransform: "none",
-                          fontSize: "16px",
-                          padding: "6px 8px",
-                          minWidth: "unset",
+                      <DropdownMenu
+                        menuState={earnMenu}
+                        config={{
+                          label: "Earn",
+                          items: [
+                            { label: "Staking", href: "/staking" },
+                            { label: "Wrapped Voi LP Incentives", href: "/community-chest?contract=390001" },
+                            { label: "Fountain Voi", href: "/community-chest?contract=770561" },
+                            { label: "Community Chest Voi", href: "/community-chest?contract=664258" },
+                            { label: "NFT Voi", href: "/community-chest?contract=913147" },
+                            { label: "Liquid Voi", href: "/community-chest?contract=8372092" },
+                          ],
                         }}
-                      >
-                        Earn
-                      </Button>
-                      <Menu
-                        anchorEl={earnAnchorEl}
-                        open={isEarnMenuOpen}
-                        onClose={handleEarnMenuClose}
-                        PaperProps={{
-                          style: {
-                            backgroundColor: isDarkTheme ? "#161717" : "#fff",
-                            color: isDarkTheme ? "#717579" : "#000",
-                            marginTop: "8px",
-                          },
-                        }}
-                      >
-                        {/*<MenuItem
-                          onClick={() => {
-                            navigate("/nft-games");
-                            handleEarnMenuClose();
-                          }}
-                          style={{
-                            fontSize: "16px",
-                            padding: "8px 16px",
-                          }}
-                        >
-                          NFT Games
-                        </MenuItem>*/}
-                        <MenuItem
-                          onClick={() => {
-                            navigate("/staking");
-                            handleEarnMenuClose();
-                          }}
-                          style={{
-                            fontSize: "16px",
-                            padding: "8px 16px",
-                          }}
-                        >
-                          Nautilus Voi Staking
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            navigate("/community-chest?contract=390001");
-                            handleEarnMenuClose();
-                            window.location.reload();
-                          }}
-                        >
-                          Wrapped Voi LP Incentives
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            navigate("/community-chest?contract=770561");
-                            handleEarnMenuClose();
-                            window.location.reload();
-                          }}
-                        >
-                          Fountain Voi
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            navigate("/community-chest?contract=664258");
-                            handleEarnMenuClose();
-                            window.location.reload();
-                          }}
-                        >
-                          Community Chest Voi
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            navigate("/community-chest?contract=913147");
-                            handleEarnMenuClose();
-                            window.location.reload();
-                          }}
-                        >
-                          NFT Voi
-                        </MenuItem>
-                        <MenuItem
-                          onClick={() => {
-                            navigate("/community-chest?contract=8372092");
-                            handleEarnMenuClose();
-                            window.location.reload();
-                          }}
-                        >
-                          Liquid Voi
-                        </MenuItem>
-                      </Menu>
+                        isDarkTheme={isDarkTheme}
+                      />
                     </div>
                   );
                 }
@@ -423,56 +430,45 @@ const Navbar: React.FC = () => {
                 if (item.label === "Stats") {
                   return (
                     <div key="stats-menu">
-                      <Button
-                        onClick={handleStatsMenuClick}
-                        endIcon={
-                          <KeyboardArrowDownIcon
-                            sx={{
-                              transform: isStatsMenuOpen
-                                ? "rotate(180deg)"
-                                : "rotate(0)",
-                              transition: "transform 0.2s",
-                            }}
-                          />
-                        }
-                        style={{
-                          color: isDarkTheme ? "#717579" : "#000",
-                          textTransform: "none",
-                          fontSize: "16px",
-                          padding: "6px 8px",
-                          minWidth: "unset",
+                      <DropdownMenu
+                        menuState={{
+                          anchorEl: statsAnchorEl,
+                          isOpen: isStatsMenuOpen,
+                          handleOpen: handleStatsMenuClick,
+                          handleClose: handleStatsMenuClose,
                         }}
-                      >
-                        Stats
-                      </Button>
-                      <Menu
-                        anchorEl={statsAnchorEl}
-                        open={isStatsMenuOpen}
-                        onClose={handleStatsMenuClose}
-                        PaperProps={{
-                          style: {
-                            backgroundColor: isDarkTheme ? "#161717" : "#fff",
-                            color: isDarkTheme ? "#717579" : "#000",
-                            marginTop: "8px",
-                          },
+                        config={{
+                          label: "Stats",
+                          items: item.children?.map((child, childKey) => ({
+                            label: child.label,
+                            href: child.href,
+                          })) || [],
                         }}
-                      >
-                        {item.children?.map((child, childKey) => (
-                          <MenuItem
-                            key={childKey}
-                            onClick={() => {
-                              navigate(child.href);
-                              handleStatsMenuClose();
-                            }}
-                            style={{
-                              fontSize: "16px",
-                              padding: "8px 16px",
-                            }}
-                          >
-                            {child.label}
-                          </MenuItem>
-                        ))}
-                      </Menu>
+                        isDarkTheme={isDarkTheme}
+                      />
+                    </div>
+                  );
+                }
+
+                if (item.label === "Marketplace") {
+                  return (
+                    <div key="marketplace-menu">
+                      <DropdownMenu
+                        menuState={{
+                          anchorEl: marketplaceAnchorEl,
+                          isOpen: isMarketplaceMenuOpen,
+                          handleOpen: handleMarketplaceMenuClick,
+                          handleClose: handleMarketplaceMenuClose,
+                        }}
+                        config={{
+                          label: "Marketplace",
+                          items: item.children?.map((child, childKey) => ({
+                            label: child.label,
+                            href: child.href,
+                          })) || [],
+                        }}
+                        isDarkTheme={isDarkTheme}
+                      />
                     </div>
                   );
                 }
@@ -517,27 +513,7 @@ const Navbar: React.FC = () => {
                 gap: "12px",
               }}
             >
-              {activeAccount && (
-                <li
-                  style={{ alignItems: "center", gap: "4px" }}
-                  className="hidden md:flex"
-                >
-                  <img src={VOIIcon} alt="VOI" width={16} height={16} />
-                  <span style={{ color: isDarkTheme ? "#fff" : "#000" }}>
-                    {isAccountInfoLoading ? (
-                      <CircularProgress size={16} />
-                    ) : (
-                      ((accountInfoData?.amount || 0) / 1e6).toLocaleString(
-                        undefined,
-                        {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        }
-                      )
-                    )}
-                  </span>
-                </li>
-              )}
+              <AccountInfo isDarkTheme={isDarkTheme} />
 
               {activeAccount && (
                 <li
@@ -613,7 +589,7 @@ const Navbar: React.FC = () => {
               </div>
             </AccountContainer>
             <div className="md:hidden">
-              <SideBar exclude={["Tokens", "Earn"]} />
+              <SideBar exclude={["Tokens", "Earn"]} flattenMarketplace={true} />
             </div>
           </div>
         </NavContainer>

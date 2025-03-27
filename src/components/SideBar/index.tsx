@@ -22,7 +22,13 @@ import { ActiveNavLink, NavLink, NavLinks } from "../Navbar/components.styled";
 import { linkLabels, navlinks } from "../Navbar/constants";
 import { useLocation, useNavigate } from "react-router-dom";
 
-export function SideBar({ exclude }: { exclude?: string[] }) {
+// Add interface for better type safety
+interface SideBarProps {
+  exclude?: string[];
+  flattenMarketplace?: boolean;
+}
+
+export function SideBar({ exclude, flattenMarketplace }: SideBarProps) {
   const isDarkTheme = useSelector(
     (state: RootState) => state.theme.isDarkTheme
   );
@@ -30,14 +36,36 @@ export function SideBar({ exclude }: { exclude?: string[] }) {
   const location = useLocation();
 
   const theme = isDarkTheme ? "dark" : "light";
+
+  // Extract NavLink rendering logic to reduce duplication
+  const renderNavLink = (label: string, href: string, key: string) => {
+    const isActive = linkLabels[location.pathname] === label;
+    const Component = isActive ? ActiveNavLink : NavLink;
+    
+    return (
+      <SheetClose asChild key={key}>
+        <Component
+          className="w-full text-start flex items-start flex-col"
+          style={{ color: !isActive && isDarkTheme ? "#717579" : undefined }}
+          onClick={() => navigate(href)}
+        >
+          {label}
+          {!isActive && (
+            <div className="divide-solid divide-x w-full h-[1px] bg-primary rounded" />
+          )}
+        </Component>
+      </SheetClose>
+    );
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button className={`${theme}`} variant={`outline`}>
+        <Button className={theme} variant="outline" aria-label="Open menu">
           <Menu />
         </Button>
       </SheetTrigger>
-      <SheetContent className={`${theme}`}>
+      <SheetContent className={theme}>
         <SheetHeader>
           <SheetTitle className="text-primary-text text-start text-4xl">
             <div className="flex gap-2 items-center">
@@ -49,39 +77,18 @@ export function SideBar({ exclude }: { exclude?: string[] }) {
           </SheetDescription>
         </SheetHeader>
         <NavLinks className="!flex !flex-col !items-start !justify-start !gap-2 !my-8">
-          {navlinks.map((item, key) => {
+          {navlinks.map((item) => {
             if (exclude?.includes(item.label)) {
               return null;
             }
-            return linkLabels[location.pathname] === item.label ? (
-              <SheetClose asChild>
-                <ActiveNavLink
-                  className="w-full text-start flex items-start flex-col"
-                  key={`${key}_${item?.label}`}
-                  onClick={() => {
-                    navigate(item.href);
-                  }}
-                >
-                  {item.label}
-                </ActiveNavLink>
-              </SheetClose>
-            ) : (
-              <SheetClose asChild>
-                <NavLink
-                  className="w-full text-start flex items-start flex-col"
-                  key={`${key}_${item?.label}`}
-                  style={{ color: isDarkTheme ? "#717579" : undefined }}
-                  onClick={() => {
-                    navigate(item.href);
-                  }}
-                >
-                  {item.label}
-                  <div
-                    className={`divide-solid divide-x w-full h-[1px] bg-primary rounded`}
-                  ></div>
-                </NavLink>
-              </SheetClose>
-            );
+
+            if (flattenMarketplace && item.label === "Marketplace") {
+              return item.children?.map((child) => 
+                renderNavLink(child.label, child.href, `marketplace-${child.label}`)
+              );
+            }
+
+            return renderNavLink(item.label, item.href, `nav-${item.label}`);
           })}
         </NavLinks>
         <SheetFooter>

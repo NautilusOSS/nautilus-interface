@@ -580,17 +580,18 @@ const Attribution = styled.div`
 
 // Update HeroSection component
 const HeroSection = styled.div`
-  padding: 48px 0;
+  padding: 60px 0; // Increased padding
   text-align: center;
   margin-bottom: 48px;
   position: relative;
   overflow: hidden;
+  border-radius: 0 0 40px 40px; // Added rounded bottom corners
   background: ${(props) =>
     props.theme.isDarkTheme
-      ? "linear-gradient(180deg, rgba(0, 0, 139, 0.3) 0%, rgba(0, 0, 0, 0) 100%)"
-      : "linear-gradient(180deg, rgba(153, 51, 255, 0.1) 0%, rgba(153, 51, 255, 0) 100%)"};
+      ? "linear-gradient(180deg, rgba(0, 0, 139, 0.4) 0%, rgba(0, 0, 0, 0) 100%)"
+      : "linear-gradient(180deg, rgba(153, 51, 255, 0.15) 0%, rgba(153, 51, 255, 0) 100%)"};
 
-  // Add these properties for parallax effect
+  // Improved parallax effect
   &::after {
     content: "";
     position: absolute;
@@ -602,56 +603,34 @@ const HeroSection = styled.div`
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: fixed; // This creates the parallax effect
-    background-blend-mode: overlay;
+    background-attachment: fixed;
+    opacity: ${(props) => (props.theme.isDarkTheme ? 0.4 : 0.2)};
     z-index: -2;
-  }
-
-  // Keep the grain texture overlay
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: url(https://prod.cdn.highforge.io/m/407105/1.png);
-    opacity: ${(props) => (props.theme.isDarkTheme ? "0.15" : "0.07")};
-    z-index: -1;
-    pointer-events: none;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    transform: scale(1.1); // Slight scale for parallax depth
+    transition: transform 0.3s ease-out;
   }
 `;
 
-const HeroTitle = styled.h1<{ $isDarkTheme: boolean }>`
+const HeroTitle = styled.h1`
   color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
-  font-size: 48px;
-  font-weight: 700;
-  margin-bottom: 24px;
-  font-family: "Plus Jakarta Sans";
-  position: relative;
-  z-index: 1;
-
-  @media (max-width: 768px) {
-    font-size: 36px;
-  }
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.2;
+  margin: 0 auto;
+  max-width: 800px;
+  padding: 0 20px;
 `;
 
-const HeroSubtitle = styled.p<{ $isDarkTheme: boolean }>`
+const HeroSubtitle = styled.p`
   color: ${(props) =>
     props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
-  font-size: 20px;
-  margin-bottom: 32px;
+  font-size: clamp(16px, 2.5vw, 20px);
+  line-height: 1.6;
+  margin: 24px auto;
   max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-  position: relative;
-  z-index: 1;
+  padding: 0 20px;
 `;
 
-const HeroButton = styled(MuiButton)<{ $isDarkTheme: boolean }>`
+const HeroButton = styled(MuiButton)`
   background-color: ${(props) =>
     props.$isDarkTheme ? "#fff" : "#93f"} !important;
   color: ${(props) => (props.$isDarkTheme ? "#000" : "#fff")} !important;
@@ -662,10 +641,12 @@ const HeroButton = styled(MuiButton)<{ $isDarkTheme: boolean }>`
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 12px rgba(153, 51, 255, 0.2) !important;
 
   &:hover {
-    background-color: ${(props) =>
-      props.$isDarkTheme ? "rgba(255, 255, 255, 0.9)" : "#7a2adb"} !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(153, 51, 255, 0.3) !important;
   }
 
   &.external-link {
@@ -687,65 +668,71 @@ const HeroButton = styled(MuiButton)<{ $isDarkTheme: boolean }>`
 
 // Add styled components for Stats
 const StatsContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 48px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
   margin-top: 48px;
-  flex-wrap: wrap;
+  padding: 24px;
+  background: ${(props) =>
+    props.theme.isDarkTheme
+      ? "rgba(255, 255, 255, 0.03)" // Slightly darker background in dark mode
+      : "rgba(153, 51, 255, 0.05)"};
+  border-radius: 24px;
+  backdrop-filter: blur(10px);
+  border: 1px solid
+    ${(props) =>
+      props.theme.isDarkTheme
+        ? "rgba(255, 255, 255, 0.1)"
+        : "rgba(153, 51, 255, 0.1)"};
 `;
 
 const StatItem = styled.div<{ $isDarkTheme: boolean }>`
   text-align: center;
+  padding: 24px;
+  border-radius: 16px;
+  background: ${(props) =>
+    props.$isDarkTheme
+      ? "rgba(255, 255, 255, 0.05)" // Darker background for dark mode
+      : "rgba(255, 255, 255, 0.5)"};
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid
+    ${(props) =>
+      props.$isDarkTheme
+        ? "rgba(255, 255, 255, 0.1)" // More visible border in dark mode
+        : "rgba(153, 51, 255, 0.1)"};
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px
+      ${(props) =>
+        props.$isDarkTheme
+          ? "rgba(153, 51, 255, 0.2)" // Glowing effect in dark mode
+          : "rgba(153, 51, 255, 0.15)"};
+  }
 
   .stat-value {
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 700;
-    color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
     margin-bottom: 8px;
+    background: ${(props) =>
+      props.$isDarkTheme
+        ? "linear-gradient(135deg, #fff, #93f)" // Lighter gradient in dark mode
+        : "linear-gradient(135deg, #93f, #ff69b4)"};
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: ${(props) =>
+      props.$isDarkTheme
+        ? "0 0 20px rgba(153, 51, 255, 0.3)" // Added glow effect in dark mode
+        : "none"};
   }
 
   .stat-label {
-    font-size: 16px;
     color: ${(props) =>
-      props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
-  }
-
-  &.reward-pool {
-    .stat-value {
-      color: ${(props) => (props.$isDarkTheme ? "#00ffff" : "#93f")};
-      text-shadow: ${(props) =>
-        props.$isDarkTheme
-          ? `0 0 10px rgba(0, 255, 255, 0.7),
-             0 0 20px rgba(0, 255, 255, 0.5),
-             0 0 30px rgba(0, 255, 255, 0.3)`
-          : `0 0 10px rgba(153, 51, 255, 0.7),
-             0 0 20px rgba(153, 51, 255, 0.5),
-             0 0 30px rgba(153, 51, 255, 0.3)`};
-      animation: ${(props) => (props.$isDarkTheme ? "glowCyan" : "glowPurple")}
-        1.5s ease-in-out infinite alternate;
-    }
-
-    @keyframes glowCyan {
-      from {
-        text-shadow: 0 0 10px rgba(0, 255, 255, 0.7),
-          0 0 20px rgba(0, 255, 255, 0.5), 0 0 30px rgba(0, 255, 255, 0.3);
-      }
-      to {
-        text-shadow: 0 0 20px rgba(0, 255, 255, 0.7),
-          0 0 30px rgba(0, 255, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.3);
-      }
-    }
-
-    @keyframes glowPurple {
-      from {
-        text-shadow: 0 0 10px rgba(153, 51, 255, 0.7),
-          0 0 20px rgba(153, 51, 255, 0.5), 0 0 30px rgba(153, 51, 255, 0.3);
-      }
-      to {
-        text-shadow: 0 0 20px rgba(153, 51, 255, 0.7),
-          0 0 30px rgba(153, 51, 255, 0.5), 0 0 40px rgba(153, 51, 255, 0.3);
-      }
-    }
+      props.$isDarkTheme
+        ? "rgba(255, 255, 255, 0.7)" // More visible label in dark mode
+        : "rgba(0, 0, 0, 0.7)"};
+    font-size: 14px;
+    font-weight: 500;
   }
 `;
 
@@ -764,29 +751,88 @@ const FeaturedContainer = styled.div`
   margin: 0 auto;
   padding: 0 24px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(1, 1fr);
   gap: 24px;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
   }
 `;
 
 const FeaturedCard = styled.div<{ $isDarkTheme: boolean }>`
   background: ${(props) =>
     props.theme.isDarkTheme
-      ? "rgba(255, 255, 255, 0.1)"
-      : "rgba(153, 51, 255, 0.1)"};
+      ? "rgba(255, 255, 255, 0.05)"
+      : "rgba(153, 51, 255, 0.05)"};
   border-radius: 16px;
-  padding: 24px;
-  text-align: center;
+  padding: 32px;
+  text-align: left;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid
+    ${(props) =>
+      props.theme.isDarkTheme
+        ? "rgba(255, 255, 255, 0.1)"
+        : "rgba(153, 51, 255, 0.1)"};
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #93f, #ff69b4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 0;
+  }
 
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: ${(props) =>
+      props.theme.isDarkTheme ? "rgba(255, 255, 255, 0.2)" : "#93f"};
+    box-shadow: 0 8px 24px rgba(153, 51, 255, 0.15);
+
+    &::before {
+      opacity: 0.05;
+    }
+
+    .feature-icon {
+      transform: scale(1.1);
+    }
+
+    .arrow-icon {
+      transform: translate(4px, -4px);
+    }
   }
+`;
+
+// Add new styled components for the icon and content
+const FeatureIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  margin-bottom: 20px;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+`;
+
+const FeatureContent = styled.div`
+  position: relative;
+  z-index: 1;
+`;
+
+const ArrowIcon = styled.span`
+  display: inline-block;
+  margin-left: 8px;
+  transition: transform 0.2s ease;
 `;
 
 // Add these type definitions near the top of the file where other interfaces are defined
@@ -865,19 +911,19 @@ const CollectionGrid = styled.div`
   }
 `;
 
-const CollectionCard = styled.div<{ $isDarkTheme: boolean }>`
+const CollectionCard = styled.div`
   position: relative;
   cursor: pointer;
   border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.2s ease-in-out;
+  transition: all 0.3s ease;
   background: ${(props) =>
-    props.$isDarkTheme
+    props.theme.isDarkTheme
       ? "rgba(255, 255, 255, 0.05)"
       : "rgba(153, 51, 255, 0.05)"};
   border: 1px solid
     ${(props) =>
-      props.$isDarkTheme
+      props.theme.isDarkTheme
         ? "rgba(255, 255, 255, 0.1)"
         : "rgba(153, 51, 255, 0.1)"};
   display: flex;
@@ -885,15 +931,25 @@ const CollectionCard = styled.div<{ $isDarkTheme: boolean }>`
   padding: 12px;
   gap: 12px;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px
-      ${(props) =>
-        props.$isDarkTheme ? "rgba(0, 0, 0, 0.2)" : "rgba(153, 51, 255, 0.1)"};
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #93f, #ff69b4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+  }
 
-    .ranking-overlay {
-      opacity: 0;
-      background: transparent;
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(153, 51, 255, 0.15);
+
+    &::before {
+      opacity: 0.1;
     }
   }
 `;
@@ -933,6 +989,291 @@ const RankingOverlay = styled.div`
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
+
+const StyledSkeleton = styled(Skeleton)`
+  animation: pulse 1.5s ease-in-out infinite;
+
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+`;
+
+// Add new styled components for the Launchpad section
+const LaunchpadSection = styled.div`
+  margin: 24px auto 48px;
+  padding: 0 24px; // Add horizontal padding
+  max-width: 1400px; // Limit maximum width
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px; // Increase gap between cards
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    padding: 0 16px; // Slightly less padding on mobile
+  }
+`;
+
+const LaunchpadImage = styled.img`
+  width: 200px;
+  height: 200px;
+  border-radius: 16px;
+  object-fit: cover;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    max-width: 300px;
+  }
+`;
+
+const LaunchpadContent = styled.div`
+  flex: 1;
+  padding: 8px 0; // Add vertical padding
+
+  @media (max-width: 768px) {
+    padding: 0;
+  }
+`;
+
+const FeatureCard = styled.div`
+  padding: 32px; // Increase internal padding
+  background: ${(props) =>
+    props.theme.isDarkTheme
+      ? "rgba(255, 255, 255, 0.05)"
+      : "rgba(153, 51, 255, 0.05)"};
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  gap: 32px; // Increase gap between icon and content
+  align-items: center;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(153, 51, 255, 0.15);
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px; // Slightly less padding on mobile
+  }
+`;
+
+// Update the LaunchpadSVG component
+const LaunchpadSVG = () => (
+  <svg
+    width="200"
+    height="200"
+    viewBox="0 0 200 200"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Rocket Body */}
+    <path
+      d="M100 30c-20 20-30 40-30 80v40l30 20 30-20v-40c0-40-10-60-30-80z"
+      fill="url(#rocketGradient)"
+      stroke="url(#rocketStroke)"
+      strokeWidth="4"
+    />
+
+    {/* Rocket Window */}
+    <circle
+      cx="100"
+      cy="90"
+      r="15"
+      fill="rgba(255, 255, 255, 0.9)"
+      stroke="url(#rocketStroke)"
+      strokeWidth="2"
+    />
+
+    {/* Rocket Fins */}
+    <path
+      d="M70 150l-20 20v-30zM130 150l20 20v-30z"
+      fill="url(#rocketGradient)"
+      stroke="url(#rocketStroke)"
+      strokeWidth="4"
+    />
+
+    {/* Rocket Flames */}
+    <path
+      d="M85 170c0 0-15 20-15 25s5 10 30 10 30-5 30-10-15-25-15-25"
+      fill="url(#flameGradient)"
+      opacity="0.8"
+    >
+      <animate
+        attributeName="d"
+        dur="0.5s"
+        repeatCount="indefinite"
+        values="
+          M85 170c0 0-15 20-15 25s5 10 30 10s30-5 30-10s-15-25-15-25;
+          M85 170c0 0-10 15-10 20s5 10 25 10s25-5 25-10s-10-20-10-20;
+          M85 170c0 0-15 20-15 25s5 10 30 10s30-5 30-10s-15-25-15-25"
+      />
+    </path>
+
+    {/* Stars in background */}
+    <g>
+      <circle cx="40" cy="40" r="2" fill="white" opacity="0.8">
+        <animate
+          attributeName="opacity"
+          dur="1.5s"
+          values="0.8;0.2;0.8"
+          repeatCount="indefinite"
+        />
+      </circle>
+      <circle cx="160" cy="60" r="2" fill="white" opacity="0.8">
+        <animate
+          attributeName="opacity"
+          dur="1.8s"
+          values="0.8;0.2;0.8"
+          repeatCount="indefinite"
+        />
+      </circle>
+      <circle cx="50" cy="140" r="2" fill="white" opacity="0.8">
+        <animate
+          attributeName="opacity"
+          dur="1.2s"
+          values="0.8;0.2;0.8"
+          repeatCount="indefinite"
+        />
+      </circle>
+      <circle cx="150" cy="150" r="2" fill="white" opacity="0.8">
+        <animate
+          attributeName="opacity"
+          dur="1.6s"
+          values="0.8;0.2;0.8"
+          repeatCount="indefinite"
+        />
+      </circle>
+    </g>
+
+    <defs>
+      {/* Gradient for rocket body */}
+      <linearGradient
+        id="rocketGradient"
+        x1="0"
+        y1="0"
+        x2="200"
+        y2="200"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#9933FF" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </linearGradient>
+
+      {/* Gradient for rocket stroke */}
+      <linearGradient
+        id="rocketStroke"
+        x1="0"
+        y1="0"
+        x2="200"
+        y2="200"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#9933FF" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </linearGradient>
+
+      {/* Gradient for flames */}
+      <linearGradient
+        id="flameGradient"
+        x1="100"
+        y1="170"
+        x2="100"
+        y2="205"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#FF69B4" />
+        <stop offset="50%" stopColor="#9933FF" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const EnvoiSVG = () => (
+  <svg
+    width="200"
+    height="200"
+    viewBox="0 0 200 200"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect
+      x="40"
+      y="60"
+      width="120"
+      height="80"
+      rx="8"
+      stroke="url(#envoiGradient)"
+      strokeWidth="8"
+    />
+    <path
+      d="M40 70l60 40 60-40"
+      stroke="url(#envoiGradient)"
+      strokeWidth="8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <text
+      x="100"
+      y="180"
+      textAnchor="middle"
+      fill="url(#envoiGradient)"
+      style={{ font: "bold 24px sans-serif" }}
+    >
+      .voi
+    </text>
+    <defs>
+      <linearGradient
+        id="envoiGradient"
+        x1="0"
+        y1="0"
+        x2="200"
+        y2="200"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#9933FF" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+// Update the LaunchpadImage styled component to handle SVGs
+const IconWrapper = styled.div`
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px; // Add some margin around the icons
+
+  @media (max-width: 768px) {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 16px; // Center icon and add bottom margin on mobile
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.3s ease;
+  }
+
+  &:hover svg {
+    transform: scale(1.05);
+  }
+`;
 
 export const Home: React.FC = () => {
   /* Dispatch */
@@ -1101,9 +1442,7 @@ export const Home: React.FC = () => {
     font-weight: 600;
   `;
 
-  const StyledTableContainer = styled(TableContainer)<{
-    $isDarkTheme: boolean;
-  }>`
+  const StyledTableContainer = styled(TableContainer)`
     background-color: ${(props) =>
       props.$isDarkTheme ? "rgba(255, 255, 255, 0.05)" : "#fff"};
     border-radius: 16px;
@@ -1144,6 +1483,26 @@ export const Home: React.FC = () => {
       &:hover {
         text-decoration: underline;
       }
+    }
+
+    box-shadow: 0 4px 20px rgba(153, 51, 255, 0.1);
+
+    .MuiTableRow-root {
+      transition: background-color 0.2s ease;
+    }
+
+    .MuiTableRow-root:hover {
+      background-color: ${(props) =>
+        props.theme.isDarkTheme
+          ? "rgba(255, 255, 255, 0.05)"
+          : "rgba(153, 51, 255, 0.05)"} !important;
+    }
+
+    .MuiTableCell-head {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.75rem;
     }
   `;
 
@@ -1570,7 +1929,8 @@ export const Home: React.FC = () => {
               >
                 Offers
               </HeroButton>
-              {/*<HeroButton
+              {/*
+              <HeroButton
                 $isDarkTheme={isDarkTheme}
                 variant="contained"
                 component={Link}
@@ -1578,7 +1938,17 @@ export const Home: React.FC = () => {
                 className="external-link"
               >
                 Collections
-              </HeroButton>*/}
+              </HeroButton>
+              <HeroButton
+                $isDarkTheme={isDarkTheme}
+                variant="contained"
+                component={Link}
+                to="/sale-activity"
+                className="external-link"
+              >
+                Activity
+              </HeroButton>
+              */}
             </Box>
 
             {/* Add Stats Section */}
@@ -1650,89 +2020,269 @@ export const Home: React.FC = () => {
           </HeroSection>
 
           <FeaturedSection>
+            <LaunchpadSection>
+              <FeatureCard
+                $isDarkTheme={isDarkTheme}
+                onClick={() => window.open("/#/create-arc200", "_blank")}
+              >
+                <IconWrapper>
+                  <LaunchpadSVG />
+                </IconWrapper>
+                <LaunchpadContent>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 600,
+                      color: isDarkTheme ? "#fff" : "#000",
+                      mb: 2,
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    }}
+                  >
+                    Launchpad
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(0, 0, 0, 0.7)",
+                      mb: 3,
+                    }}
+                  >
+                    Launch your token on Voi Network with our streamlined
+                    platform.
+                  </Typography>
+                  <HeroButton
+                    $isDarkTheme={isDarkTheme}
+                    variant="contained"
+                    sx={{
+                      backgroundColor: isDarkTheme ? "#fff" : "#93f",
+                      color: isDarkTheme ? "#000" : "#fff",
+                    }}
+                  >
+                    Launch Your Token
+                  </HeroButton>
+                </LaunchpadContent>
+              </FeatureCard>
+
+              <FeatureCard
+                $isDarkTheme={isDarkTheme}
+                onClick={() => window.open("https://app.envoi.sh", "_blank")}
+              >
+                <IconWrapper>
+                  <EnvoiSVG />
+                </IconWrapper>
+                <LaunchpadContent>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 600,
+                      color: isDarkTheme ? "#fff" : "#000",
+                      mb: 2,
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    }}
+                  >
+                    Claim Your Name
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(0, 0, 0, 0.7)",
+                      mb: 3,
+                    }}
+                  >
+                    Get your unique .voi domain name with enVoi naming service.
+                  </Typography>
+                  <HeroButton
+                    $isDarkTheme={isDarkTheme}
+                    variant="contained"
+                    sx={{
+                      backgroundColor: isDarkTheme ? "#fff" : "#93f",
+                      color: isDarkTheme ? "#000" : "#fff",
+                    }}
+                  >
+                    Search Names
+                  </HeroButton>
+                </LaunchpadContent>
+              </FeatureCard>
+            </LaunchpadSection>
+
             <FeaturedContainer>
               <FeaturedCard
                 $isDarkTheme={isDarkTheme}
                 onClick={() => window.open("/#/nft-drips", "_blank")}
               >
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: 600,
-                    color: isDarkTheme ? "#fff" : "#000",
-                    mb: 2,
-                    fontFamily: '"Plus Jakarta Sans", sans-serif',
-                  }}
-                >
-                  NFT Drips
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: isDarkTheme
-                      ? "rgba(255, 255, 255, 0.7)"
-                      : "rgba(0, 0, 0, 0.7)",
-                  }}
-                >
-                  Discover and track NFT collections with automated weekly
-                  distributions
-                </Typography>
+                <FeatureIcon className="feature-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <path
+                      d="M24 4L30 10L24 16M24 4L18 10L24 16M24 4V16M40 24C40 33.941 32.941 41 24 41C15.059 41 8 33.941 8 24C8 14.059 15.059 7 24 7"
+                      stroke={isDarkTheme ? "#fff" : "#93f"}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </FeatureIcon>
+                <FeatureContent>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 600,
+                      color: isDarkTheme ? "#fff" : "#000",
+                      mb: 2,
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    }}
+                  >
+                    NFT Drips
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(0, 0, 0, 0.7)",
+                      mb: 3,
+                    }}
+                  >
+                    Discover and track NFT collections with automated weekly
+                    distributions
+                  </Typography>
+                  <Typography
+                    variant="button"
+                    sx={{
+                      color: isDarkTheme ? "#fff" : "#93f",
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Learn More
+                    <ArrowIcon className="arrow-icon">↗</ArrowIcon>
+                  </Typography>
+                </FeatureContent>
               </FeaturedCard>
 
               <FeaturedCard
                 $isDarkTheme={isDarkTheme}
                 onClick={() => window.open("/#/staking", "_blank")}
               >
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: 600,
-                    color: isDarkTheme ? "#fff" : "#000",
-                    mb: 2,
-                    fontFamily: '"Plus Jakarta Sans", sans-serif',
-                  }}
-                >
-                  Staking Market
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: isDarkTheme
-                      ? "rgba(255, 255, 255, 0.7)"
-                      : "rgba(0, 0, 0, 0.7)",
-                  }}
-                >
-                  Buy and sell tokenized staking contracts and manage your
-                  positions
-                </Typography>
+                <FeatureIcon className="feature-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <path
+                      d="M8 8L40 8M8 24L40 24M8 40L40 40"
+                      stroke={isDarkTheme ? "#fff" : "#93f"}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </FeatureIcon>
+                <FeatureContent>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 600,
+                      color: isDarkTheme ? "#fff" : "#000",
+                      mb: 2,
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    }}
+                  >
+                    Staking Market
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(0, 0, 0, 0.7)",
+                      mb: 3,
+                    }}
+                  >
+                    Buy and sell tokenized staking contracts and manage your
+                    positions
+                  </Typography>
+                  <Typography
+                    variant="button"
+                    sx={{
+                      color: isDarkTheme ? "#fff" : "#93f",
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Explore Market
+                    <ArrowIcon className="arrow-icon">↗</ArrowIcon>
+                  </Typography>
+                </FeatureContent>
               </FeaturedCard>
 
               <FeaturedCard
                 $isDarkTheme={isDarkTheme}
                 onClick={() => window.open("/#/community-chest", "_blank")}
               >
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: 600,
-                    color: isDarkTheme ? "#fff" : "#000",
-                    mb: 2,
-                    fontFamily: '"Plus Jakarta Sans", sans-serif',
-                  }}
-                >
-                  Wrapped Voi
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: isDarkTheme
-                      ? "rgba(255, 255, 255, 0.7)"
-                      : "rgba(0, 0, 0, 0.7)",
-                  }}
-                >
-                  Wrap your VOI tokens to use them in DeFi applications and earn
-                  rewards
-                </Typography>
+                <FeatureIcon className="feature-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <path
+                      d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z"
+                      stroke={isDarkTheme ? "#fff" : "#93f"}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M24 16V32"
+                      stroke={isDarkTheme ? "#fff" : "#93f"}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M16 24H32"
+                      stroke={isDarkTheme ? "#fff" : "#93f"}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </FeatureIcon>
+                <FeatureContent>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 600,
+                      color: isDarkTheme ? "#fff" : "#000",
+                      mb: 2,
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    }}
+                  >
+                    Wrapped Voi
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(0, 0, 0, 0.7)",
+                      mb: 3,
+                    }}
+                  >
+                    Wrap your VOI tokens to use them in DeFi applications and
+                    earn rewards
+                  </Typography>
+                  <Typography
+                    variant="button"
+                    sx={{
+                      color: isDarkTheme ? "#fff" : "#93f",
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Get Started
+                    <ArrowIcon className="arrow-icon">↗</ArrowIcon>
+                  </Typography>
+                </FeatureContent>
               </FeaturedCard>
             </FeaturedContainer>
           </FeaturedSection>
