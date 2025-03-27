@@ -27,6 +27,7 @@ import SalesActivity from "./pages/SalesActivity";
 import AccountOffers from './pages/AccountOffers';
 import NFTDripsPage from './pages/NFTDrips';
 import { Offers } from "./pages/Offers";
+import Tools from "./pages/Tools";
 
 const BackgroundLayer = styled.div`
   width: 100%;
@@ -93,6 +94,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/account/:address/offers" element={<AccountOffers />} />
           <Route path="/nft-drips" element={<NFTDripsPage />} />
           <Route path="/offers" element={<Offers />} />
+          <Route path="/tools" element={<Tools />} />
         </Routes>
       </Router>
     </AppContainer>

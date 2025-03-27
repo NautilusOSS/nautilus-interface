@@ -509,7 +509,7 @@ function BasicMenu({ expanded }: { expanded?: boolean }) {
     fetchName(activeAccount.address).then((name) => {
       const nameStr = stripTrailingZeroBytes(name);
       if (nameStr !== compactAddress(activeAccount.address)) {
-          namehash(name).then((hash) => {
+        namehash(name).then((hash) => {
           const tokenId = uint8ArrayToBigInt(hash);
           resolver.http.getTokenInfo(tokenId.toString()).then((tokenInfo) => {
             if (tokenInfo.length > 0) {
@@ -528,7 +528,7 @@ function BasicMenu({ expanded }: { expanded?: boolean }) {
     });
   }, [activeAccount, resolver]);
 
-  console.log(displayName);
+  console.log({ displayName });
 
   // ---------------------------------------------
   // QUEST
@@ -578,7 +578,7 @@ function BasicMenu({ expanded }: { expanded?: boolean }) {
           onClick={(e: any) => {
             handleClick(e);
           }}
-          expandedWidth={displayName.length * 10 + 48}
+          expandedWidth={(displayName?.length || 0) * 10 + 48}
           expanded={expanded || open}
         >
           <Link
@@ -594,7 +594,7 @@ function BasicMenu({ expanded }: { expanded?: boolean }) {
               />
             ) : (
               <Avatar style={{ width: 48, height: 48 }}>
-                {displayName[0]}
+                {displayName ? displayName[0] : ""}
               </Avatar>
             )}
           </Link>
@@ -602,7 +602,7 @@ function BasicMenu({ expanded }: { expanded?: boolean }) {
             className="light"
             theme={isDarkTheme ? "dark" : "light"}
           >
-            {loading ? "Loading..." : displayName}
+            {loading ? "Loading..." : displayName || ""}
           </AccountDropdownLabel>
           <Link
             to={`/wallet/${activeAccount?.address}`}

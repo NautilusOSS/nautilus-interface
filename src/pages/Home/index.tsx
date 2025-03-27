@@ -758,8 +758,12 @@ const FeaturedContainer = styled.div`
     grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (min-width: 1024px) {
+  @media (min-width: 960px) {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (min-width: 1280px) {
+    grid-template-columns: repeat(4, 1fr);
   }
 `;
 
@@ -2280,6 +2284,59 @@ export const Home: React.FC = () => {
                     }}
                   >
                     Get Started
+                    <ArrowIcon className="arrow-icon">↗</ArrowIcon>
+                  </Typography>
+                </FeatureContent>
+              </FeaturedCard>
+
+              <FeaturedCard
+                $isDarkTheme={isDarkTheme}
+                onClick={() => window.open("/#/tools")}
+              >
+                <FeatureIcon className="feature-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <path
+                      d="M12 36L24 24M24 24L36 12M24 24L36 36M24 24L12 12"
+                      stroke={isDarkTheme ? "#fff" : "#93f"}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </FeatureIcon>
+                <FeatureContent>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 600,
+                      color: isDarkTheme ? "#fff" : "#000",
+                      mb: 2,
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    }}
+                  >
+                    Vibe Arcade
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: isDarkTheme
+                        ? "rgba(255, 255, 255, 0.7)"
+                        : "rgba(0, 0, 0, 0.7)",
+                      mb: 3,
+                    }}
+                  >
+                    Play games and explore  tools in the Vibe Arcade
+                  </Typography>
+                  <Typography
+                    variant="button"
+                    sx={{
+                      color: isDarkTheme ? "#fff" : "#93f",
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Play Now
                     <ArrowIcon className="arrow-icon">↗</ArrowIcon>
                   </Typography>
                 </FeatureContent>
