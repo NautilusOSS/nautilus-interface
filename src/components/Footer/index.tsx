@@ -7,6 +7,7 @@ import { RootState } from "../../store/store";
 import { Box, Grid, Stack, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
 import { currentVersion, deploymentVersion } from "@/contants/versions";
+import Launchpad from '@/pages/Launchpad';
 
 const FooterRoot = styled.footer`
   position: absolute;
@@ -185,39 +186,55 @@ const Footer: React.FC = () => {
           </Container>
         </Grid>
         <Grid item xs={12} sm={12} md={4}>
-          <Grid className="gap-3 md:gap-0" container>
-            <Grid item xs={12} md={6}>
-              <FooterHeading
-                style={{
-                  color: isDarkTheme ? "white" : undefined,
-                }}
-              >
-                Marketplace
-              </FooterHeading>
-              <FooterList>
-                <FooterLink>Collections</FooterLink>
-                <FooterLink>Actions</FooterLink>
-                <FooterLink>Buys</FooterLink>
-                <FooterLink>Sell</FooterLink>
-              </FooterList>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FooterHeading
-                style={{
-                  color: isDarkTheme ? "white" : undefined,
-                }}
-              >
-                Links
-              </FooterHeading>
-              <FooterList>
-                <FooterLink>Privacy Policy</FooterLink>
-                <FooterLink>Terms</FooterLink>
-                <FooterLink>FAQs</FooterLink>
-                <FooterLink>Report a Bug</FooterLink>
-              </FooterList>
-            </Grid>
-          </Grid>
-        </Grid>
+  <Grid className="gap-3 md:gap-0" container>
+    <Grid item xs={12} md={6}>
+      <FooterHeading
+        style={{
+          color: isDarkTheme ? "white" : undefined,
+        }}
+      >
+        Marketplace
+      </FooterHeading>
+      <FooterList>
+        <FooterLink>
+          <Link to="https://nautilus.sh/#/listing">Listings</Link>
+        </FooterLink>
+        <FooterLink>
+          <Link to="https://nautilus.sh/#/offers">Offers</Link>
+        </FooterLink>
+        <FooterLink>
+          <Link to="https://nautilus.sh/#/collection">Collections</Link>
+        </FooterLink>
+        <FooterLink>
+          <Link to="https://nautilus.sh/#/sales-activity">Activity</Link>
+        </FooterLink>
+      </FooterList>
+    </Grid>
+    <Grid item xs={12} md={6}>
+      <FooterHeading
+        style={{
+          color: isDarkTheme ? "white" : undefined,
+        }}
+      >
+        Links
+      </FooterHeading>
+      <FooterList>
+        <FooterLink>
+          <Link to="https://nautilus.sh/#/create-arc200">Launchpad</Link>
+        </FooterLink>
+        <FooterLink>
+          <Link to="https://nautilus.sh/#/staking">Staking</Link>
+        </FooterLink>
+        <FooterLink>
+          <Link to="https://nautilus.sh/#/community-chest">Wrapped Voi</Link>
+        </FooterLink>
+        <FooterLink>
+          <Link to="https://discord.com/channels/1055863853633785857/1205279834138480691">Report a Bug</Link>
+        </FooterLink>
+      </FooterList>
+    </Grid>
+  </Grid>
+</Grid>
         <Grid item xs={12}>
           <Stack
             direction="row"
