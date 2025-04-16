@@ -294,6 +294,28 @@ const AccountOffers: React.FC = () => {
     toast.success("Address copied to clipboard!");
   };
 
+  const handleOfferCancel = (cancelledOfferId: number) => {
+    setOffers((prevOffers) => {
+      const updatedOffers = prevOffers.filter(
+        (offer) => offer.mpListingId !== cancelledOfferId
+      );
+
+      // Update stats based on the new offers
+      const totalValue = updatedOffers.reduce(
+        (sum: number, offer: Offer) => sum + offer.price,
+        0
+      );
+      setStats({
+        totalOffers: updatedOffers.length,
+        totalValue: totalValue,
+        averageOffer:
+          updatedOffers.length > 0 ? totalValue / updatedOffers.length : 0,
+      });
+
+      return updatedOffers;
+    });
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -561,7 +583,11 @@ const AccountOffers: React.FC = () => {
           {offers.length > 0 ? (
             offers.map((offer) => (
               <Grid item xs={12} sm={6} md={4} key={offer.transactionId}>
-                <OfferCard offer={offer} isDarkTheme={isDarkTheme} />
+                <OfferCard
+                  offer={offer}
+                  isDarkTheme={isDarkTheme}
+                  onCancel={handleOfferCancel}
+                />
               </Grid>
             ))
           ) : (

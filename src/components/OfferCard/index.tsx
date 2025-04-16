@@ -4,6 +4,12 @@ import styled from "styled-components";
 import { formatAmount } from "../../utils/format";
 import { shortenAddress } from "../../utils/string";
 import { NFT_NAVIGATOR_API } from "@/config/arc72-idx";
+import { toast } from "react-toastify";
+import { useWallet } from "@txnlab/use-wallet-react";
+import { getAlgorandClients } from "@/wallets";
+import { abi, CONTRACT } from "ulujs";
+import algosdk from "algosdk";
+import BigNumber from "bignumber.js";
 
 const OfferCardWrapper = styled(Card)<{ $isDark?: boolean }>`
   &.MuiCard-root {
@@ -42,11 +48,15 @@ const StyledButton = styled(Button)<{ $isDark?: boolean }>`
 `;
 
 interface Offer {
+  mpListingId: number;
   transactionId: string;
   tokenId: string;
   price: number;
   collectionId: number;
   createTimestamp: number;
+  offerer: string;
+  currency: number;
+  active: number;
 }
 
 interface TokenInfo {
@@ -57,11 +67,34 @@ interface TokenInfo {
 interface OfferCardProps {
   offer: Offer;
   isDarkTheme: boolean;
+  onCancel?: (offerId: number) => void;
 }
 
-const OfferCard: React.FC<OfferCardProps> = ({ offer, isDarkTheme }) => {
+const OfferCard: React.FC<OfferCardProps> = ({ offer, isDarkTheme, onCancel }) => {
   const [tokenInfo, setTokenInfo] = React.useState<TokenInfo>();
   const [loading, setLoading] = React.useState(true);
+  const [manager, setManager] = React.useState<string>("");
+  const { activeAccount, signTransactions } = useWallet();
+
+  React.useEffect(() => {
+    // Fetch manager address
+    const fetchManager = async () => {
+      try {
+        const { algodClient, indexerClient } = getAlgorandClients();
+        const ctcInfoMP213 = 8329112; // mp213 offers
+        const ci = new CONTRACT(ctcInfoMP213, algodClient, indexerClient, abi.mp, {
+          addr: algosdk.getApplicationAddress(ctcInfoMP213),
+          sk: new Uint8Array(0),
+        });
+        const managerResponse = await ci.manager();
+        setManager(managerResponse.returnValue);
+      } catch (error) {
+        console.error("Error fetching manager:", error);
+      }
+    };
+
+    fetchManager();
+  }, []);
 
   React.useEffect(() => {
     if (!offer.collectionId || !offer.tokenId || tokenInfo) return;
@@ -74,7 +107,6 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isDarkTheme }) => {
         const data = await response.json();
         if (data.tokens.length > 0) {
           const metadata = JSON.parse(data.tokens[0].metadata);
-          console.log({ metadata });
           setTokenInfo({
             name: metadata.name,
             image: metadata.image,
@@ -88,6 +120,130 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isDarkTheme }) => {
     };
     fetchTokenInfo();
   }, [offer.collectionId, offer.tokenId]);
+
+  const handleCancelOffer = async (
+    offerId: number,
+    offerer: string,
+    offerAmount: number,
+    simulate?: boolean
+  ) => {
+    try {
+      if (!activeAccount) {
+        toast.info("Please connect wallet!");
+        return;
+      }
+
+      const feeAmountBI = BigInt(
+        new BigNumber(offerAmount).multipliedBy(0.1).toFixed(0)
+      );
+      const offerAmountBI = BigInt(offerAmount);
+      const totalAmount = offerAmountBI + feeAmountBI;
+
+      const { algodClient, indexerClient } = getAlgorandClients();
+      const ctcInfoMP213 = 8329112; // mp213 offers
+      const ctcInfoNV = 8324600; // Nautilus Voi NV
+
+      const builder = {
+        arc200: new CONTRACT(
+          ctcInfoNV,
+          algodClient,
+          indexerClient,
+          abi.nt200,
+          {
+            addr: offerer,
+            sk: new Uint8Array(0),
+          },
+          true,
+          false,
+          true
+        ),
+        mp: new CONTRACT(
+          ctcInfoMP213,
+          algodClient,
+          indexerClient,
+          {
+            name: "mp213",
+            desc: "mp213",
+            methods: [
+              {
+                name: "a_offer_deleteListing",
+                args: [{ type: "uint256", name: "offerId" }],
+                returns: { type: "void" },
+              },
+            ],
+            events: [],
+          },
+          {
+            addr: offerer,
+            sk: new Uint8Array(0),
+          },
+          true,
+          false,
+          true
+        ),
+      };
+
+      const buildN = [];
+      
+      // Delete listing transaction
+      const txnO = (await builder.mp.a_offer_deleteListing(BigInt(offerId)))?.obj;
+      buildN.push({
+        ...txnO,
+        note: new TextEncoder().encode(`a_offer_deleteListing:${offerId}`),
+        foreignApps: [ctcInfoNV, offer.collectionId],
+        accounts: ["RTKWX3FTDNNIHMAWHK5SDPKH3VRPPW7OS5ZLWN6RFZODF7E22YOBK2OGPE"],
+      });
+
+      // Withdraw transaction
+      const withdrawTxn = (await builder.arc200.withdraw(totalAmount))?.obj;
+      buildN.push({
+        ...withdrawTxn,
+        note: new TextEncoder().encode(`withdraw:${totalAmount}`),
+      });
+
+      // Create and send transaction group
+      const ci = new CONTRACT(
+        ctcInfoMP213,
+        algodClient,
+        indexerClient,
+        abi.custom,
+        { addr: offerer, sk: new Uint8Array(0) }
+      );
+      
+      ci.setEnableGroupResourceSharing(true);
+      ci.setExtraTxns(buildN);
+      ci.setFee(3000);
+      
+      const customR = await ci.custom();
+      
+      if (simulate && customR.success) {
+        if (onCancel) onCancel(offerId);
+        toast.success("Offer cancelled successfully!");
+        return;
+      }
+
+      if (!customR.success) {
+        toast.error("Offer cancellation failed!", customR.error);
+        return;
+      }
+
+      const stxns = await signTransactions(
+        customR.txns.map((el: any) => new Uint8Array(Buffer.from(el, "base64")))
+      );
+      
+      const txn = await algodClient
+        .sendRawTransaction(stxns as Uint8Array[])
+        .do();
+      
+      await algosdk.waitForConfirmation(algodClient, txn.txId, 4);
+      
+      if (onCancel) onCancel(offerId);
+      toast.success("Offer cancelled successfully!");
+    } catch (e: any) {
+      console.error("Cancel offer error:", e);
+      toast.error(e.message || "Failed to cancel offer");
+    }
+  };
 
   const handleViewToken = () => {
     window.open(
@@ -153,6 +309,26 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isDarkTheme }) => {
             {/*<StyledTypography $isDark={isDarkTheme}>
               Transaction ID: {shortenAddress(offer.transactionId)}
             </StyledTypography>*/}
+            
+            {(offer.offerer === activeAccount?.address ||
+              manager === activeAccount?.address) && (
+              <StyledButton
+                variant="contained"
+                $isDark={isDarkTheme}
+                onClick={() =>
+                  handleCancelOffer(
+                    offer.mpListingId,
+                    offer.offerer,
+                    offer.price,
+                    false
+                  )
+                }
+                disabled={!activeAccount}
+              >
+                Cancel Offer
+              </StyledButton>
+            )}
+            
             <StyledButton
               variant="outlined"
               $isDark={isDarkTheme}
