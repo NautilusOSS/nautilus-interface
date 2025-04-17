@@ -8,6 +8,7 @@ import {
   Chip,
   Avatar,
   Button as MuiButton,
+  Dialog,
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -580,7 +581,7 @@ const Attribution = styled.div`
 
 // Update HeroSection component
 const HeroSection = styled.div`
-  padding: 60px 0; // Increased padding
+  padding-top: 60px;
   text-align: center;
   margin-bottom: 48px;
   position: relative;
@@ -1279,6 +1280,185 @@ const IconWrapper = styled.div`
   }
 `;
 
+// Add this new SVG component
+const GlitterDustLogo = () => (
+  <svg
+    width="180"
+    height="180"
+    viewBox="0 0 180 180"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Main circular dust cloud */}
+    <g filter="url(#glitterBlur)">
+      <circle cx="90" cy="90" r="70" fill="url(#glitterGradient)" />
+    </g>
+
+    {/* Animated dust particles */}
+    {[...Array(20)].map((_, i) => (
+      <circle
+        key={i}
+        r="2"
+        fill="white"
+        opacity="0.8"
+        style={{
+          transformOrigin: "center",
+          animation: `
+            sparkle ${2 + Math.random() * 2}s ease-in-out infinite ${i * 0.1}s,
+            float ${3 + Math.random() * 2}s ease-in-out infinite ${i * 0.2}s
+          `,
+        }}
+      >
+        <animateMotion
+          dur={`${5 + Math.random() * 5}s`}
+          repeatCount="indefinite"
+          path={`M ${80 + Math.random() * 20} ${80 + Math.random() * 20} 
+                 C ${85 + Math.random() * 10} ${70 + Math.random() * 40}
+                   ${95 + Math.random() * 10} ${70 + Math.random() * 40}
+                   ${100 + Math.random() * 20} ${100 + Math.random() * 20}`}
+        />
+      </circle>
+    ))}
+
+    {/* Text "PDX" */}
+    <text
+      x="90"
+      y="100"
+      textAnchor="middle"
+      fill="white"
+      fontSize="40"
+      fontWeight="bold"
+      filter="url(#glowFilter)"
+    >
+      PDX
+    </text>
+
+    {/* Definitions for filters and gradients */}
+    <defs>
+      <radialGradient
+        id="glitterGradient"
+        cx="0.5"
+        cy="0.5"
+        r="0.5"
+        fx="0.5"
+        fy="0.5"
+      >
+        <stop offset="0%" stopColor="#FF69B4" />
+        <stop offset="50%" stopColor="#9933FF" />
+        <stop offset="100%" stopColor="#FF69B4" stopOpacity="0" />
+      </radialGradient>
+
+      <filter id="glitterBlur" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="10" />
+      </filter>
+
+      <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
+      </filter>
+
+      <style>
+        {`
+          @keyframes sparkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+          }
+        `}
+      </style>
+    </defs>
+  </svg>
+);
+
+// Add new styled components for the modal
+const StyledModal = styled(Dialog)`
+  .MuiDialog-paper {
+    background: ${(props) =>
+      props.theme.isDarkTheme
+        ? "rgba(30, 30, 30, 0.95)"
+        : "rgba(255, 255, 255, 0.95)"};
+    border-radius: 24px;
+    padding: 32px;
+    max-width: 600px;
+    width: 90%;
+    border: 1px solid
+      ${(props) =>
+        props.theme.isDarkTheme
+          ? "rgba(255, 255, 255, 0.1)"
+          : "rgba(153, 51, 255, 0.1)"};
+  }
+`;
+
+const ModalTitle = styled.h2`
+  color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  font-family: "Plus Jakarta Sans", sans-serif;
+`;
+
+const ModalContent = styled.div`
+  color: ${(props) =>
+    props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+
+  p {
+    margin-bottom: 16px;
+  }
+
+  ul {
+    list-style-type: disc;
+    margin-left: 20px;
+    margin-bottom: 16px;
+  }
+
+  li {
+    margin-bottom: 8px;
+  }
+
+  .multiplier-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .multiplier-card {
+    padding: 16px;
+    border-radius: 12px;
+    background: ${(props) =>
+      props.$isDarkTheme
+        ? "rgba(255, 255, 255, 0.05)"
+        : "rgba(153, 51, 255, 0.05)"};
+    border: 1px solid ${(props) =>
+      props.$isDarkTheme
+        ? "rgba(255, 255, 255, 0.1)"
+        : "rgba(153, 51, 255, 0.1)"};
+  }
+
+  .multiplier-title {
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
+  }
+
+  .multiplier-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #93f;
+    margin-bottom: 8px;
+  }
+
+  .multiplier-description {
+    font-size: 14px;
+  }
+`;
+
 export const Home: React.FC = () => {
   /* Dispatch */
   const dispatch = useDispatch();
@@ -1891,6 +2071,12 @@ export const Home: React.FC = () => {
     // Show user-friendly error message
   }
 
+  // Add modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenModal = () => setIsModalOpen(true);
+  const handleCloseModal = () => setIsModalOpen(false);
+
   return (
     <>
       {!isLoading ? (
@@ -2022,6 +2208,132 @@ export const Home: React.FC = () => {
               </StatItem>
             </StatsContainer>*/}
           </HeroSection>
+
+          {/***/}
+          <Box
+            sx={{
+              mb: 5,
+              p: 3,
+              mx: 3, // Add horizontal margin
+              borderRadius: 3,
+              background: isDarkTheme
+                ? "linear-gradient(135deg, rgba(153, 51, 255, 0.1), rgba(255, 105, 180, 0.1))"
+                : "linear-gradient(135deg, rgba(153, 51, 255, 0.05), rgba(255, 105, 180, 0.05))",
+              border: `1px solid ${
+                isDarkTheme
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(153, 51, 255, 0.1)"
+              }`,
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: "center",
+              gap: 3,
+            }}
+          >
+            {/* Airdrop Icon/Image */}
+            <Box
+              sx={{
+                width: { xs: "100%", md: "200px" },
+                height: "200px",
+                position: "relative",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <GlitterDustLogo />
+            </Box>
+
+            {/* Airdrop Content */}
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 600,
+                  color: isDarkTheme ? "#fff" : "#000",
+                  mb: 2,
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  background: "linear-gradient(135deg, #93f, #ff69b4)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Pixel Dust ($PDX) Airdrop
+              </Typography>
+
+              <Typography
+                variant="body1"
+                sx={{
+                  color: isDarkTheme
+                    ? "rgba(255, 255, 255, 0.7)"
+                    : "rgba(0, 0, 0, 0.7)",
+                  mb: 2,
+                  lineHeight: 1.6,
+                }}
+              >
+                Join the Pixel Dust revolution! 10 million $PDX tokens are being
+                airdropped to past and present Nautilus NFT Marketplace users.
+                Don't miss out on this exclusive opportunity to be part of the
+                incentive program that rewards you for buying and selling NFTs.
+              </Typography>
+
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                <HeroButton
+                  $isDarkTheme={isDarkTheme}
+                  variant="contained"
+                  onClick={() => {
+                    navigate("/tools/pixeldustchecker");
+                    // smooth scroll to top
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  Check Eligibility
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M7 17L17 7M17 7H7M17 7V17"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </HeroButton>
+
+                <HeroButton
+                  $isDarkTheme={isDarkTheme}
+                  variant="outlined"
+                  onClick={handleOpenModal}
+                  sx={{
+                    backgroundColor: "transparent !important",
+                    border: `2px solid ${
+                      isDarkTheme ? "#fff" : "#93f"
+                    } !important`,
+                    color: `${isDarkTheme ? "#fff" : "#93f"} !important`,
+                    "&:hover": {
+                      backgroundColor: `${
+                        isDarkTheme
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(153, 51, 255, 0.1)"
+                      } !important`,
+                    },
+                  }}
+                >
+                  Learn More
+                </HeroButton>
+              </Box>
+            </Box>
+          </Box>
 
           <FeaturedSection>
             <LaunchpadSection>
@@ -2325,7 +2637,7 @@ export const Home: React.FC = () => {
                       mb: 3,
                     }}
                   >
-                    Play games and explore  tools in the Vibe Arcade
+                    Play games and explore tools in the Vibe Arcade
                   </Typography>
                   <Typography
                     variant="button"
@@ -2885,6 +3197,111 @@ export const Home: React.FC = () => {
               )}
             </ActivitySection>
           </Layout>
+
+          {/* Add Modal */}
+          <StyledModal
+            open={isModalOpen}
+            onClose={handleCloseModal}
+            theme={{ isDarkTheme }}
+          >
+            <ModalTitle $isDarkTheme={isDarkTheme}>
+              Pixel Dust ($PDX) Airdrop Details
+            </ModalTitle>
+            <ModalContent $isDarkTheme={isDarkTheme}>
+              <p>
+                Pixel Dust ($PDX) is a revolutionary token designed to reward
+                active participants in the Nautilus NFT marketplace ecosystem.
+                The airdrop consists of 10 million $PDX tokens (10% of the total
+                supply) distributed to eligible users based on their marketplace
+                activity.
+              </p>
+
+              <p>
+                <strong>How Points Work:</strong>
+              </p>
+              <div className="multiplier-grid">
+                <div className="multiplier-card">
+                  <div className="multiplier-title">Testnet Activity</div>
+                  <div className="multiplier-value">1x</div>
+                  <div className="multiplier-description">
+                    Points earned from testnet NFT sales and purchases
+                  </div>
+                </div>
+                <div className="multiplier-card">
+                  <div className="multiplier-title">Mainnet Activity</div>
+                  <div className="multiplier-value">2x</div>
+                  <div className="multiplier-description">
+                    Double points for mainnet NFT sales and purchases
+                  </div>
+                </div>
+                <div className="multiplier-card">
+                  <div className="multiplier-title">PDX Balance</div>
+                  <div className="multiplier-value">3x</div>
+                  <div className="multiplier-description">
+                    Triple points based on your PDX token holdings
+                  </div>
+                </div>
+              </div>
+
+              <p>
+                <strong>Key Features:</strong>
+              </p>
+              <ul>
+                <li>
+                  Eligibility: Must have at least 1 mainnet NFT sale on Nautilus
+                </li>
+                <li>
+                  Distribution: Based on marketplace activity and PDX balance
+                </li>
+                <li>
+                  Point System: Earn points through trading activity and holding PDX
+                </li>
+              </ul>
+
+              <p>
+                <strong>How to Participate:</strong>
+              </p>
+              <ul>
+                <li>
+                  Check your eligibility using the Pixel Dust Checker tool
+                </li>
+                <li>
+                  Trade NFTs on Nautilus to earn points and increase your reward
+                  eligibility
+                </li>
+                <li>Buy and hold PDX to earn 3x point multipliers</li>
+                <li>
+                  Wait for the airdrop based on your eligibility and total points
+                </li>
+              </ul>
+            </ModalContent>
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+              <HeroButton
+                $isDarkTheme={isDarkTheme}
+                variant="outlined"
+                onClick={handleCloseModal}
+                sx={{
+                  backgroundColor: "transparent !important",
+                  border: `2px solid ${
+                    isDarkTheme ? "#fff" : "#93f"
+                  } !important`,
+                  color: `${isDarkTheme ? "#fff" : "#93f"} !important`,
+                }}
+              >
+                Close
+              </HeroButton>
+              <HeroButton
+                $isDarkTheme={isDarkTheme}
+                variant="contained"
+                onClick={() => {
+                  handleCloseModal();
+                  window.open("https://docs.pixel-dust.xyz", "_blank");
+                }}
+              >
+                View Documentation
+              </HeroButton>
+            </Box>
+          </StyledModal>
         </div>
       ) : (
         <div>

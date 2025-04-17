@@ -6,6 +6,9 @@ import HigherLower from "@/components/Tools/HigherLower";
 import NameInspector from "@/components/Tools/NameInspector";
 import styled from "styled-components";
 import RoyaltyChecker from '../../components/Tools/RoyaltyChecker';
+import PixelDustChecker from "@/components/Tools/PixelDustChecker";
+import { useParams, useNavigate } from "react-router-dom";
+import NamePicker from "@/components/Tools/NamePicker";
 
 const toolsConfig = [
   {
@@ -170,6 +173,65 @@ const toolsConfig = [
       </svg>
     ),
   },
+  {
+    id: "pixeldustchecker",
+    name: "Pixel Dust Checker",
+    component: PixelDustChecker,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="8"
+          y="8"
+          width="16"
+          height="16"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <rect
+          x="12"
+          y="12"
+          width="4"
+          height="4"
+          fill="currentColor"
+        />
+        <rect
+          x="16"
+          y="16"
+          width="4"
+          height="4"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "namepicker",
+    name: "Name Picker",
+    component: NamePicker,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M16 4L19 10L26 11L21 15.5L22 22L16 19L10 22L11 15.5L6 11L13 10L16 4Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
 ];
 
 const ToolCard = styled.div`
@@ -217,8 +279,12 @@ const ToolsGrid = styled.div`
   padding: 1rem;
 `;
 
-// Add Hero section styled components
-const HeroSection = styled.div`
+interface HeroSectionProps {
+  isToolSelected: boolean;
+}
+
+// Update the HeroSection styled component
+const HeroSection = styled.div<HeroSectionProps>`
   padding: ${(props) => (props.isToolSelected ? "0.75rem" : "3rem 1rem")};
   background: linear-gradient(
     135deg,
@@ -327,6 +393,15 @@ const SelectedToolContainer = styled.div`
 const Tools: React.FC = () => {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedTool, setSelectedTool] = React.useState<string | null>(null);
+  const navigate = useNavigate();
+  const { tool } = useParams();
+
+  // Update useEffect to use router params instead of URL query
+  React.useEffect(() => {
+    if (tool && toolsConfig.some(t => t.id === tool)) {
+      setSelectedTool(tool);
+    }
+  }, [tool]);
 
   const filteredTools = toolsConfig.filter((tool) =>
     tool.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -334,13 +409,15 @@ const Tools: React.FC = () => {
 
   const handleToolSelect = (toolId: string) => {
     setSelectedTool(toolId);
+    // Use navigate instead of manipulating URL directly
+    navigate(`/tools/${toolId}`);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent, toolId: string) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleToolSelect(toolId);
-    }
+  // Update the back button handler
+  const handleBackToTools = () => {
+    setSelectedTool(null);
+    // Use navigate for going back to tools list
+    navigate('/tools');
   };
 
   const selectedToolName = toolsConfig.find(
@@ -401,7 +478,7 @@ const Tools: React.FC = () => {
               )}
               <button
                 className="back-button"
-                onClick={() => setSelectedTool(null)}
+                onClick={handleBackToTools}
                 aria-label="Back to tools list"
               >
                 Back to Tools
@@ -417,7 +494,7 @@ const Tools: React.FC = () => {
                 <ToolCard
                   key={tool.id}
                   onClick={() => handleToolSelect(tool.id)}
-                  onKeyPress={(e) => handleKeyPress(e, tool.id)}
+                  onKeyPress={(e) => handleToolSelect(tool.id)}
                   role="gridcell"
                   tabIndex={0}
                   aria-label={`${tool.name} tool`}

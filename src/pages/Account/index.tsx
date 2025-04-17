@@ -114,6 +114,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import LinkIcon from "@mui/icons-material/Link";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
+import { useAccountPoints } from "@/hooks/useAccountPoints";
 
 // Add these new interfaces above the styled components
 interface TraitCount {
@@ -1033,6 +1034,14 @@ interface EnvoiProfileResponse {
   request: Record<string, any>;
 }
 
+// Add this new type definition
+interface AccountStats {
+  nftCount: number;
+  collectionCount: number;
+  listingCount: number;
+  points?: number; // Make optional since not all accounts may have points
+}
+
 export const Account: React.FC = () => {
   const dispatch = useDispatch();
 
@@ -1099,6 +1108,7 @@ export const Account: React.FC = () => {
 
   /* Wallet */
   const { activeAccount, signTransactions } = useWallet();
+  const { points, isLoading: isLoadingPoints } = useAccountPoints(id);
 
   const {
     resolver: envoiResolver,
@@ -2941,6 +2951,22 @@ export const Account: React.FC = () => {
     fetchAccountOffers();
   }, [id]);
 
+  // Add the stats calculation
+  const accountStats: AccountStats = useMemo(() => {
+    if (!nfts || !groupedCollections || !listedNfts) {
+      return {
+        nftCount: 0,
+        collectionCount: 0,
+        listingCount: 0,
+      };
+    }
+    return {
+      nftCount: nfts.length,
+      collectionCount: groupedCollections.length,
+      listingCount: listedNfts.length,
+    };
+  }, [nfts, groupedCollections, listedNfts]);
+
   return (
     <>
       <HeroSection isDark={isDarkTheme}>
@@ -3101,7 +3127,7 @@ export const Account: React.FC = () => {
           <Grid container spacing={1}>
             {" "}
             {/* Reduced spacing from 2 to 1 */}
-            <Grid item xs={4} sm={4}>
+            <Grid item xs={4} sm={3}>
               <StatsCard elevation={0} isDark={isDarkTheme}>
                 <Typography variant="h4" color="primary">
                   {formatter.format(filteredNfts?.length || 0)}
@@ -3111,7 +3137,7 @@ export const Account: React.FC = () => {
                 </Typography>
               </StatsCard>
             </Grid>
-            <Grid item xs={4} sm={4}>
+            <Grid item xs={4} sm={3}>
               <StatsCard elevation={0} isDark={isDarkTheme}>
                 <Typography variant="h4" color="primary">
                   {formatter.format(groupedCollections?.length || 0)}
@@ -3121,7 +3147,7 @@ export const Account: React.FC = () => {
                 </Typography>
               </StatsCard>
             </Grid>
-            <Grid item xs={4} sm={4}>
+            <Grid item xs={4} sm={3}>
               <StatsCard elevation={0} isDark={isDarkTheme}>
                 <Typography variant="h4" color="primary">
                   {formatter.format(listedNfts?.length || 0)}
@@ -3131,6 +3157,52 @@ export const Account: React.FC = () => {
                 </Typography>
               </StatsCard>
             </Grid>
+            {!isLoadingPoints && (
+              <Grid item xs={12} sm={3}>
+                <StatsCard elevation={0} isDark={isDarkTheme}>
+                  <Typography variant="h4" color="primary">
+                    {points?.estimatedAirdrop.toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })}
+                  </Typography>
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="center"
+                    spacing={0.5}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      PXD
+                    </Typography>
+                    <Tooltip
+                      title="Estimated Pixel Dust airdrop based on your NFT trading activity and PXD balance"
+                      componentsProps={{
+                        tooltip: {
+                          sx: {
+                            bgcolor: isDarkTheme ? "#333" : "#f5f5f5",
+                            color: isDarkTheme ? "#fff" : "#000",
+                            border: "1px solid",
+                            borderColor: isDarkTheme ? "#444" : "#ddd",
+                            "& .MuiTooltip-arrow": {
+                              color: isDarkTheme ? "#333" : "#f5f5f5",
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      <InfoIcon
+                        sx={{
+                          fontSize: 14,
+                          color: "text.secondary",
+                          cursor: "help",
+                          ml: 0.5,
+                        }}
+                      />
+                    </Tooltip>
+                  </Stack>
+                </StatsCard>
+              </Grid>
+            )}
           </Grid>
         </HeroContent>
       </HeroSection>

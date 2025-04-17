@@ -24,8 +24,8 @@ import { theme } from "./theme";
 import CommunityChest from "./pages/CommunityChest";
 import EarlyAccessTokenSender from "./pages/EarlyAccessTokenSender";
 import SalesActivity from "./pages/SalesActivity";
-import AccountOffers from './pages/AccountOffers';
-import NFTDripsPage from './pages/NFTDrips';
+import AccountOffers from "./pages/AccountOffers";
+import NFTDripsPage from "./pages/NFTDrips";
 import { Offers } from "./pages/Offers";
 import Tools from "./pages/Tools";
 
@@ -95,6 +95,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/nft-drips" element={<NFTDripsPage />} />
           <Route path="/offers" element={<Offers />} />
           <Route path="/tools" element={<Tools />} />
+          <Route path="/tools/:tool" element={<Tools />} />
         </Routes>
       </Router>
     </AppContainer>

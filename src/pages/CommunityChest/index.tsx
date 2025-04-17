@@ -519,6 +519,12 @@ const notifications: Notification[] = [
     type: "success",
     contractId: 8372092,
   },
+  {
+    date: "2025-04-01",
+    message: "Gully Voi (gVOI) launched to support Gully ecosystem development",
+    type: "success",
+    contractId: 39949746,
+  },
 ];
 
 // Add these near the top with other interfaces
@@ -631,14 +637,6 @@ const prepareTokenomicsData = (tokenomics: ContractOption["tokenomics"]) => {
 
 const CONTRACT_OPTIONS: ContractOption[] = [
   {
-    id: 0, // Native VOI
-    name: "VOI",
-    description: "Native Voi token",
-    tokenomics: {
-      other: 100,
-    },
-  },
-  {
     id: 664258,
     name: "Community Chest Voi (CCV)",
     description:
@@ -704,10 +702,10 @@ const CONTRACT_OPTIONS: ContractOption[] = [
     description: "Weekly NFT prizes for holders...",
     iconPath: "M19 19H5V5h14m0-2H5c-1.1...",
     tokenomics: {
-      holder: 0.2,
-      drawing: 0.5,
+      holder: 0.32,
+      drawing: 0.6,
       lpHolder: 0,
-      treasury: 0.22,
+      treasury: 0,
       team: 0,
       node: 0.05,
       other: 0.03,
@@ -831,6 +829,24 @@ const CONTRACT_OPTIONS: ContractOption[] = [
       future: 0.9999, // Added future field
     },
   },
+  {
+    id: 39949746,
+    name: "Gully Voi (gVOI)",
+    description:
+      "Gully Voi (gVOI) is a wrapped VOI token that represents staked VOI in the Gully ecosystem. gVOI holders support the development of Gully's decentralized applications and may be eligible for future incentives.",
+    iconPath: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5", // Basic building block icon path
+    tokenomics: {
+      holder: 0.9999,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0,
+    },
+  },
 ];
 
 const getContractInfo = (contractId: number) => {
@@ -887,6 +903,11 @@ const getContractInfo = (contractId: number) => {
         title: "Buidl Voi (bVoi)",
         iconPath: "M12 3L1 9l11 6 11-6z M2 12l10 6 10-6", // Basic building block icon path
       };
+    case 39949746:
+      return {
+        title: "Gully Voi (gVOI)",
+        iconPath: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5", // Basic building block icon path
+      };
     default:
       return {
         title: "Community Chest",
@@ -922,6 +943,8 @@ const getContractDescription = (
       return "Welcome to Liquid Voi (LV) - a liquid staking solution that allows you to stake your VOI while maintaining liquidity. Your staked VOI automatically earns rewards which are distributed to all LV holders proportionally. Stake, earn, and trade without lockups!";
     case 8471125:
       return "Buidl VOI (bVoi) is a wrapped VOI token that represents staked VOI in the Buidl program. Holders support ecosystem development and may be eligible for future incentives. There are currently no direct rewards for holding bVoi.";
+    case 39949746:
+      return "Gully Voi (gVOI) is a wrapped VOI token that represents staked VOI in the Gully ecosystem. gVOI holders support the development of Gully's decentralized applications and may be eligible for future incentives.";
     default:
       return "";
   }
@@ -1264,15 +1287,15 @@ const NFT_RELEASES: NFTRelease[] = [
     date: "2025-03-21 00:00:00 UTC",
     name: "AI Voiager #66",
     url: "https://nautilus.sh/#/collection/398796/token/66",
-    winnerAddress: "",
-    txid: "",
+    winnerAddress: "MUTS5EI5IYSNNM2QDLNPBJ2NNRSRRMUC4S6OTCXM3JZMHUAJOSJT6YUKRA",
+    txid: "Y76JCTFIVIDZNSGBDTBXMEMW5O47FN7Z6O6Y4K7FTSMVJXWJMLBA",
   },
   {
     date: "2025-03-28 00:00:00 UTC",
     name: "CandyMons90",
     url: "https://nautilus.sh/#/collection/587497/token/90",
-    winnerAddress: "",
-    txid: "",
+    winnerAddress: "VOIUK3B5KQXVMVMYMLZOELHNABRKV27BP3CZRIK2ZCF7HEFP4F6APX76NM",
+    txid: "FXAIOAH4RQUECYKXJNVSGCWWPP6RDJR2DLWZDR4UFSN3QAE7BH2Q",
   },
   {
     date: "2025-04-04 00:00:00 UTC",
@@ -1953,7 +1976,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
 
         const relevantTokens = [
           664258, 390001, 770561, 828295, 888305, 913147, 917261, 8324600,
-          8372092, 8471125,
+          8372092, 8471125, 39949746,
         ];
         const filteredBalances = balancesResponse.data.balances.filter(
           (balance: any) =>
@@ -3718,6 +3741,8 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                     return "Womp VOI (WV) is a wrapped VOI token that represents staked VOI in WompCrew. There are no incentives to hold WV. However, community members may support the project by holding WV.";
                   case 8471125:
                     return "Buidl VOI (bVoi) is a wrapped VOI token that represents staked VOI in the Buidl program. Holders support ecosystem development and may be eligible for future incentives. There are currently no direct rewards for holding bVoi.";
+                  case 39949746:
+                    return "Gully Voi (gVOI) is a wrapped VOI token that represents staked VOI in the Gully ecosystem. gVOI holders support the development of Gully's decentralized applications and may be eligible for future incentives.";
                   default:
                     return "";
                 }
@@ -4325,7 +4350,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                     </Box>
                   </Label>
                   <NFTImage
-                    src="https://prod.cdn.highforge.io/m/398796/66.jpeg"
+                    src="https://prod.cdn.highforge.io/m/398078/24.webp"
                     alt="Weekly NFT Prize"
                     $isDarkTheme={isDarkTheme}
                   />
@@ -4337,7 +4362,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                       mb: 1,
                     }}
                   >
-                    AI Voiager #66"
+                    Bored Crepe #24
                   </Typography>
                   <Typography
                     variant="body2"
@@ -4377,7 +4402,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                         fontWeight: "bold",
                       }}
                     >
-                      Mar 20, 2025
+                      Apr 3, 2025
                     </Typography>
                   </Box>
                 </NFTPrizeCard>

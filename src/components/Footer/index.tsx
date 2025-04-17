@@ -1,21 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import LightLogo from "../../static/logo-light.svg";
 import DarkLogo from "../../static/logo-dark.svg";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
-import { Box, Grid, Stack, Typography } from "@mui/material";
+import { Box, Grid, Stack, Typography, Modal } from "@mui/material";
 import { Link } from "react-router-dom";
 import { currentVersion, deploymentVersion } from "@/contants/versions";
 import Launchpad from '@/pages/Launchpad';
 
 const FooterRoot = styled.footer`
-  position: absolute;
-  /* padding: 64px 80px; */
-  border-top: 1px solid #eaebf0; /* Border color set to #EAEBF0 */
-  padding-bottom: 80px;
-  padding-right: 0px;
-  /* padding-left: 80px; */
+  position: relative;
+  width: 100%;
+  border-top: 1px solid #eaebf0;
+  padding-bottom: 40px;
+
+  @media (min-width: 768px) {
+    padding-bottom: 80px;
+  }
 `;
 
 const Container = styled.div`
@@ -31,22 +33,31 @@ const BrandLogo = styled.img`
 `;
 
 const Description = styled.div`
+  font-size: 14px;
+  line-height: 20px;
   font-family: Inter;
-  font-size: 16px;
   font-weight: 200;
-  line-height: 24px;
   letter-spacing: 0px;
   text-align: left;
   color: #68727d;
+
+  @media (min-width: 768px) {
+    font-size: 16px;
+    line-height: 24px;
+  }
 `;
 
 const FooterHeading = styled.h3`
+  font-size: 20px;
+  margin-bottom: 12px;
   font-family: Nohemi;
-  font-size: 24px;
   font-weight: 600;
-  line-height: 24px;
   letter-spacing: 0px;
   text-align: left;
+
+  @media (min-width: 768px) {
+    font-size: 24px;
+  }
 `;
 
 const Copyright = styled.div`
@@ -136,30 +147,51 @@ const DiscordIcon = () => {
 const IconContainer = styled.div`
   display: grid;
   place-content: center;
-  padding: var(--Main-System-20px, 20px);
-  /* padding: 2px; */
+  padding: 15px;
   align-items: flex-start;
   gap: var(--Main-System-10px, 10px);
   border-radius: 100px;
   background: rgb(153, 51, 255);
-  width: 50px;
-  height: 50px;
-  /* :hover{
-    background: hsl(var(--background));
-  } */
-  /* aspect-ratio: 1; */
+  width: 40px;
+  height: 40px;
+
+  @media (min-width: 768px) {
+    width: 50px;
+    height: 50px;
+    padding: 20px;
+  }
 `;
+
+// Update modal style constant to use theme colors
+const modalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: "90%",
+  maxWidth: 800,
+  maxHeight: "90vh",
+  bgcolor: "background.paper",
+  boxShadow: 24,
+  p: 4,
+  overflow: "auto",
+  borderRadius: 2,
+};
 
 const Footer: React.FC = () => {
   const isDarkTheme = useSelector(
     (state: RootState) => state.theme.isDarkTheme
   );
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showFAQs, setShowFAQs] = useState(false);
+
   return (
     <FooterRoot
       className="md:py-20 md:px-16 p-4"
       style={{ background: isDarkTheme ? "rgb(22, 23, 23)" : undefined }}
     >
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         <Grid item xs={12} sm={12} md={6}>
           <Container>
             <BrandLogo src={isDarkTheme ? DarkLogo : LightLogo} />
@@ -186,8 +218,8 @@ const Footer: React.FC = () => {
           </Container>
         </Grid>
         <Grid item xs={12} sm={12} md={4}>
-          <Grid className="gap-3 md:gap-0" container>
-            <Grid item xs={12} md={6}>
+          <Grid className="gap-3 md:gap-0" container spacing={3}>
+            <Grid item xs={6} md={6}>
               <FooterHeading
                 style={{
                   color: isDarkTheme ? "white" : undefined,
@@ -196,21 +228,13 @@ const Footer: React.FC = () => {
                 Marketplace
               </FooterHeading>
               <FooterList>
-                <FooterLink>
-                  <Link to="https://nautilus.sh/#/listing">Listings</Link>
-                </FooterLink>
-                <FooterLink>
-                  <Link to="https://nautilus.sh/#/offers">Offers</Link>
-                </FooterLink>
-                <FooterLink>
-                  <Link to="https://nautilus.sh/#/collection">Collections</Link>
-                </FooterLink>
-                <FooterLink>
-                  <Link to="https://nautilus.sh/#/sales-activity">Activity</Link>
-                </FooterLink>
+                <FooterLink>Collections</FooterLink>
+                <FooterLink>Actions</FooterLink>
+                <FooterLink>Buys</FooterLink>
+                <FooterLink>Sell</FooterLink>
               </FooterList>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={6} md={6}>
               <FooterHeading
                 style={{
                   color: isDarkTheme ? "white" : undefined,
@@ -219,18 +243,10 @@ const Footer: React.FC = () => {
                 Links
               </FooterHeading>
               <FooterList>
-                <FooterLink>
-                  <Link to="https://nautilus.sh/#/create-arc200">Launchpad</Link>
-                </FooterLink>
-                <FooterLink>
-                  <Link to="https://nautilus.sh/#/staking">Staking</Link>
-                </FooterLink>
-                <FooterLink>
-                  <Link to="https://nautilus.sh/#/community-chest">Wrapped Voi</Link>
-                </FooterLink>
-                <FooterLink>
-                  <Link to="https://discord.com/channels/1055863853633785857/1205279834138480691">Report a Bug</Link>
-                </FooterLink>
+                <FooterLink>Privacy Policy</FooterLink>
+                <FooterLink>Terms</FooterLink>
+                <FooterLink>FAQs</FooterLink>
+                <FooterLink>Report a Bug</FooterLink>
               </FooterList>
             </Grid>
           </Grid>
@@ -256,6 +272,185 @@ const Footer: React.FC = () => {
           </Typography>
         </Grid>
       </Grid>
+      <Modal
+        open={showPrivacyPolicy}
+        onClose={() => setShowPrivacyPolicy(false)}
+        aria-labelledby="privacy-policy-modal"
+      >
+        <Box
+          sx={{
+            ...modalStyle,
+            bgcolor: isDarkTheme ? "rgb(22, 23, 23)" : "background.paper",
+            color: isDarkTheme ? "white" : "inherit",
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h2"
+            gutterBottom
+            sx={{ color: isDarkTheme ? "white" : "inherit" }}
+          >
+            Privacy Policy
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              color: isDarkTheme ? "white" : "inherit",
+              whiteSpace: "pre-line", // Preserve line breaks
+            }}
+          >
+            {`Last updated: 14 April 2025
+
+            At Nautilus, we prioritize your privacy by design. Our platform operates without collecting or storing any personal information.
+
+            No Data Collection:
+            • We do not collect or store any personal information
+            • We do not track your activity or usage
+            • We do not use cookies or similar tracking technologies
+            • We do not maintain any user databases
+
+            Blockchain Interactions:
+            All interactions with the blockchain are performed directly through your wallet. These transactions are public on the blockchain by nature, but Nautilus does not collect or store this information.
+
+            Third-Party Services:
+            While our platform may integrate with blockchain networks and wallets, we do not receive or process any user data from these interactions.
+
+            Changes to Privacy Policy:
+            We may update this policy periodically. Check back regularly for updates.
+
+            Contact:
+            For any questions about our privacy practices, you can reach us through our community channels.`}
+          </Typography>
+        </Box>
+      </Modal>
+      <Modal
+        open={showTerms}
+        onClose={() => setShowTerms(false)}
+        aria-labelledby="terms-modal"
+      >
+        <Box
+          sx={{
+            ...modalStyle,
+            bgcolor: isDarkTheme ? "rgb(22, 23, 23)" : "background.paper",
+            color: isDarkTheme ? "white" : "inherit",
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h2"
+            gutterBottom
+            sx={{ color: isDarkTheme ? "white" : "inherit" }}
+          >
+            Terms of Service
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              color: isDarkTheme ? "white" : "inherit",
+              whiteSpace: "pre-line",
+            }}
+          >
+            {`Last updated: 14 April 2025
+
+            Welcome to Nautilus. By accessing or using our platform, you agree to these Terms of Service.
+
+            1. Platform Usage
+            • You must be of legal age in your jurisdiction
+            • You are responsible for your wallet security
+            • You agree to use the platform in compliance with applicable laws
+
+            2. NFT Transactions
+            • All NFT transactions are final and irreversible
+            • You are responsible for verifying NFT authenticity
+            • Transaction fees are non-refundable
+
+            3. User Conduct
+            • Do not engage in fraudulent activities
+            • Do not interfere with platform operations
+            • Respect intellectual property rights
+
+            4. Risks
+            • Cryptocurrency and NFT values are volatile
+            • Smart contract interactions carry inherent risks
+            • You assume all risks related to platform usage
+
+            5. Modifications
+            • We may modify these terms at any time
+            • Continued use constitutes acceptance of changes
+
+            6. Limitation of Liability
+            • We are not liable for any losses or damages
+            • Platform provided "as is" without warranties
+
+            Contact us through community channels for questions about these terms.`}
+          </Typography>
+        </Box>
+      </Modal>
+      <Modal
+        open={showFAQs}
+        onClose={() => setShowFAQs(false)}
+        aria-labelledby="faqs-modal"
+      >
+        <Box
+          sx={{
+            ...modalStyle,
+            bgcolor: isDarkTheme ? "rgb(22, 23, 23)" : "background.paper",
+            color: isDarkTheme ? "white" : "inherit",
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h2"
+            gutterBottom
+            sx={{ color: isDarkTheme ? "white" : "inherit" }}
+          >
+            Frequently Asked Questions
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              color: isDarkTheme ? "white" : "inherit",
+              whiteSpace: "pre-line",
+            }}
+          >
+            {`Last updated: 14 April 2025
+
+            1. What is Nautilus?
+            Nautilus is a decentralized marketplace for digital art and collectibles on the Voi blockchain.
+
+            2. How do I get started?
+            • Connect your compatible wallet
+            • Browse listings or create your own
+            • Make offers or purchase directly
+            • Start collecting or creating
+
+            3. What fees are involved?
+            • Platform fees are transparent and on-chain
+            • Transaction fees apply to all transactions
+            • Creators set their own royalty fees
+
+            4. How do I ensure my NFT's authenticity?
+            • Verify collection contracts
+            • Check creator addresses
+            • Review transaction history
+            • Use official links only
+
+            5. What wallets are supported?
+            Please check our supported wallets page for the most up-to-date list.
+
+            6. How do I report issues?
+            Use our bug report form or contact us through Discord for support.
+
+            7. What about security?
+            • Always verify transactions
+            • Keep your wallet secure
+            • Never share private keys
+            • Be cautious of scams
+
+            For more detailed information, join our Discord community or contact support.`}
+          </Typography>
+        </Box>
+      </Modal>
     </FooterRoot>
   );
 };

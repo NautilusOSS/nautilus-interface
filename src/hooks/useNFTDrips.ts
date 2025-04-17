@@ -49,18 +49,16 @@ const DRIPS_DATA: NFTDrip[] = [
     collectionName: "Pixel Cups",
     collectionSupply: 1007,
     paymentTokenId: 913147,
-    dripAmount: Number((1 / 1007).toFixed(6)), // 1%
-    symbol: "NFV",
-    isPercentage: true,
+    dripAmount: Number((74 / 1007).toFixed(6)),
+    symbol: "PXD",
   },
   {
     collectionId: 8301084,
     collectionName: "GM Simpletons",
     collectionSupply: 547,
     paymentTokenId: 913147,
-    dripAmount: Number((1 / 547).toFixed(6)), // 1%
-    symbol: "NFV",
-    isPercentage: true,
+    dripAmount: Number((74 / 547).toFixed(6)),
+    symbol: "PXD",
   },
   {
     collectionId: 3819679,
@@ -75,9 +73,16 @@ const DRIPS_DATA: NFTDrip[] = [
     collectionName: "GN Voiagers",
     collectionSupply: 10000,
     paymentTokenId: 913147,
-    dripAmount: Number((1 / 10000).toFixed(6)), // 1%
-    symbol: "NFV",
-    isPercentage: true,
+    dripAmount: Number((74 / 10000).toFixed(6)),
+    symbol: "PXD",
+  },
+  {
+    collectionId: 398796,
+    collectionName: "AI Voiager",
+    collectionSupply: 109,
+    paymentTokenId: 913147,
+    dripAmount: 300_000,
+    symbol: "ROCKET",
   },
 ];
 
