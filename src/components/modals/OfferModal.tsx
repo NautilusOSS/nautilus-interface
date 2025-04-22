@@ -92,7 +92,6 @@ const OfferModal: React.FC<OfferModalProps> = ({
     const totalFee = (numAmount * marketplaceFeePercentage) / 100;
     const platformFee = totalFee * 0.25;
     const royaltyFee = totalFee * 0.25;
-    //const gamesFee = totalFee * 0.5;
     const gamesFee = totalFee * 0;
     return totalFee;
   };
@@ -146,12 +145,12 @@ const OfferModal: React.FC<OfferModalProps> = ({
                 <span>{calculateFee(offerAmount).toFixed(4)} VOI</span>
               </div>*/}
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Platform Fee ({marketplaceFeePercentage * 0.25}%):</span>
-                <span>{(calculateFee(offerAmount) * 0.25).toFixed(4)} VOI</span>
+                <span>Platform Fee ({marketplaceFeePercentage * 0.5}%):</span>
+                <span>{(calculateFee(offerAmount) * 0.5).toFixed(4)} VOI</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Royalty Fee ({marketplaceFeePercentage * 0.25}%):</span>
-                <span>{(calculateFee(offerAmount) * 0.25).toFixed(4)} VOI</span>
+                <span>Royalty Fee ({marketplaceFeePercentage * 0.5}%):</span>
+                <span>{(calculateFee(offerAmount) * 0.5).toFixed(4)} VOI</span>
               </div>
               {/*<div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>Games Fee ({marketplaceFeePercentage * 0.5}%):</span>
