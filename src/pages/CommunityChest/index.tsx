@@ -637,18 +637,28 @@ const prepareTokenomicsData = (tokenomics: ContractOption["tokenomics"]) => {
 
 const CONTRACT_OPTIONS: ContractOption[] = [
   {
+    id: 0,
+    name: "VOI",
+    description: "VOI is the native token of the Voi ecosystem.",
+    iconPath:
+      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+    tokenomics: {
+      holder: 1,
+    },
+  },
+  {
     id: 664258,
     name: "Community Chest Voi (CCV)",
     description:
       "Community Chest Voi is the original Community Chest token with weekly draws and holder distributions.",
     iconPath: "M3 3h18v18H3V3m15 15V6H6v12h12Z",
     tokenomics: {
-      holder: 0.35,
+      holder: 0.45,
       drawing: 0.5,
       lpHolder: 0,
       treasury: 0,
       team: 0,
-      node: 0.15,
+      node: 0.05,
       other: 0,
       faucet: 0,
       future: 0,
