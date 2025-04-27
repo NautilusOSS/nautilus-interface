@@ -1341,7 +1341,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
       const approvalIncrementBI = BigInt(
         new BigNumber(offerAmount)
           .multipliedBy(1e6)
-          .multipliedBy(0.2)
+          .multipliedBy(0.1)
           .toFixed(0)
       );
       const totalPaymentBI = offerAmountBI + approvalIncrementBI;
@@ -1849,7 +1849,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
         handleClose={() => setOpenOfferModal(false)}
         onSave={handleMakeOffer}
         buttonText="Make Offer"
-        marketplaceFeePercentage={20}
+        marketplaceFeePercentage={10}
       />
     </>
   ) : null;
