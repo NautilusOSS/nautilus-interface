@@ -158,21 +158,17 @@ const TabsContainer = styled(Box)<{ $isDark?: boolean }>`
 `;
 
 interface Offer {
-  transactionId: string;
-  mpContractId: number;
   mpListingId: number;
-  contractId: number;
+  listingId?: number;    // Optional alternative field
+  id?: number;          // Optional alternative field
+  transactionId: string;
   tokenId: string;
-  offerer: string;
   price: number;
-  currency: number;
-  createRound: number;
-  createTimestamp: number;
-  accept_id: string | null;
-  delete_id: string | null;
-  owner: string;
-  active: number;
   collectionId: number;
+  createTimestamp: number;
+  offerer: string;
+  currency: number;
+  active: number;
 }
 
 const getColorFromAddress = (address: string) => {
@@ -224,20 +220,23 @@ const AccountOffers: React.FC = () => {
         );
         const data = await response.json();
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Normalize offer IDs before setting state
+        const normalizedOffers = normalizeOffers(data.offers || []);
 
-        setOffers(data.offers);
+        setOffers(normalizedOffers);
 
         // Calculate stats
-        const totalValue = data.offers.reduce(
+        const totalValue = normalizedOffers.reduce(
           (sum: number, offer: Offer) => sum + offer.price,
           0
         );
         setStats({
-          totalOffers: data.offers.length,
+          totalOffers: normalizedOffers.length,
           totalValue: totalValue,
           averageOffer:
-            data.offers.length > 0 ? totalValue / data.offers.length : 0,
+            normalizedOffers.length > 0
+              ? totalValue / normalizedOffers.length
+              : 0,
         });
       } catch (error) {
         console.error("Error fetching offers:", error);
@@ -292,6 +291,50 @@ const AccountOffers: React.FC = () => {
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(address || "");
     toast.success("Address copied to clipboard!");
+  };
+
+  const handleOfferCancel = (cancelledOfferId: number) => {
+    setOffers((prevOffers) => {
+      const offerToCancel = prevOffers.find(
+        (offer) =>
+          offer.mpListingId === cancelledOfferId ||
+          (offer.listingId !== undefined &&
+            offer.listingId === cancelledOfferId) ||
+          (offer.id !== undefined && offer.id === cancelledOfferId)
+      );
+
+      if (!offerToCancel) {
+        console.warn(`Offer ${cancelledOfferId} not found`);
+        return prevOffers;
+      }
+
+      const updatedOffers = prevOffers.filter((offer) => {
+        const currentId = offer.mpListingId ?? offer.listingId ?? offer.id;
+        return currentId !== cancelledOfferId;
+      });
+
+      // Update stats
+      const totalValue = updatedOffers.reduce(
+        (sum: number, offer: Offer) => sum + offer.price,
+        0
+      );
+
+      setStats({
+        totalOffers: updatedOffers.length,
+        totalValue,
+        averageOffer:
+          updatedOffers.length > 0 ? totalValue / updatedOffers.length : 0,
+      });
+
+      return updatedOffers;
+    });
+  };
+
+  const normalizeOffers = (offers: any[]): Offer[] => {
+    return offers.map((offer) => ({
+      ...offer,
+      mpListingId: offer.mpListingId || offer.listingId || offer.id,
+    }));
   };
 
   if (loading) {
@@ -561,7 +604,11 @@ const AccountOffers: React.FC = () => {
           {offers.length > 0 ? (
             offers.map((offer) => (
               <Grid item xs={12} sm={6} md={4} key={offer.transactionId}>
-                <OfferCard offer={offer} isDarkTheme={isDarkTheme} />
+                <OfferCard
+                  offer={offer}
+                  isDarkTheme={isDarkTheme}
+                  onCancel={handleOfferCancel}
+                />
               </Grid>
             ))
           ) : (
