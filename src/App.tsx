@@ -145,6 +145,7 @@ const App: React.FC = () => {
           themeMode: "light",
         },
       },
+      WalletId.PERA,
     ],
     algod: {
       baseServer: ALGO_SERVER,
