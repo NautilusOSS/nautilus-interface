@@ -152,7 +152,7 @@ const App: React.FC = () => {
       port: "",
       token: "",
     },
-    network: NetworkId.MAINNET,
+    network: NetworkId.VOIMAIN
   });
 
   return (

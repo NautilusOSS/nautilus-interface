@@ -1,2 +1,2 @@
 export const currentVersion = 1;
-export const deploymentVersion = 11;
+export const deploymentVersion = 12;
