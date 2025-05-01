@@ -9,6 +9,7 @@ import RoyaltyChecker from '../../components/Tools/RoyaltyChecker';
 import PixelDustChecker from "@/components/Tools/PixelDustChecker";
 import { useParams, useNavigate } from "react-router-dom";
 import NamePicker from "@/components/Tools/NamePicker";
+import WrappedVoiManager from "@/components/Tools/WrappedVoiManager";
 
 const toolsConfig = [
   {
@@ -224,6 +225,37 @@ const toolsConfig = [
       >
         <path
           d="M16 4L19 10L26 11L21 15.5L22 22L16 19L10 22L11 15.5L6 11L13 10L16 4Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "wvoi-man",
+    name: "Wrapped VOI Manager",
+    component: WrappedVoiManager,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="6"
+          y="6"
+          width="20"
+          height="20"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M10 16L14 20L22 12"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
