@@ -1791,10 +1791,11 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
   connected,
   address,
 }) => {
+  const { activeAccount, signTransactions } = useWallet();
   const { balance, refetch: refetchBalance } = useAccountBalance(address);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const contractParam = searchParams.get("contract");
+  const contractParam = searchParams?.get("contract") || 390001;
 
   // Update state initialization to use URL parameter if available
   const [selectedContract, setSelectedContract] = useState<number>(
@@ -1802,6 +1803,45 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
       ? Number(contractParam)
       : 664258
   );
+
+  const [manager, setManager] = useState<string>("");
+  useEffect(() => {
+    if (!selectedContract) return;
+    if (!activeAccount) return;
+    const { algodClient } = getAlgorandClients();
+    const ci = new CONTRACT(
+      selectedContract,
+      algodClient,
+      undefined,
+      {
+        name: "WrappedVOI",
+        desc: "Wrapped VOI",
+        methods: [
+          {
+            name: "manager",
+            args: [],
+            returns: {
+              type: "address",
+            },
+          },
+        ],
+        events: [],
+      },
+      {
+        addr: activeAccount.address,
+        sk: Uint8Array.from([]),
+      }
+    );
+    ci.manager().then((managerR: any) => {
+      if (!managerR.success) {
+        throw new Error("Failed to get manager");
+      }
+      const manager = managerR.returnValue;
+      setManager(manager);
+    });
+  }, [selectedContract, activeAccount]);
+
+  console.log({ manager });
 
   // Update the contract selection handler to modify URL
   const handleContractChange = (newContract: number) => {
@@ -1836,7 +1876,6 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     );
   };
 
-  const { signTransactions, activeAccount } = useWallet();
   const [totalInChest, setTotalInChest] = useState<string>("0");
   const [holders, setHolders] = useState<number>(0);
   const [userBalance, setUserBalance] = useState<string>("0");
@@ -2071,6 +2110,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         }
       }
       if (!customR?.success) {
+        console.log({ customR });
         toast.error("Failed to deposit");
         return;
       }
@@ -2122,6 +2162,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
       ci.setFee(2000);
       const withdrawR = await ci.withdraw(amountBI);
       if (!withdrawR.success) {
+        console.log({ customR: withdrawR });
         toast.error("Failed to withdraw");
         return;
       }
@@ -2827,6 +2868,22 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     handleModalClose();
   };
 
+  // Add this styled component with other styled components
+  const ManagerSection = styled(Box)<{ $isDarkTheme: boolean }>`
+    margin: 24px 0;
+    padding: 24px;
+    background-color: ${(props) =>
+      props.$isDarkTheme ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.1)"};
+    border-radius: 16px;
+    border: 1px solid
+      ${(props) =>
+        props.$isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  `;
+
   return (
     <>
       <HeroSection $isDarkTheme={isDarkTheme}>
@@ -2868,7 +2925,6 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           </StatItem>
         </StatsHighlight>
       </HeroSection>
-
       {/* Add this section after HeroSection */}
       {connected && address && userTokenBalances.length > 0 && (
         <UserBalancesSection $isDarkTheme={isDarkTheme}>
@@ -2924,7 +2980,45 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           </TotalBalance>
         </UserBalancesSection>
       )}
-
+      {/* Add manager section if user is manager */}
+      {activeAccount?.address === manager && (
+        <Container
+          $isDarkTheme={isDarkTheme}
+          sx={{ my: 0, borderRadius: "16px" }}
+        >
+          <ManagerSection $isDarkTheme={isDarkTheme}>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Manage Wrapped Voi Token
+              </Typography>
+              <Typography variant="body2">
+                Access advanced management features for wrapped Voi token
+                <ul
+                  style={{
+                    listStyleType: "disc",
+                    display: "flex",
+                    gap: 16,
+                    paddingLeft: 16,
+                  }}
+                >
+                  <li>Withdraw block rewards</li>
+                  <li>Update partkeys</li>
+                  <li>Transfer ownership</li>
+                </ul>
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              component={Link}
+              href={`/#/tools/wvoi-manager?appId=${selectedContract}`}
+              //startIcon={<SettingsIcon />}
+            >
+              Manage Token
+            </Button>
+          </ManagerSection>
+        </Container>
+      )}
       {/* Token Swap Section - Moved here */}
       <Container
         $isDarkTheme={isDarkTheme}
@@ -3226,7 +3320,6 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           </Card>
         </Box>
       </Container>
-
       <Container
         $isDarkTheme={isDarkTheme}
         sx={{ borderRadius: "16px", mb: 5, pt: 3 }}
@@ -3236,7 +3329,6 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         </Typography>
         {renderComparisonTable()}
       </Container>
-
       {/* Add new deposit/withdraw section */}
       {selectedContract !== 0 && (
         <Container
@@ -3434,7 +3526,6 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           )}
         </Container>
       )}
-
       <Container
         $isDarkTheme={isDarkTheme}
         sx={{ borderRadius: "16px", mb: 5 }}

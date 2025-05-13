@@ -81,7 +81,7 @@
     "swiper": "^11.1.14",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
-    "ulujs": "^0.12.6",
+    "ulujs": "^0.12.10",
     "usehooks-ts": "^2.16.0",
     "viem": "^2.22.17",
     "zustand": "^5.0.3"

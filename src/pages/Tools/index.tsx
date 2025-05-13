@@ -5,11 +5,12 @@ import DiceRoll from "@/components/Tools/DiceRoll";
 import HigherLower from "@/components/Tools/HigherLower";
 import NameInspector from "@/components/Tools/NameInspector";
 import styled from "styled-components";
-import RoyaltyChecker from '../../components/Tools/RoyaltyChecker';
+import RoyaltyChecker from "../../components/Tools/RoyaltyChecker";
 import PixelDustChecker from "@/components/Tools/PixelDustChecker";
 import { useParams, useNavigate } from "react-router-dom";
 import NamePicker from "@/components/Tools/NamePicker";
 import WrappedVoiManager from "@/components/Tools/WrappedVoiManager";
+import SlotMachine from "@/components/Tools/SlotMachine";
 
 const toolsConfig = [
   {
@@ -194,20 +195,8 @@ const toolsConfig = [
           stroke="currentColor"
           strokeWidth="2"
         />
-        <rect
-          x="12"
-          y="12"
-          width="4"
-          height="4"
-          fill="currentColor"
-        />
-        <rect
-          x="16"
-          y="16"
-          width="4"
-          height="4"
-          fill="currentColor"
-        />
+        <rect x="12" y="12" width="4" height="4" fill="currentColor" />
+        <rect x="16" y="16" width="4" height="4" fill="currentColor" />
       </svg>
     ),
   },
@@ -261,6 +250,35 @@ const toolsConfig = [
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+      </svg>
+    ),
+  },
+  {
+    id: "slotmachine",
+    name: "Slot Machine",
+    component: SlotMachine,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="6"
+          y="6"
+          width="20"
+          height="20"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <circle cx="11" cy="16" r="2" fill="currentColor" />
+        <circle cx="16" cy="16" r="2" fill="currentColor" />
+        <circle cx="21" cy="16" r="2" fill="currentColor" />
+        <path d="M8 10L24 10" stroke="currentColor" strokeWidth="2" />
+        <path d="M8 22L24 22" stroke="currentColor" strokeWidth="2" />
       </svg>
     ),
   },
@@ -430,7 +448,7 @@ const Tools: React.FC = () => {
 
   // Update useEffect to use router params instead of URL query
   React.useEffect(() => {
-    if (tool && toolsConfig.some(t => t.id === tool)) {
+    if (tool && toolsConfig.some((t) => t.id === tool)) {
       setSelectedTool(tool);
     }
   }, [tool]);
@@ -449,7 +467,7 @@ const Tools: React.FC = () => {
   const handleBackToTools = () => {
     setSelectedTool(null);
     // Use navigate for going back to tools list
-    navigate('/tools');
+    navigate("/tools");
   };
 
   const selectedToolName = toolsConfig.find(

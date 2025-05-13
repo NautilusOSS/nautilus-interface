@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import algosdk from "algosdk";
 import { getAlgorandClients } from "@/wallets";
@@ -6,6 +6,7 @@ import { CONTRACT, abi } from "ulujs";
 import { useWallet } from "@txnlab/use-wallet-react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
+import { useSearchParams } from "react-router-dom";
 
 const Container = styled.div`
   padding: 1rem;
@@ -166,7 +167,8 @@ const WrappedVoiManager: React.FC = () => {
   );
   const { activeAccount, signTransactions } = useWallet();
   const [address, setAddress] = useState("");
-  const [appId, setAppId] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [appId, setAppId] = useState(searchParams.get("appId") || "");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [availableBalance, setAvailableBalance] = useState<number>(0);
