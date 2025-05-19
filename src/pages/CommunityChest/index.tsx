@@ -525,6 +525,13 @@ const notifications: Notification[] = [
     type: "success",
     contractId: 39949746,
   },
+  {
+    date: "2025-05-19",
+    message:
+      "GM Liquid Stake (COFFEE) launched to support GM ecosystem development",
+    type: "success",
+    contractId: 40077073,
+  },
 ];
 
 // Add these near the top with other interfaces
@@ -857,6 +864,27 @@ const CONTRACT_OPTIONS: ContractOption[] = [
       future: 0,
     },
   },
+  {
+    id: 40077073,
+    name: "GM Liquid Stake (COFFEE)",
+    description:
+      "COFFEE is GM's liquid staking token, representing staked VOI to support long-term GM/VOI trading liquidity without earning rewards. This token helps maintain stable liquidity for the GM ecosystem while allowing holders to maintain flexibility with their positions.",
+    iconPath:
+      "M4 19h16v-2H4v2zm16-16H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2z",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0.95,
+      team: 0,
+      node: 0.05,
+      other: 0,
+      faucet: 0,
+      future: 0,
+    },
+    tokenomicsNote:
+      "95% of rewards are automatically distributed to COFFEE holders, with 5% allocated to node operations.",
+  },
 ];
 
 const getContractInfo = (contractId: number) => {
@@ -918,6 +946,12 @@ const getContractInfo = (contractId: number) => {
         title: "Gully Voi (gVOI)",
         iconPath: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5", // Basic building block icon path
       };
+    case 40077073:
+      return {
+        title: "GM Liquid Stake (COFFEE)",
+        iconPath:
+          "M4 19h16v-2H4v2zm16-16H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2z",
+      };
     default:
       return {
         title: "Community Chest",
@@ -955,6 +989,8 @@ const getContractDescription = (
       return "Buidl VOI (bVoi) is a wrapped VOI token that represents staked VOI in the Buidl program. Holders support ecosystem development and may be eligible for future incentives. There are currently no direct rewards for holding bVoi.";
     case 39949746:
       return "Gully Voi (gVOI) is a wrapped VOI token that represents staked VOI in the Gully ecosystem. gVOI holders support the development of Gully's decentralized applications and may be eligible for future incentives.";
+    case 40077073:
+      return "COFFEE is GM's liquid staking token, representing staked VOI to support long-term GM/VOI trading liquidity without earning rewards. This token helps maintain stable liquidity for the GM ecosystem while allowing holders to maintain flexibility with their positions.";
     default:
       return "";
   }
@@ -2025,7 +2061,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
 
         const relevantTokens = [
           664258, 390001, 770561, 828295, 888305, 913147, 917261, 8324600,
-          8372092, 8471125, 39949746,
+          8372092, 8471125, 39949746, 40077073,
         ];
         const filteredBalances = balancesResponse.data.balances.filter(
           (balance: any) =>
@@ -3011,7 +3047,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
               variant="contained"
               color="primary"
               component={Link}
-              href={`/#/tools/wvoi-manager?appId=${selectedContract}`}
+              href={`/#/tools/wvoi-man?appId=${selectedContract}`}
               //startIcon={<SettingsIcon />}
             >
               Manage Token
@@ -3844,6 +3880,8 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                     return "Buidl VOI (bVoi) is a wrapped VOI token that represents staked VOI in the Buidl program. Holders support ecosystem development and may be eligible for future incentives. There are currently no direct rewards for holding bVoi.";
                   case 39949746:
                     return "Gully Voi (gVOI) is a wrapped VOI token that represents staked VOI in the Gully ecosystem. gVOI holders support the development of Gully's decentralized applications and may be eligible for future incentives.";
+                  case 40077073:
+                    return "COFFEE is GM's liquid staking token, representing staked VOI to support long-term GM/VOI trading liquidity without earning rewards. This token helps maintain stable liquidity for the GM ecosystem while allowing holders to maintain flexibility with their positions.";
                   default:
                     return "";
                 }

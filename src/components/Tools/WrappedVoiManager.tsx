@@ -841,7 +841,7 @@ const WrappedVoiManager: React.FC = () => {
             <p>
               Transaction ID:{" "}
               <TransactionLink
-                href={`https://algoexplorer.io/tx/${txId}`}
+                href={`https://voiager.xyz/transaction/${txId}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
