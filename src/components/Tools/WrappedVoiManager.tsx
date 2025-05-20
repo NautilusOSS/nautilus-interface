@@ -12,20 +12,31 @@ const Container = styled.div`
   padding: 1rem;
 `;
 
-const Form = styled.form`
+const Form = styled.form<{ isDark: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 1rem;
   max-width: 500px;
   margin: 0 auto;
+  padding: 1rem;
+  background: ${(props) => (props.isDark ? "#2D3748" : "#F7FAFC")};
+  border-radius: 8px;
+  border: 1px solid ${(props) => (props.isDark ? "#4A5568" : "#E2E8F0")};
 `;
 
-const Input = styled.input`
+const ModalForm = styled(Form)`
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+`;
+
+const Input = styled.input<{ isDark: boolean }>`
   padding: 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid ${(props) => (props.isDark ? "#4A5568" : "#E2E8F0")};
   border-radius: 4px;
-  background: var(--background-secondary);
-  color: var(--text-primary);
+  background: ${(props) => (props.isDark ? "#1A202C" : "#FFFFFF")};
+  color: ${(props) => (props.isDark ? "#F7FAFC" : "#2D3748")};
   width: 100%;
   outline: none;
 
@@ -35,7 +46,7 @@ const Input = styled.input`
   }
 
   &::placeholder {
-    color: var(--text-secondary);
+    color: ${(props) => (props.isDark ? "#A0AEC0" : "#718096")};
     opacity: 0.7;
   }
 `;
@@ -82,7 +93,7 @@ const Modal = styled.div<{ isDark: boolean }>`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: ${(props) => (props.isDark ? "#000" : "#ffffff")};
+  background: ${(props) => (props.isDark ? "#1A202C" : "#ffffff")};
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 4px 6px
@@ -118,6 +129,63 @@ const TransactionLink = styled.a`
   &:hover {
     text-decoration: underline;
   }
+`;
+
+const Label = styled.label`
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+`;
+
+const FormGroup = styled.div<{ isDark: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: ${(props) => (props.isDark ? "#1A202C" : "#F7FAFC")};
+  padding: 0.75rem;
+  border-radius: 6px;
+`;
+
+const TextArea = styled.textarea<{ isDark: boolean }>`
+  width: 100%;
+  min-height: 200px;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  background: ${(props) => (props.isDark ? "#1A202C" : "#FFFFFF")};
+  color: ${(props) => (props.isDark ? "#F7FAFC" : "#2D3748")};
+  border: 1px solid ${(props) => (props.isDark ? "#4A5568" : "#E2E8F0")};
+  border-radius: 4px;
+  
+  &:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
+  }
+
+  &::placeholder {
+    color: ${(props) => (props.isDark ? "#A0AEC0" : "#718096")};
+    opacity: 0.7;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const CompactFormGroup = styled(FormGroup)`
+  padding: 0.5rem;
+  gap: 0.15rem;
+`;
+
+const CompactInput = styled(Input)`
+  padding: 0.35rem;
+  font-size: 0.9rem;
+`;
+
+const CompactLabel = styled(Label)`
+  font-size: 0.85rem;
+  margin-bottom: 0.1rem;
 `;
 
 interface Participation {
@@ -550,14 +618,19 @@ const WrappedVoiManager: React.FC = () => {
         (optional) and the contract appId below.
       </p>
 
-      <Form onSubmit={handleSubmit}>
-        <Input
-          type="number"
-          placeholder="Enter application id..."
-          value={appId}
-          onChange={(e) => setAppId(e.target.value)}
-          required
-        />
+      <Form onSubmit={handleSubmit} isDark={isDarkTheme}>
+        <FormGroup isDark={isDarkTheme}>
+          <Label htmlFor="appId">Application ID</Label>
+          <Input
+            isDark={isDarkTheme}
+            id="appId"
+            type="number"
+            placeholder="Enter application id..."
+            value={appId}
+            onChange={(e) => setAppId(e.target.value)}
+            required
+          />
+        </FormGroup>
         <Button type="submit" disabled={loading || !appId} isDark={isDarkTheme}>
           {loading ? "Checking..." : "Check Status"}
         </Button>
@@ -612,30 +685,34 @@ const WrappedVoiManager: React.FC = () => {
           <Modal isDark={isDarkTheme}>
             <h3>Transfer Manager</h3>
             {!showGrantConfirmation ? (
-              <Form onSubmit={handleGrantSubmit}>
-                <Input
-                  type="text"
-                  placeholder="Enter new manager address..."
-                  value={grantAddress}
-                  onChange={(e) => setGrantAddress(e.target.value)}
-                  required
-                  disabled={isGranting}
-                />
-                <div
-                  style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}
-                >
-                  <Button type="submit" disabled={isGranting}>
+              <ModalForm isDark={isDarkTheme} onSubmit={handleGrantSubmit}>
+                <FormGroup isDark={isDarkTheme}>
+                  <Label htmlFor="grantAddress">New Manager Address</Label>
+                  <Input
+                    isDark={isDarkTheme}
+                    id="grantAddress"
+                    type="text"
+                    placeholder="Enter new manager address..."
+                    value={grantAddress}
+                    onChange={(e) => setGrantAddress(e.target.value)}
+                    required
+                    disabled={isGranting}
+                  />
+                </FormGroup>
+                <ButtonGroup>
+                  <Button type="submit" disabled={isGranting} isDark={isDarkTheme}>
                     Continue
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setShowModal(false)}
+                  <Button 
+                    type="button" 
+                    onClick={() => setShowModal(false)} 
                     disabled={isGranting}
+                    isDark={isDarkTheme}
                   >
                     Cancel
                   </Button>
-                </div>
-              </Form>
+                </ButtonGroup>
+              </ModalForm>
             ) : (
               <div>
                 <p style={{ color: "red", marginBottom: "1rem" }}>
@@ -673,126 +750,144 @@ const WrappedVoiManager: React.FC = () => {
 
       {showUpdateModal && (
         <>
-          <Overlay
-            isDark={isDarkTheme}
-            onClick={() => setShowUpdateModal(false)}
-          />
+          <Overlay isDark={isDarkTheme} onClick={() => setShowUpdateModal(false)} />
           <Modal isDark={isDarkTheme}>
             {!showConfirmation ? (
               <>
                 <h3>Update Participation</h3>
-                <div style={{ marginBottom: "1rem" }}>
-                  <Button
-                    type="button"
-                    onClick={() => setIsTextAreaMode(!isTextAreaMode)}
-                    style={{ marginBottom: "1rem" }}
-                  >
-                    {isTextAreaMode ? "Switch to Form" : "Switch to Text Input"}
-                  </Button>
-                </div>
-                <Form onSubmit={handleUpdateParticipation}>
-                  {isTextAreaMode ? (
-                    <textarea
-                      value={participationText}
-                      onChange={(e) =>
-                        handleParticipationTextChange(e.target.value)
-                      }
-                      placeholder="Paste participation information here..."
-                      style={{
-                        width: "100%",
-                        minHeight: "200px",
-                        padding: "0.5rem",
-                        marginBottom: "1rem",
-                        background: "var(--background-secondary)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border-color)",
-                        borderRadius: "4px",
-                      }}
-                    />
+                <Button
+                  type="button"
+                  onClick={() => setIsTextAreaMode(!isTextAreaMode)}
+                  style={{ marginBottom: "1rem" }}
+                  isDark={isDarkTheme}
+                >
+                  {isTextAreaMode ? "Switch to Form" : "Switch to Text Input"}
+                </Button>
+                <ModalForm isDark={isDarkTheme} onSubmit={handleUpdateParticipation}>
+                  {!isTextAreaMode ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <CompactFormGroup isDark={isDarkTheme}>
+                        <CompactLabel htmlFor="selectionKey">Selection Key</CompactLabel>
+                        <CompactInput
+                          isDark={isDarkTheme}
+                          id="selectionKey"
+                          type="text"
+                          placeholder="Selection Key"
+                          value={participationForm.selectionParticipationKey}
+                          onChange={(e) =>
+                            setParticipationForm({
+                              ...participationForm,
+                              selectionParticipationKey: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </CompactFormGroup>
+                      <CompactFormGroup isDark={isDarkTheme}>
+                        <CompactLabel htmlFor="stateProofKey">State Proof Key</CompactLabel>
+                        <CompactInput
+                          isDark={isDarkTheme}
+                          id="stateProofKey"
+                          type="text"
+                          placeholder="State Proof Key"
+                          value={participationForm.stateProofKey}
+                          onChange={(e) =>
+                            setParticipationForm({
+                              ...participationForm,
+                              stateProofKey: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </CompactFormGroup>
+                      <CompactFormGroup isDark={isDarkTheme}>
+                        <CompactLabel htmlFor="voteFirstValid">First Valid</CompactLabel>
+                        <CompactInput
+                          isDark={isDarkTheme}
+                          id="voteFirstValid"
+                          type="number"
+                          placeholder="First Valid"
+                          value={participationForm.voteFirstValid}
+                          onChange={(e) =>
+                            setParticipationForm({
+                              ...participationForm,
+                              voteFirstValid: Number(e.target.value),
+                            })
+                          }
+                          required
+                        />
+                      </CompactFormGroup>
+                      <CompactFormGroup isDark={isDarkTheme}>
+                        <CompactLabel htmlFor="voteLastValid">Last Valid</CompactLabel>
+                        <CompactInput
+                          isDark={isDarkTheme}
+                          id="voteLastValid"
+                          type="number"
+                          placeholder="Last Valid"
+                          value={participationForm.voteLastValid}
+                          onChange={(e) =>
+                            setParticipationForm({
+                              ...participationForm,
+                              voteLastValid: Number(e.target.value),
+                            })
+                          }
+                          required
+                        />
+                      </CompactFormGroup>
+                      <CompactFormGroup isDark={isDarkTheme}>
+                        <CompactLabel htmlFor="voteKeyDilution">Key Dilution</CompactLabel>
+                        <CompactInput
+                          isDark={isDarkTheme}
+                          id="voteKeyDilution"
+                          type="number"
+                          placeholder="Key Dilution"
+                          value={participationForm.voteKeyDilution}
+                          onChange={(e) =>
+                            setParticipationForm({
+                              ...participationForm,
+                              voteKeyDilution: Number(e.target.value),
+                            })
+                          }
+                          required
+                        />
+                      </CompactFormGroup>
+                      <CompactFormGroup isDark={isDarkTheme}>
+                        <CompactLabel htmlFor="voteParticipationKey">Vote Key</CompactLabel>
+                        <CompactInput
+                          isDark={isDarkTheme}
+                          id="voteParticipationKey"
+                          type="text"
+                          placeholder="Vote Key"
+                          value={participationForm.voteParticipationKey}
+                          onChange={(e) =>
+                            setParticipationForm({
+                              ...participationForm,
+                              voteParticipationKey: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </CompactFormGroup>
+                    </div>
                   ) : (
-                    <>
-                      <Input
-                        type="text"
-                        placeholder="Selection Participation Key"
-                        value={participationForm.selectionParticipationKey}
-                        onChange={(e) =>
-                          setParticipationForm({
-                            ...participationForm,
-                            selectionParticipationKey: e.target.value,
-                          })
-                        }
-                        required
+                    <FormGroup isDark={isDarkTheme}>
+                      <Label htmlFor="participationText">Participation Information</Label>
+                      <TextArea
+                        isDark={isDarkTheme}
+                        id="participationText"
+                        value={participationText}
+                        onChange={(e) => handleParticipationTextChange(e.target.value)}
+                        placeholder="Paste participation information here..."
                       />
-                      <Input
-                        type="text"
-                        placeholder="State Proof Key"
-                        value={participationForm.stateProofKey}
-                        onChange={(e) =>
-                          setParticipationForm({
-                            ...participationForm,
-                            stateProofKey: e.target.value,
-                          })
-                        }
-                        required
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Vote First Valid"
-                        value={participationForm.voteFirstValid}
-                        onChange={(e) =>
-                          setParticipationForm({
-                            ...participationForm,
-                            voteFirstValid: Number(e.target.value),
-                          })
-                        }
-                        required
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Vote Key Dilution"
-                        value={participationForm.voteKeyDilution}
-                        onChange={(e) =>
-                          setParticipationForm({
-                            ...participationForm,
-                            voteKeyDilution: Number(e.target.value),
-                          })
-                        }
-                        required
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Vote Last Valid"
-                        value={participationForm.voteLastValid}
-                        onChange={(e) =>
-                          setParticipationForm({
-                            ...participationForm,
-                            voteLastValid: Number(e.target.value),
-                          })
-                        }
-                        required
-                      />
-                      <Input
-                        type="text"
-                        placeholder="Vote Participation Key"
-                        value={participationForm.voteParticipationKey}
-                        onChange={(e) =>
-                          setParticipationForm({
-                            ...participationForm,
-                            voteParticipationKey: e.target.value,
-                          })
-                        }
-                        required
-                      />
-                    </>
+                    </FormGroup>
                   )}
-                  <Button type="submit">Update</Button>
-                  <Button
-                    type="button"
-                    onClick={() => setShowUpdateModal(false)}
-                  >
-                    Cancel
-                  </Button>
-                </Form>
+                  <ButtonGroup>
+                    <Button type="submit" isDark={isDarkTheme}>Update</Button>
+                    <Button type="button" onClick={() => setShowUpdateModal(false)} isDark={isDarkTheme}>
+                      Cancel
+                    </Button>
+                  </ButtonGroup>
+                </ModalForm>
               </>
             ) : (
               <>
