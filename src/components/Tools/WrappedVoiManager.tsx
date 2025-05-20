@@ -40,23 +40,32 @@ const Input = styled.input`
   }
 `;
 
-const Button = styled.button`
-  padding: 0.75rem 1rem;
-  background: var(--accent-color);
-  color: white;
+const Button = styled.button<{ isDark: boolean }>`
+  padding: 0.75rem 1.25rem;
+  background: ${(props) => (props.isDark ? "#2D3748" : "#EDF2F7")};
+  color: ${(props) => (props.isDark ? "#F7FAFC" : "#2D3748")};
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 500;
-  transition: opacity 0.2s ease;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    opacity: 0.9;
+    background: ${(props) => (props.isDark ? "#4A5568" : "#E2E8F0")};
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   &:disabled {
-    opacity: 0.5;
+    background: ${(props) => (props.isDark ? "#1A202C" : "#CBD5E0")};
+    color: ${(props) => (props.isDark ? "#4A5568" : "#A0AEC0")};
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 `;
 
@@ -549,7 +558,7 @@ const WrappedVoiManager: React.FC = () => {
           onChange={(e) => setAppId(e.target.value)}
           required
         />
-        <Button type="submit" disabled={loading || !appId}>
+        <Button type="submit" disabled={loading || !appId} isDark={isDarkTheme}>
           {loading ? "Checking..." : "Check Status"}
         </Button>
       </Form>
@@ -574,6 +583,7 @@ const WrappedVoiManager: React.FC = () => {
             <div style={{ marginTop: "1rem" }}>
               {withdrawableAmount > 0 && (
                 <Button
+                  isDark={isDarkTheme}
                   onClick={handleWithdraw}
                   style={{ marginRight: "1rem" }}
                   disabled={withdrawing}
@@ -582,12 +592,13 @@ const WrappedVoiManager: React.FC = () => {
                 </Button>
               )}
               <Button
+                isDark={isDarkTheme}
                 onClick={() => setShowUpdateModal(true)}
                 style={{ marginRight: "1rem" }}
               >
                 Update Participation
               </Button>
-              <Button onClick={() => setShowModal(true)}>
+              <Button isDark={isDarkTheme} onClick={() => setShowModal(true)}>
                 Transfer Manager
               </Button>
             </div>
