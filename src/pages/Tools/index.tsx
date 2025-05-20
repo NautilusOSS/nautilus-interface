@@ -11,6 +11,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import NamePicker from "@/components/Tools/NamePicker";
 import WrappedVoiManager from "@/components/Tools/WrappedVoiManager";
 import SlotMachine from "@/components/Tools/SlotMachine";
+import StakeableManager from "@/components/Tools/StakeableManager";
 
 const toolsConfig = [
   {
@@ -279,6 +280,37 @@ const toolsConfig = [
         <circle cx="21" cy="16" r="2" fill="currentColor" />
         <path d="M8 10L24 10" stroke="currentColor" strokeWidth="2" />
         <path d="M8 22L24 22" stroke="currentColor" strokeWidth="2" />
+      </svg>
+    ),
+  },
+  {
+    id: "stakeablemanager",
+    name: "Stakeable Manager",
+    component: StakeableManager,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="6"
+          y="6"
+          width="20"
+          height="20"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M10 16L14 20L22 12"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     ),
   },
