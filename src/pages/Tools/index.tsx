@@ -314,6 +314,41 @@ const toolsConfig = [
       </svg>
     ),
   },
+  {
+    id: "flappyammo",
+    name: "Flappy $AMMO",
+    component: () => {
+      window.open("https://flappy-ammo.netlify.app/", "_blank");
+      return null;
+    },
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M22 11C22 14.866 18.866 18 15 18C11.134 18 8 14.866 8 11C8 7.13401 11.134 4 15 4C18.866 4 22 7.13401 22 11Z"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M6 22L26 22"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M10 26L22 26"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
 ];
 
 const ToolCard = styled.div`

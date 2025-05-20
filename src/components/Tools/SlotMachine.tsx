@@ -334,6 +334,16 @@ const ContributeSection = styled.div`
   border-radius: 8px;
 `;
 
+const DisclaimerText = styled.div`
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  background: var(--background-primary);
+`;
+
 const SlotMachine: React.FC = () => {
   const { activeAccount, signTransactions, algodClient } = useWallet();
   const [reels, setReels] = useState<number[]>([0, 0, 0]);
@@ -825,6 +835,10 @@ const SlotMachine: React.FC = () => {
 
   return (
     <Container>
+      <DisclaimerText>
+        ⚠️ This is for demonstration purposes only. Play at your own risk. Never spend more than you can afford to lose.
+      </DisclaimerText>
+      
       <TabContainer>
         <TabList>
           <Tab
