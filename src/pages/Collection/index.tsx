@@ -2177,7 +2177,7 @@ export const Collection: React.FC = () => {
               rel="noopener noreferrer"
             >
               <img
-                src="https://nftnavigator.xyz/_app/immutable/assets/android-chrome-192x192.BJQGzsFc.png"
+                src="https://nftnavigator.xyz/android-chrome-192x192.png"
                 alt="NFT Navigator"
                 style={{ width: 24, height: 24 }}
               />
