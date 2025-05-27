@@ -882,6 +882,34 @@ const SweepModal = styled(Dialog)<{ $isDarkTheme: boolean }>`
   }
 `;
 
+const StyledToggleButtonGroup = styled(ToggleButtonGroup)<{ isDark: boolean }>`
+  border: 1px solid
+    ${(props) => (props.isDark ? "#3b3b3b" : "#eaebf0")};
+  background: ${(props) => (props.isDark ? "#2b2b2b" : "#fff")};
+  border-radius: 8px;
+
+  .MuiToggleButton-root {
+    border: none;
+    color: ${(props) => (props.isDark ? "#fff" : "#000")};
+
+    &:hover {
+      background: ${(props) =>
+        props.isDark ? "#3b3b3b" : "#f5f5f5"};
+    }
+
+    &.Mui-selected {
+      background: ${(props) =>
+        props.isDark ? "#3b3b3b" : "#f5f5f5"};
+      color: ${(props) => (props.isDark ? "#fff" : "#000")};
+
+      &:hover {
+        background: ${(props) =>
+          props.isDark ? "#4b4b4b" : "#e5e5e5"};
+      }
+    }
+  }
+`;
+
 const StyledDialogContent = styled(DialogContent)<{ $isDarkTheme: boolean }>`
   background: ${(props) =>
     props.$isDarkTheme
@@ -3229,8 +3257,9 @@ export const Account: React.FC = () => {
               spacing={2}
               width={isMobile ? "100%" : "auto"}
             >
-              <ToggleButtonGroup
+              <StyledToggleButtonGroup
                 fullWidth={isMobile}
+                isDark={isDarkTheme}
                 color="primary"
                 value={
                   forSaleOnly === null
@@ -3268,11 +3297,12 @@ export const Account: React.FC = () => {
                 <ToggleButton value="all">All</ToggleButton>
                 <ToggleButton value="listed">Listed</ToggleButton>
                 <ToggleButton value="unlisted">Unlisted</ToggleButton>
-              </ToggleButtonGroup>
+              </StyledToggleButtonGroup>
 
               {/* Add new sort mode toggle */}
-              <ToggleButtonGroup
+              <StyledToggleButtonGroup
                 fullWidth={isMobile}
+                isDark={isDarkTheme}
                 color="primary"
                 value={sortMode}
                 exclusive
@@ -3287,11 +3317,12 @@ export const Account: React.FC = () => {
               >
                 <ToggleButton value="none">None</ToggleButton>
                 <ToggleButton value="collection">Collection</ToggleButton>
-              </ToggleButtonGroup>
+              </StyledToggleButtonGroup>
 
               {/* Add new sort direction toggle */}
-              <ToggleButtonGroup
+              <StyledToggleButtonGroup
                 fullWidth={isMobile}
+                isDark={isDarkTheme}
                 color="primary"
                 value={sortDirection}
                 exclusive
@@ -3314,7 +3345,7 @@ export const Account: React.FC = () => {
                     <ArrowDownwardIcon />
                   </Tooltip>
                 </ToggleButton>
-              </ToggleButtonGroup>
+              </StyledToggleButtonGroup>
 
               {/*<ToggleButtonGroup
                 fullWidth={isMobile}
