@@ -1434,10 +1434,11 @@ const ModalContent = styled.div`
       props.$isDarkTheme
         ? "rgba(255, 255, 255, 0.05)"
         : "rgba(153, 51, 255, 0.05)"};
-    border: 1px solid ${(props) =>
-      props.$isDarkTheme
-        ? "rgba(255, 255, 255, 0.1)"
-        : "rgba(153, 51, 255, 0.1)"};
+    border: 1px solid
+      ${(props) =>
+        props.$isDarkTheme
+          ? "rgba(255, 255, 255, 0.1)"
+          : "rgba(153, 51, 255, 0.1)"};
   }
 
   .multiplier-title {
@@ -2292,7 +2293,7 @@ export const Home: React.FC = () => {
                     gap: 1,
                   }}
                 >
-                  Check Eligibility
+                  Check Airdrop
                   <svg
                     width="16"
                     height="16"
@@ -2310,7 +2311,7 @@ export const Home: React.FC = () => {
                   </svg>
                 </HeroButton>
 
-                <HeroButton
+                {/*<HeroButton
                   $isDarkTheme={isDarkTheme}
                   variant="outlined"
                   onClick={handleOpenModal}
@@ -2330,7 +2331,7 @@ export const Home: React.FC = () => {
                   }}
                 >
                   Learn More
-                </HeroButton>
+                </HeroButton>*/}
               </Box>
             </Box>
           </Box>
@@ -3254,7 +3255,8 @@ export const Home: React.FC = () => {
                   Distribution: Based on marketplace activity and PDX balance
                 </li>
                 <li>
-                  Point System: Earn points through trading activity and holding PDX
+                  Point System: Earn points through trading activity and holding
+                  PDX
                 </li>
               </ul>
 
@@ -3271,7 +3273,8 @@ export const Home: React.FC = () => {
                 </li>
                 <li>Buy and hold PDX to earn 3x point multipliers</li>
                 <li>
-                  Wait for the airdrop based on your eligibility and total points
+                  Wait for the airdrop based on your eligibility and total
+                  points
                 </li>
               </ul>
             </ModalContent>
