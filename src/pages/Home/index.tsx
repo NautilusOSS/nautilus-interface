@@ -20,7 +20,7 @@ import { Stack } from "@mui/material";
 import { getTokens } from "../../store/tokenSlice";
 import { UnknownAction } from "@reduxjs/toolkit";
 import { getCollections } from "../../store/collectionSlice";
-import { ListedToken, ListingI, NFTIndexerListingI, TokenI } from "../../types";
+import { ListedToken, NFTIndexerListingI, TokenI } from "../../types";
 import { getSales } from "../../store/saleSlice";
 import Marquee from "react-fast-marquee";
 import CartNftCard from "../../components/CartNFTCard";
@@ -59,7 +59,6 @@ import { useProjects } from "@/hooks/useProjects";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import algosdk from "algosdk";
 import { getAlgorandClients } from "@/wallets";
-import { FixedSizeList } from "react-window";
 
 const formatPrice = (price: number) => {
   const value = price / 1e6; // Convert to VOI
@@ -612,7 +611,12 @@ const HeroSection = styled.div`
   }
 `;
 
-const HeroTitle = styled.h1`
+// Add proper interface for styled components props
+interface StyledProps {
+  $isDarkTheme: boolean;
+}
+
+const HeroTitle = styled.h1<StyledProps>`
   color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
   font-size: clamp(32px, 5vw, 48px);
   line-height: 1.2;
@@ -621,7 +625,7 @@ const HeroTitle = styled.h1`
   padding: 0 20px;
 `;
 
-const HeroSubtitle = styled.p`
+const HeroSubtitle = styled.p<StyledProps>`
   color: ${(props) =>
     props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
   font-size: clamp(16px, 2.5vw, 20px);
@@ -631,7 +635,7 @@ const HeroSubtitle = styled.p`
   padding: 0 20px;
 `;
 
-const HeroButton = styled(MuiButton)`
+const HeroButton = styled(MuiButton)<StyledProps>`
   background-color: ${(props) =>
     props.$isDarkTheme ? "#fff" : "#93f"} !important;
   color: ${(props) => (props.$isDarkTheme ? "#000" : "#fff")} !important;
@@ -916,19 +920,19 @@ const CollectionGrid = styled.div`
   }
 `;
 
-const CollectionCard = styled.div`
+const CollectionCard = styled.div<StyledProps>`
   position: relative;
   cursor: pointer;
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
   background: ${(props) =>
-    props.theme.isDarkTheme
+    props.$isDarkTheme
       ? "rgba(255, 255, 255, 0.05)"
       : "rgba(153, 51, 255, 0.05)"};
   border: 1px solid
     ${(props) =>
-      props.theme.isDarkTheme
+      props.$isDarkTheme
         ? "rgba(255, 255, 255, 0.1)"
         : "rgba(153, 51, 255, 0.1)"};
   display: flex;
@@ -960,24 +964,22 @@ const CollectionCard = styled.div`
 `;
 
 // Update the RankingOverlay styled component
-const RankingOverlay = styled.div`
+const RankingOverlay = styled.div<StyledProps>`
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background: ${(props) =>
-    props.theme.isDarkTheme
-      ? "rgba(0, 0, 0, 0.5)"
-      : "rgba(255, 255, 255, 0.5)"};
+    props.$isDarkTheme ? "rgba(0, 0, 0, 0.5)" : "rgba(255, 255, 255, 0.5)"};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${(props) => (props.theme.isDarkTheme ? "#fff" : "#93f")};
+  color: ${(props) => (props.$isDarkTheme ? "#fff" : "#93f")};
   font-weight: 700;
   font-size: 32px;
   text-shadow: ${(props) =>
-    props.theme.isDarkTheme
+    props.$isDarkTheme
       ? "2px 2px 4px rgba(0, 0, 0, 0.3)"
       : "2px 2px 4px rgba(153, 51, 255, 0.3)"};
   border-radius: 12px;
@@ -1047,10 +1049,10 @@ const LaunchpadContent = styled.div`
   }
 `;
 
-const FeatureCard = styled.div`
+const FeatureCard = styled.div<StyledProps>`
   padding: 32px; // Increase internal padding
   background: ${(props) =>
-    props.theme.isDarkTheme
+    props.$isDarkTheme
       ? "rgba(255, 255, 255, 0.05)"
       : "rgba(153, 51, 255, 0.05)"};
   border-radius: 24px;
@@ -1373,10 +1375,10 @@ const GlitterDustLogo = () => (
 );
 
 // Add new styled components for the modal
-const StyledModal = styled(Dialog)`
+const StyledModal = styled(Dialog)<StyledProps>`
   .MuiDialog-paper {
     background: ${(props) =>
-      props.theme.isDarkTheme
+      props.$isDarkTheme
         ? "rgba(30, 30, 30, 0.95)"
         : "rgba(255, 255, 255, 0.95)"};
     border-radius: 24px;
@@ -1385,13 +1387,13 @@ const StyledModal = styled(Dialog)`
     width: 90%;
     border: 1px solid
       ${(props) =>
-        props.theme.isDarkTheme
+        props.$isDarkTheme
           ? "rgba(255, 255, 255, 0.1)"
           : "rgba(153, 51, 255, 0.1)"};
   }
 `;
 
-const ModalTitle = styled.h2`
+const ModalTitle = styled.h2<StyledProps>`
   color: ${(props) => (props.$isDarkTheme ? "#fff" : "#000")};
   font-size: 24px;
   font-weight: 600;
@@ -1399,7 +1401,7 @@ const ModalTitle = styled.h2`
   font-family: "Plus Jakarta Sans", sans-serif;
 `;
 
-const ModalContent = styled.div`
+const ModalContent = styled.div<StyledProps>`
   color: ${(props) =>
     props.$isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)"};
   font-size: 16px;
@@ -1459,6 +1461,354 @@ const ModalContent = styled.div`
     font-size: 14px;
   }
 `;
+
+// Add new SVG component for Airdrop Center
+const AirdropCenterSVG = () => (
+  <svg
+    width="200"
+    height="200"
+    viewBox="0 0 200 200"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Background glow */}
+    <circle
+      cx="100"
+      cy="100"
+      r="80"
+      fill="url(#backgroundGradient)"
+      opacity="0.3"
+    />
+
+    {/* Main gift box */}
+    <g filter="url(#boxGlow)">
+      {/* Box base */}
+      <rect
+        x="60"
+        y="100"
+        width="80"
+        height="60"
+        rx="8"
+        fill="url(#boxGradient)"
+        stroke="url(#boxStroke)"
+        strokeWidth="3"
+      />
+
+      {/* Box lid */}
+      <rect
+        x="55"
+        y="90"
+        width="90"
+        height="20"
+        rx="6"
+        fill="url(#lidGradient)"
+        stroke="url(#boxStroke)"
+        strokeWidth="3"
+      />
+
+      {/* Ribbon vertical */}
+      <rect
+        x="95"
+        y="85"
+        width="10"
+        height="80"
+        fill="url(#ribbonGradient)"
+        stroke="url(#ribbonStroke)"
+        strokeWidth="2"
+      />
+
+      {/* Ribbon horizontal */}
+      <rect
+        x="60"
+        y="95"
+        width="80"
+        height="10"
+        fill="url(#ribbonGradient)"
+        stroke="url(#ribbonStroke)"
+        strokeWidth="2"
+      />
+
+      {/* Bow */}
+      <path
+        d="M85 85C85 85 90 80 100 85C110 80 115 85 115 85C115 85 110 90 100 85C90 90 85 85 85 85Z"
+        fill="url(#bowGradient)"
+        stroke="url(#ribbonStroke)"
+        strokeWidth="2"
+      />
+
+      {/* Bow center */}
+      <circle
+        cx="100"
+        cy="85"
+        r="3"
+        fill="url(#bowCenterGradient)"
+        stroke="url(#ribbonStroke)"
+        strokeWidth="1"
+      />
+    </g>
+
+    {/* Animated sparkles */}
+    {[...Array(15)].map((_, i) => (
+      <g key={i}>
+        <circle
+          cx={40 + Math.random() * 120}
+          cy={30 + Math.random() * 140}
+          r="1.5"
+          fill="white"
+          opacity="0.8"
+          style={{
+            animation: `sparkle ${2 + Math.random() * 2}s ease-in-out infinite ${i * 0.1}s`,
+          }}
+        >
+          <animateMotion
+            dur={`${3 + Math.random() * 2}s`}
+            repeatCount="indefinite"
+            path={`M ${40 + Math.random() * 120} ${30 + Math.random() * 140} 
+                   C ${60 + Math.random() * 80} ${20 + Math.random() * 160}
+                     ${80 + Math.random() * 80} ${20 + Math.random() * 160}
+                     ${100 + Math.random() * 120} ${40 + Math.random() * 140}`}
+          />
+        </circle>
+      </g>
+    ))}
+
+    {/* Floating coins/tokens */}
+    {[...Array(8)].map((_, i) => (
+      <g key={`coin-${i}`}>
+        <circle
+          cx={50 + Math.random() * 100}
+          cy={40 + Math.random() * 120}
+          r="4"
+          fill="url(#coinGradient)"
+          stroke="url(#coinStroke)"
+          strokeWidth="1"
+          style={{
+            animation: `float ${4 + Math.random() * 2}s ease-in-out infinite ${i * 0.3}s`,
+          }}
+        >
+          <animateMotion
+            dur={`${5 + Math.random() * 3}s`}
+            repeatCount="indefinite"
+            path={`M ${50 + Math.random() * 100} ${40 + Math.random() * 120} 
+                   C ${70 + Math.random() * 60} ${30 + Math.random() * 140}
+                     ${90 + Math.random() * 60} ${30 + Math.random() * 140}
+                     ${110 + Math.random() * 100} ${50 + Math.random() * 120}`}
+          />
+        </circle>
+        {/* Coin shine */}
+        <circle
+          cx={50 + Math.random() * 100}
+          cy={40 + Math.random() * 120}
+          r="2"
+          fill="white"
+          opacity="0.6"
+          style={{
+            animation: `shine ${2 + Math.random() * 1}s ease-in-out infinite ${i * 0.2}s`,
+          }}
+        >
+          <animateMotion
+            dur={`${5 + Math.random() * 3}s`}
+            repeatCount="indefinite"
+            path={`M ${50 + Math.random() * 100} ${40 + Math.random() * 120} 
+                   C ${70 + Math.random() * 60} ${30 + Math.random() * 140}
+                     ${90 + Math.random() * 60} ${30 + Math.random() * 140}
+                     ${110 + Math.random() * 100} ${50 + Math.random() * 120}`}
+          />
+        </circle>
+      </g>
+    ))}
+
+    {/* Text "Airdrop Center" */}
+    <text
+      x="100"
+      y="185"
+      textAnchor="middle"
+      fill="url(#textGradient)"
+      fontSize="14"
+      fontWeight="bold"
+      filter="url(#textGlow)"
+    >
+      Airdrop Center
+    </text>
+
+    <defs>
+      {/* Background gradient */}
+      <radialGradient
+        id="backgroundGradient"
+        cx="0.5"
+        cy="0.5"
+        r="0.5"
+        fx="0.5"
+        fy="0.5"
+      >
+        <stop offset="0%" stopColor="#9933FF" stopOpacity="0.2" />
+        <stop offset="100%" stopColor="#FF69B4" stopOpacity="0.1" />
+      </radialGradient>
+
+      {/* Box gradient */}
+      <linearGradient
+        id="boxGradient"
+        x1="60"
+        y1="100"
+        x2="140"
+        y2="160"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#9933FF" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </linearGradient>
+
+      {/* Box stroke */}
+      <linearGradient
+        id="boxStroke"
+        x1="60"
+        y1="100"
+        x2="140"
+        y2="160"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#9933FF" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </linearGradient>
+
+      {/* Lid gradient */}
+      <linearGradient
+        id="lidGradient"
+        x1="55"
+        y1="90"
+        x2="145"
+        y2="110"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#FF69B4" />
+        <stop offset="100%" stopColor="#9933FF" />
+      </linearGradient>
+
+      {/* Ribbon gradient */}
+      <linearGradient
+        id="ribbonGradient"
+        x1="0"
+        y1="0"
+        x2="200"
+        y2="200"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#FFD700" />
+        <stop offset="50%" stopColor="#FFA500" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </linearGradient>
+
+      {/* Ribbon stroke */}
+      <linearGradient
+        id="ribbonStroke"
+        x1="0"
+        y1="0"
+        x2="200"
+        y2="200"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#FFD700" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </linearGradient>
+
+      {/* Bow gradient */}
+      <radialGradient
+        id="bowGradient"
+        cx="0.5"
+        cy="0.5"
+        r="0.5"
+        fx="0.5"
+        fy="0.5"
+      >
+        <stop offset="0%" stopColor="#FFD700" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </radialGradient>
+
+      {/* Bow center gradient */}
+      <radialGradient
+        id="bowCenterGradient"
+        cx="0.5"
+        cy="0.5"
+        r="0.5"
+        fx="0.5"
+        fy="0.5"
+      >
+        <stop offset="0%" stopColor="#FF69B4" />
+        <stop offset="100%" stopColor="#9933FF" />
+      </radialGradient>
+
+      {/* Coin gradient */}
+      <radialGradient
+        id="coinGradient"
+        cx="0.5"
+        cy="0.5"
+        r="0.5"
+        fx="0.5"
+        fy="0.5"
+      >
+        <stop offset="0%" stopColor="#FFD700" />
+        <stop offset="100%" stopColor="#FFA500" />
+      </radialGradient>
+
+      {/* Coin stroke */}
+      <linearGradient
+        id="coinStroke"
+        x1="0"
+        y1="0"
+        x2="200"
+        y2="200"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#FFD700" />
+        <stop offset="100%" stopColor="#FFA500" />
+      </linearGradient>
+
+      {/* Text gradient */}
+      <linearGradient
+        id="textGradient"
+        x1="0"
+        y1="0"
+        x2="200"
+        y2="200"
+        gradientUnits="userSpaceOnUse"
+      >
+        <stop offset="0%" stopColor="#9933FF" />
+        <stop offset="100%" stopColor="#FF69B4" />
+      </linearGradient>
+
+      {/* Box glow filter */}
+      <filter id="boxGlow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4" />
+        <feMerge>
+          <feMergeNode />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+
+      {/* Text glow filter */}
+      <filter id="textGlow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="1" />
+      </filter>
+
+      <style>
+        {`
+          @keyframes sparkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(180deg); }
+          }
+          @keyframes shine {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+          }
+        `}
+      </style>
+    </defs>
+  </svg>
+);
 
 export const Home: React.FC = () => {
   /* Dispatch */
@@ -1627,7 +1977,7 @@ export const Home: React.FC = () => {
     font-weight: 600;
   `;
 
-  const StyledTableContainer = styled(TableContainer)`
+  const StyledTableContainer = styled(TableContainer)<StyledProps>`
     background-color: ${(props) =>
       props.$isDarkTheme ? "rgba(255, 255, 255, 0.05)" : "#fff"};
     border-radius: 16px;
@@ -1678,7 +2028,7 @@ export const Home: React.FC = () => {
 
     .MuiTableRow-root:hover {
       background-color: ${(props) =>
-        props.theme.isDarkTheme
+        props.$isDarkTheme
           ? "rgba(255, 255, 255, 0.05)"
           : "rgba(153, 51, 255, 0.05)"} !important;
     }
@@ -2242,7 +2592,7 @@ export const Home: React.FC = () => {
                 alignItems: "center",
               }}
             >
-              <GlitterDustLogo />
+              <AirdropCenterSVG />
             </Box>
 
             {/* Airdrop Content */}
@@ -2259,7 +2609,7 @@ export const Home: React.FC = () => {
                   WebkitTextFillColor: "transparent",
                 }}
               >
-                Pixel Dust ($PDX) Airdrop
+                Airdrop Center
               </Typography>
 
               <Typography
@@ -2272,10 +2622,10 @@ export const Home: React.FC = () => {
                   lineHeight: 1.6,
                 }}
               >
-                Join the Pixel Dust revolution! 10 million $PDX tokens are being
-                airdropped to past and present Nautilus NFT Marketplace users.
-                Don't miss out on this exclusive opportunity to be part of the
-                incentive program that rewards you for buying and selling NFTs.
+                Discover and participate in exciting airdrops on the Voi
+                Network. Check your eligibility for ongoing airdrops, track your
+                rewards, and stay updated with the latest opportunities to earn
+                tokens.
               </Typography>
 
               <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
@@ -2283,7 +2633,7 @@ export const Home: React.FC = () => {
                   $isDarkTheme={isDarkTheme}
                   variant="contained"
                   onClick={() => {
-                    navigate("/tools/pixeldustchecker");
+                    navigate("/airdrop");
                     // smooth scroll to top
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
@@ -2293,7 +2643,7 @@ export const Home: React.FC = () => {
                     gap: 1,
                   }}
                 >
-                  Check Airdrop
+                  Visit Airdrop Center
                   <svg
                     width="16"
                     height="16"
@@ -2310,28 +2660,6 @@ export const Home: React.FC = () => {
                     />
                   </svg>
                 </HeroButton>
-
-                {/*<HeroButton
-                  $isDarkTheme={isDarkTheme}
-                  variant="outlined"
-                  onClick={handleOpenModal}
-                  sx={{
-                    backgroundColor: "transparent !important",
-                    border: `2px solid ${
-                      isDarkTheme ? "#fff" : "#93f"
-                    } !important`,
-                    color: `${isDarkTheme ? "#fff" : "#93f"} !important`,
-                    "&:hover": {
-                      backgroundColor: `${
-                        isDarkTheme
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "rgba(153, 51, 255, 0.1)"
-                      } !important`,
-                    },
-                  }}
-                >
-                  Learn More
-                </HeroButton>*/}
               </Box>
             </Box>
           </Box>
@@ -2775,7 +3103,7 @@ export const Home: React.FC = () => {
                       >
                         {/* Add className to the RankingOverlay */}
                         <RankingOverlay
-                          theme={{ isDarkTheme }}
+                          $isDarkTheme={isDarkTheme}
                           className="ranking-overlay"
                         >
                           {index + 1}

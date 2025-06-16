@@ -46,4 +46,8 @@ export const routes = [
     path: "/nft-games",
     Component: Page.NFTGames,
   },
+  {
+    path: "/airdrop",
+    Component: Page.Airdrop,
+  },
 ];
