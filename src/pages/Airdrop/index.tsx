@@ -198,9 +198,9 @@ interface Airdrop {
 
 interface EligibilityData {
   Address: string;
-  Voi: number;
-  Algo: number;
-  Total: number;
+  Voi?: number;
+  Algo?: number;
+  Total?: number;
 }
 
 const AirdropPage: React.FC = () => {
@@ -208,7 +208,7 @@ const AirdropPage: React.FC = () => {
   const isDarkTheme = useSelector(
     (state: RootState) => state.theme.isDarkTheme
   );
-  const { activeAccount } = useWallet();
+  const { activeAccount, signTransactions } = useWallet();
   const [airdrops, setAirdrops] = useState<Airdrop[]>([]);
   const [loading, setLoading] = useState(true);
   const [eligibilityData, setEligibilityData] = useState<{
@@ -219,6 +219,9 @@ const AirdropPage: React.FC = () => {
   }>({});
   const [eligibilityResults, setEligibilityResults] = useState<{
     [key: string]: boolean | null;
+  }>({});
+  const [eligibleAmounts, setEligibleAmounts] = useState<{
+    [key: string]: number;
   }>({});
   const [claimStatus, setClaimStatus] = useState<{
     [key: string]: "unclaimed" | "claimed" | "checking" | null;
@@ -241,6 +244,7 @@ const AirdropPage: React.FC = () => {
   useEffect(() => {
     // Reset all user-specific state when activeAccount changes
     setEligibilityResults({});
+    setEligibleAmounts({});
     setClaimStatus({});
     setCheckingEligibility({});
     setSelectedAirdrops(new Set());
@@ -339,8 +343,8 @@ const AirdropPage: React.FC = () => {
       });
 
       const arc200_allowanceR = await ci.arc200_allowance(
-        activeAccount.address,
-        airdropAddress
+        airdropAddress,
+        activeAccount.address
       );
       const arc200_allowance = arc200_allowanceR.returnValue.toString();
 
@@ -391,10 +395,12 @@ const AirdropPage: React.FC = () => {
         const userData = data.find(
           (entry: EligibilityData) => entry.Address === userAddress
         );
-        toast.success(
-          `You are eligible! Total: ${userData?.Total.toFixed(2)} VOI`,
-          { autoClose: 3000 }
-        );
+        const amount = userData?.Voi ?? userData?.Total ?? 0;
+        setEligibleAmounts((prev) => ({ ...prev, [airdrop.id]: amount }));
+
+        toast.success(`You are eligible! Total: ${amount.toFixed(2)}`, {
+          autoClose: 3000,
+        });
 
         // Also check claim status if eligible
         await checkClaimStatus(airdrop);
@@ -431,25 +437,86 @@ const AirdropPage: React.FC = () => {
     setClaimingAirdrop((prev) => ({ ...prev, [airdrop.id]: true }));
 
     try {
-      window.open(airdrop.url, "_blank");
-      return;
-      // If there's a direct URL for claiming, use it
-      if (airdrop.url && airdrop.url !== "TBD") {
+      // Check if there's a valid URL for external claiming
+      if (
+        airdrop.url &&
+        airdrop.url !== "TBD" &&
+        airdrop.url !== null &&
+        airdrop.url.trim() !== ""
+      ) {
+        // External claiming - open URL in new tab
         window.open(airdrop.url, "_blank");
+        toast.info("Opening external claim page...", { autoClose: 3000 });
         return;
       }
 
-      // TODO: Implement direct claiming logic here
-      // This would involve:
-      // 1. Creating the claim transaction
-      // 2. Signing and sending the transaction
-      // 3. Updating the claim status
-      // 4. Showing success/error messages
+      // Create Algorand client
+      const { algodClient } = getAlgorandClients();
+      const tokenId = parseInt(airdrop.token_id ?? "0");
+      const airdropAddress = airdrop.airdrop_address;
 
-      toast.info("Direct claiming coming soon!", { autoClose: 3000 });
+      // Create contract instance
+      const ci = new CONTRACT(tokenId, algodClient, undefined, abi.nt200, {
+        addr: activeAccount.address,
+        sk: new Uint8Array(),
+      });
+
+      // Check current allowance
+      const arc200_allowanceR = await ci.arc200_allowance(
+        airdropAddress,
+        activeAccount.address
+      );
+      const currentAllowance = arc200_allowanceR.returnValue.toString();
+
+      const arc200_decimalsR = await ci.arc200_decimals();
+      const decimals = Number(arc200_decimalsR.returnValue);
+
+      if (currentAllowance === "0") {
+        toast.error("You have already claimed this airdrop", {
+          autoClose: 3000,
+        });
+        setClaimStatus((prev) => ({ ...prev, [airdrop.id]: "claimed" }));
+        return;
+      }
+
+      // Sign and send the transaction
+      const arc200_transferFromR = await ci.arc200_transferFrom(
+        airdropAddress,
+        activeAccount.address,
+        BigInt(currentAllowance)
+      );
+
+      if (arc200_transferFromR.success) {
+        const stxns = await signTransactions(
+          arc200_transferFromR.txns.map((txn: string) =>
+            Buffer.from(txn, "base64")
+          )
+        );
+        await algodClient.sendRawTransaction(stxns as Uint8Array[]).do();
+        toast.success(
+          `Successfully claimed ${
+            Number(currentAllowance) / 10 ** decimals
+          } VOI!`,
+          {
+            autoClose: 5000,
+          }
+        );
+        setClaimStatus((prev) => ({ ...prev, [airdrop.id]: "claimed" }));
+        // Update the statistics
+        // You might want to refresh the eligibility data here
+        setTimeout(() => {
+          checkClaimStatus(airdrop);
+        }, 2000);
+      } else {
+        toast.error("Failed to claim airdrop. Please try again.", {
+          autoClose: 3000,
+        });
+      }
     } catch (error) {
       console.error("Error claiming airdrop:", error);
-      toast.error("Failed to claim airdrop", { autoClose: 3000 });
+      toast.error("Failed to claim airdrop. Please try again.", {
+        autoClose: 3000,
+      });
     } finally {
       setClaimingAirdrop((prev) => ({ ...prev, [airdrop.id]: false }));
     }
@@ -481,7 +548,14 @@ const AirdropPage: React.FC = () => {
     if (claimStatusForAirdrop === "checking") return "Checking...";
     if (claimingAirdrop[airdrop.id]) return "Claiming...";
 
-    return "Claim Airdrop";
+    // Check if it's an external claim or in-app claim
+    const isExternalClaim =
+      airdrop.url &&
+      airdrop.url !== "TBD" &&
+      airdrop.url !== "null" &&
+      airdrop.url.trim() !== "";
+
+    return isExternalClaim ? "Claim on Website" : "Claim in App";
   };
 
   const isClaimButtonDisabled = (airdrop: Airdrop) => {
@@ -864,6 +938,7 @@ const AirdropPage: React.FC = () => {
                     flex: 1,
                     display: "flex",
                     flexDirection: "column",
+                    minHeight: "400px",
                   }}
                 >
                   <Box
@@ -877,7 +952,13 @@ const AirdropPage: React.FC = () => {
                     <Typography
                       variant="h6"
                       component="h2"
-                      sx={{ fontWeight: 600, fontSize: "1rem" }}
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: "1rem",
+                        flex: 1,
+                        mr: 1,
+                        lineHeight: 1.2,
+                      }}
                     >
                       {airdrop.name}
                     </Typography>
@@ -885,82 +966,230 @@ const AirdropPage: React.FC = () => {
                       label={airdrop.status}
                       color={getStatusColor(airdrop.status) as any}
                       size="small"
+                      sx={{ flexShrink: 0 }}
                     />
                   </Box>
 
                   <Typography
                     variant="body2"
-                    sx={{ mb: 1.5, opacity: 0.8, fontSize: "0.875rem" }}
+                    sx={{
+                      mb: 1.5,
+                      opacity: 0.8,
+                      fontSize: "0.875rem",
+                      lineHeight: 1.4,
+                      minHeight: "2.8rem",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
                   >
                     {airdrop.description}
                   </Typography>
 
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 500, display: "block", mb: 0.5 }}
-                  >
-                    Eligibility:
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ mb: 1.5, opacity: 0.8, display: "block" }}
-                  >
-                    {airdrop.eligibility}
-                  </Typography>
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 500,
+                        display: "block",
+                        mb: 0.5,
+                        fontSize: "0.75rem",
+                      }}
+                    >
+                      Eligibility:
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        opacity: 0.8,
+                        display: "block",
+                        fontSize: "0.75rem",
+                        lineHeight: 1.3,
+                        minHeight: "1.3rem",
+                      }}
+                    >
+                      {airdrop.eligibility}
+                    </Typography>
+                  </Box>
 
                   <Box
                     sx={{
                       display: "flex",
                       justifyContent: "space-between",
                       mb: 1.5,
+                      minHeight: "2.5rem",
                     }}
                   >
                     <Box>
                       <Typography
                         variant="caption"
-                        sx={{ opacity: 0.6, display: "block" }}
+                        sx={{
+                          opacity: 0.6,
+                          display: "block",
+                          fontSize: "0.7rem",
+                        }}
                       >
                         Start Date
                       </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.75rem",
+                        }}
+                      >
                         {formatDate(airdrop.start_date)}
                       </Typography>
                     </Box>
                     <Box>
                       <Typography
                         variant="caption"
-                        sx={{ opacity: 0.6, display: "block" }}
+                        sx={{
+                          opacity: 0.6,
+                          display: "block",
+                          fontSize: "0.7rem",
+                        }}
                       >
                         Duration
                       </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.75rem",
+                        }}
+                      >
                         {airdrop.period}
                       </Typography>
                     </Box>
                   </Box>
 
-                  {/* Eligibility Check Result */}
+                  {/* Consolidated Status Display */}
                   {eligibilityResults[airdrop.id] !== undefined && (
-                    <RoundedAlert
-                      severity={
-                        eligibilityResults[airdrop.id] ? "success" : "error"
-                      }
-                      sx={{ mb: 1.5, py: 0 }}
+                    <Box
+                      sx={{
+                        mb: 1.5,
+                        p: 1.5,
+                        borderRadius: 2,
+                        minHeight: "3rem",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: (() => {
+                          if (claimStatus[airdrop.id] === "claimed") {
+                            return isDarkTheme
+                              ? "rgba(33, 150, 243, 0.1)"
+                              : "rgba(33, 150, 243, 0.05)";
+                          }
+                          if (eligibilityResults[airdrop.id] === true) {
+                            return isDarkTheme
+                              ? "rgba(76, 175, 80, 0.1)"
+                              : "rgba(76, 175, 80, 0.05)";
+                          }
+                          return isDarkTheme
+                            ? "rgba(244, 67, 54, 0.1)"
+                            : "rgba(244, 67, 54, 0.05)";
+                        })(),
+                        border: `1px solid ${(() => {
+                          if (claimStatus[airdrop.id] === "claimed") {
+                            return isDarkTheme
+                              ? "rgba(33, 150, 243, 0.3)"
+                              : "rgba(33, 150, 243, 0.2)";
+                          }
+                          if (eligibilityResults[airdrop.id] === true) {
+                            return isDarkTheme
+                              ? "rgba(76, 175, 80, 0.3)"
+                              : "rgba(76, 175, 80, 0.2)";
+                          }
+                          return isDarkTheme
+                            ? "rgba(244, 67, 54, 0.3)"
+                            : "rgba(244, 67, 54, 0.2)";
+                        })()}`,
+                        textAlign: "center",
+                      }}
                     >
-                      {eligibilityResults[airdrop.id]
-                        ? "You are eligible!"
-                        : "You are not eligible"}
-                    </RoundedAlert>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: (() => {
+                            if (claimStatus[airdrop.id] === "claimed") {
+                              return "#2196f3";
+                            }
+                            if (eligibilityResults[airdrop.id] === true) {
+                              return "#4caf50";
+                            }
+                            return "#f44336";
+                          })(),
+                          fontSize: "0.85rem",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {(() => {
+                          if (claimStatus[airdrop.id] === "claimed") {
+                            return "You have already claimed this airdrop";
+                          }
+                          if (eligibilityResults[airdrop.id] === true) {
+                            return "You are eligible!";
+                          }
+                          return "You are not eligible";
+                        })()}
+                      </Typography>
+                    </Box>
                   )}
 
-                  {/* Claim Status */}
-                  {claimStatus[airdrop.id] === "claimed" && (
-                    <RoundedAlert severity="info" sx={{ mb: 1.5, py: 0 }}>
-                      You have already claimed this airdrop
-                    </RoundedAlert>
-                  )}
+                  {/* Eligible Amount Display */}
+                  {eligibilityResults[airdrop.id] === true &&
+                    eligibleAmounts[airdrop.id] &&
+                    claimStatus[airdrop.id] !== "claimed" && (
+                      <Box
+                        sx={{
+                          mb: 1.5,
+                          p: 1.5,
+                          borderRadius: 2,
+                          minHeight: "3.5rem",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: isDarkTheme
+                            ? "rgba(76, 175, 80, 0.1)"
+                            : "rgba(76, 175, 80, 0.05)",
+                          border: `1px solid ${
+                            isDarkTheme
+                              ? "rgba(76, 175, 80, 0.3)"
+                              : "rgba(76, 175, 80, 0.2)"
+                          }`,
+                          textAlign: "center",
+                        }}
+                      >
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 700,
+                            color: "#4caf50",
+                            fontSize: "1rem",
+                            lineHeight: 1.2,
+                            mb: 0.5,
+                          }}
+                        >
+                          {eligibleAmounts[airdrop.id].toFixed(2)} VOI
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            opacity: 0.8,
+                            display: "block",
+                            fontSize: "0.7rem",
+                          }}
+                        >
+                          Eligible Amount
+                        </Typography>
+                      </Box>
+                    )}
 
-                  <Box sx={{ mt: "auto", pt: 1 }}>
+                  <Box sx={{ mt: "auto", pt: 1, minHeight: "5rem" }}>
                     {/* Check Eligibility Button */}
                     <RoundedButton
                       variant="outlined"
@@ -974,12 +1203,14 @@ const AirdropPage: React.FC = () => {
                       }
                       sx={{
                         mb: 1,
+                        height: "36px", // Fixed height for buttons
                         borderColor: isDarkTheme
                           ? "rgba(255, 255, 255, 0.3)"
                           : "rgba(0, 0, 0, 0.3)",
                         color: isDarkTheme
                           ? "rgba(255, 255, 255, 0.7)"
                           : "rgba(0, 0, 0, 0.7)",
+                        fontSize: "0.8rem",
                         "&:hover": {
                           borderColor: isDarkTheme
                             ? "rgba(255, 255, 255, 0.5)"
@@ -1002,6 +1233,7 @@ const AirdropPage: React.FC = () => {
                       onClick={() => handleClaim(airdrop)}
                       disabled={isClaimButtonDisabled(airdrop)}
                       sx={{
+                        height: "36px", // Fixed height for buttons
                         background:
                           airdrop.status === "active" &&
                           claimStatus[airdrop.id] !== "claimed"
@@ -1012,6 +1244,7 @@ const AirdropPage: React.FC = () => {
                           claimStatus[airdrop.id] !== "claimed"
                             ? "#fff"
                             : "rgba(0, 0, 0, 0.38)",
+                        fontSize: "0.8rem",
                         "&:hover": {
                           background:
                             airdrop.status === "active" &&
