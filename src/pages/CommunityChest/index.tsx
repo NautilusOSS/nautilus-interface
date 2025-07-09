@@ -885,6 +885,25 @@ const CONTRACT_OPTIONS: ContractOption[] = [
     tokenomicsNote:
       "95% of rewards are automatically distributed to COFFEE holders, with 5% allocated to node operations.",
   },
+  {
+    id: 40227315,
+    name: "Virtual Babes VOiconomy (VBV)",
+    description:
+      "Virtual Babes VOiconomy (VBV) is a wrapped VOI token that represents staked VOI in the Virtual Babes ecosystem. VBV holders support the development of Virtual Babes' decentralized applications and may be eligible for future incentives.",
+    iconPath:
+      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0.9999,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0,
+    },
+  },
 ];
 
 const getContractInfo = (contractId: number) => {
@@ -952,6 +971,12 @@ const getContractInfo = (contractId: number) => {
         iconPath:
           "M4 19h16v-2H4v2zm16-16H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2z",
       };
+    case 40227315:
+      return {
+        title: "Virtual Babes VOiconomy (VBV)",
+        iconPath:
+          "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+      };
     default:
       return {
         title: "Community Chest",
@@ -991,6 +1016,8 @@ const getContractDescription = (
       return "Gully Voi (gVOI) is a wrapped VOI token that represents staked VOI in the Gully ecosystem. gVOI holders support the development of Gully's decentralized applications and may be eligible for future incentives.";
     case 40077073:
       return "COFFEE is GM's liquid staking token, representing staked VOI to support long-term GM/VOI trading liquidity without earning rewards. This token helps maintain stable liquidity for the GM ecosystem while allowing holders to maintain flexibility with their positions.";
+    case 40227315:
+      return "Virtual Babes VOiconomy (VBV) is a wrapped VOI token that represents staked VOI in the Virtual Babes ecosystem. VBV holders support the development of Virtual Babes' decentralized applications and may be eligible for future incentives.";
     default:
       return "";
   }
@@ -2061,7 +2088,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
 
         const relevantTokens = [
           664258, 390001, 770561, 828295, 888305, 913147, 917261, 8324600,
-          8372092, 8471125, 39949746, 40077073,
+          8372092, 8471125, 39949746, 40077073, 40227315,
         ];
         const filteredBalances = balancesResponse.data.balances.filter(
           (balance: any) =>
