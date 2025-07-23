@@ -155,7 +155,7 @@ const TextArea = styled.textarea<{ isDark: boolean }>`
   color: ${(props) => (props.isDark ? "#F7FAFC" : "#2D3748")};
   border: 1px solid ${(props) => (props.isDark ? "#4A5568" : "#E2E8F0")};
   border-radius: 4px;
-  
+
   &:focus {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 1px var(--accent-color);
@@ -371,7 +371,7 @@ const WrappedVoiManager: React.FC = () => {
             ki.votekd
           )
         ).obj,
-        payment: 28500,
+        payment: 2e6,
         note: new Uint8Array(Buffer.from(`register wnt new partkeyinfo`)),
       };
       ci.setFee(2000);
@@ -700,12 +700,16 @@ const WrappedVoiManager: React.FC = () => {
                   />
                 </FormGroup>
                 <ButtonGroup>
-                  <Button type="submit" disabled={isGranting} isDark={isDarkTheme}>
+                  <Button
+                    type="submit"
+                    disabled={isGranting}
+                    isDark={isDarkTheme}
+                  >
                     Continue
                   </Button>
-                  <Button 
-                    type="button" 
-                    onClick={() => setShowModal(false)} 
+                  <Button
+                    type="button"
+                    onClick={() => setShowModal(false)}
                     disabled={isGranting}
                     isDark={isDarkTheme}
                   >
@@ -750,7 +754,10 @@ const WrappedVoiManager: React.FC = () => {
 
       {showUpdateModal && (
         <>
-          <Overlay isDark={isDarkTheme} onClick={() => setShowUpdateModal(false)} />
+          <Overlay
+            isDark={isDarkTheme}
+            onClick={() => setShowUpdateModal(false)}
+          />
           <Modal isDark={isDarkTheme}>
             {!showConfirmation ? (
               <>
@@ -763,11 +770,22 @@ const WrappedVoiManager: React.FC = () => {
                 >
                   {isTextAreaMode ? "Switch to Form" : "Switch to Text Input"}
                 </Button>
-                <ModalForm isDark={isDarkTheme} onSubmit={handleUpdateParticipation}>
+                <ModalForm
+                  isDark={isDarkTheme}
+                  onSubmit={handleUpdateParticipation}
+                >
                   {!isTextAreaMode ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "0.5rem",
+                      }}
+                    >
                       <CompactFormGroup isDark={isDarkTheme}>
-                        <CompactLabel htmlFor="selectionKey">Selection Key</CompactLabel>
+                        <CompactLabel htmlFor="selectionKey">
+                          Selection Key
+                        </CompactLabel>
                         <CompactInput
                           isDark={isDarkTheme}
                           id="selectionKey"
@@ -784,7 +802,9 @@ const WrappedVoiManager: React.FC = () => {
                         />
                       </CompactFormGroup>
                       <CompactFormGroup isDark={isDarkTheme}>
-                        <CompactLabel htmlFor="stateProofKey">State Proof Key</CompactLabel>
+                        <CompactLabel htmlFor="stateProofKey">
+                          State Proof Key
+                        </CompactLabel>
                         <CompactInput
                           isDark={isDarkTheme}
                           id="stateProofKey"
@@ -801,7 +821,9 @@ const WrappedVoiManager: React.FC = () => {
                         />
                       </CompactFormGroup>
                       <CompactFormGroup isDark={isDarkTheme}>
-                        <CompactLabel htmlFor="voteFirstValid">First Valid</CompactLabel>
+                        <CompactLabel htmlFor="voteFirstValid">
+                          First Valid
+                        </CompactLabel>
                         <CompactInput
                           isDark={isDarkTheme}
                           id="voteFirstValid"
@@ -818,7 +840,9 @@ const WrappedVoiManager: React.FC = () => {
                         />
                       </CompactFormGroup>
                       <CompactFormGroup isDark={isDarkTheme}>
-                        <CompactLabel htmlFor="voteLastValid">Last Valid</CompactLabel>
+                        <CompactLabel htmlFor="voteLastValid">
+                          Last Valid
+                        </CompactLabel>
                         <CompactInput
                           isDark={isDarkTheme}
                           id="voteLastValid"
@@ -835,7 +859,9 @@ const WrappedVoiManager: React.FC = () => {
                         />
                       </CompactFormGroup>
                       <CompactFormGroup isDark={isDarkTheme}>
-                        <CompactLabel htmlFor="voteKeyDilution">Key Dilution</CompactLabel>
+                        <CompactLabel htmlFor="voteKeyDilution">
+                          Key Dilution
+                        </CompactLabel>
                         <CompactInput
                           isDark={isDarkTheme}
                           id="voteKeyDilution"
@@ -852,7 +878,9 @@ const WrappedVoiManager: React.FC = () => {
                         />
                       </CompactFormGroup>
                       <CompactFormGroup isDark={isDarkTheme}>
-                        <CompactLabel htmlFor="voteParticipationKey">Vote Key</CompactLabel>
+                        <CompactLabel htmlFor="voteParticipationKey">
+                          Vote Key
+                        </CompactLabel>
                         <CompactInput
                           isDark={isDarkTheme}
                           id="voteParticipationKey"
@@ -871,19 +899,29 @@ const WrappedVoiManager: React.FC = () => {
                     </div>
                   ) : (
                     <FormGroup isDark={isDarkTheme}>
-                      <Label htmlFor="participationText">Participation Information</Label>
+                      <Label htmlFor="participationText">
+                        Participation Information
+                      </Label>
                       <TextArea
                         isDark={isDarkTheme}
                         id="participationText"
                         value={participationText}
-                        onChange={(e) => handleParticipationTextChange(e.target.value)}
+                        onChange={(e) =>
+                          handleParticipationTextChange(e.target.value)
+                        }
                         placeholder="Paste participation information here..."
                       />
                     </FormGroup>
                   )}
                   <ButtonGroup>
-                    <Button type="submit" isDark={isDarkTheme}>Update</Button>
-                    <Button type="button" onClick={() => setShowUpdateModal(false)} isDark={isDarkTheme}>
+                    <Button type="submit" isDark={isDarkTheme}>
+                      Update
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setShowUpdateModal(false)}
+                      isDark={isDarkTheme}
+                    >
                       Cancel
                     </Button>
                   </ButtonGroup>
