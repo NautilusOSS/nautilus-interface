@@ -6,6 +6,7 @@ export { Token } from "./Token";
 export { Account } from "./Account";
 export { Activity } from "./Activity";
 export { Listings } from "./Listings";
+export { default as EnhancedListing } from "./EnhancedListing";
 export { Staking } from "./Staking";
 export { CreateARC200 } from "./CreateARC200";
 export { NFTGames } from "./NFTGames";

@@ -14,6 +14,9 @@ import SlotMachine from "@/components/Tools/SlotMachine";
 import StakeableManager from "@/components/Tools/StakeableManager";
 import WrappedVsaConverter from "@/components/Tools/WrappedVsaConverter";
 import NodeRewardClaim from "@/components/Tools/NodeRewardClaim";
+import Arc200VsaConverter from "@/components/Tools/Arc200VsaConverter";
+import MixedAssetSender from "@/components/Tools/MixedAssetSender";
+import UnitConverter from "@/components/Tools/UnitConverter";
 
 const toolsConfig = [
   {
@@ -414,6 +417,121 @@ const toolsConfig = [
         />
         <path
           d="M12 16L16 20L20 12"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "arc200vsaconverter",
+    name: "ARC200 Exchange",
+    component: Arc200VsaConverter,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="6"
+          y="6"
+          width="20"
+          height="20"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M12 16H20"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M16 12L16 20"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M10 22L22 10"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+
+  {
+    id: "mixedassetsender",
+    name: "Mixed Asset Sender",
+    component: MixedAssetSender,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="24"
+          height="24"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <circle cx="8" cy="12" r="2" fill="currentColor" />
+        <circle cx="16" cy="12" r="2" fill="currentColor" />
+        <circle cx="24" cy="12" r="2" fill="currentColor" />
+        <path
+          d="M8 20L16 28L24 20"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "unitrescuemission",
+    name: "Unit Rescue Mission",
+    component: UnitConverter,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="24"
+          height="24"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M8 12L16 20L24 12"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M8 16L16 8L24 16"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"

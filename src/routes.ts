@@ -39,6 +39,10 @@ export const routes = [
     Component: Page.Listings,
   },
   {
+    path: "/enhanced-listing",
+    Component: Page.EnhancedListing,
+  },
+  {
     path: "/sandbox",
     Component: Page.Sandbox,
   },
