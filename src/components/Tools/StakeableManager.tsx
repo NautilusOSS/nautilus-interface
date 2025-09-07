@@ -367,7 +367,7 @@ const StakeableManager: React.FC = () => {
         payment: 1000,
         note: new Uint8Array(Buffer.from(`update participation`)),
       };
-      ci.setFee(2000);
+      ci.setFee(2e6);
       ci.setEnableGroupResourceSharing(true);
       ci.setExtraTxns([txnO]);
       const customR = await ci.custom();
@@ -447,7 +447,8 @@ const StakeableManager: React.FC = () => {
      \\/        \\/   \\_____|
 `);
     } catch (error) {
-      setResult("Error checking VOI status. Please try again.");
+      //setResult("Error checking VOI status. Please try again.");
+      setManager("");
     } finally {
       setLoading(false);
     }
@@ -566,13 +567,13 @@ const StakeableManager: React.FC = () => {
           <pre>{result}</pre>
           <pre>AppId: {appId}</pre>
           <pre>Address: {address}</pre>
-          <pre>
+          {/*<pre>
             Manager:
             <br />
             {globalState.owner}
             <br />
             {globalState.delegate}
-          </pre>
+          </pre>*/}
           <pre>Available balance: {availableBalance} VOI</pre>
           <pre>Withdrawable amount: {withdrawableAmount} VOI</pre>
           <pre>
@@ -583,9 +584,10 @@ const StakeableManager: React.FC = () => {
               </div>
             )}
           </pre>
-          {[globalState.owner, globalState.delegate].includes(
+          {
+            /*[globalState.owner, globalState.delegate].includes(
             activeAccount?.address
-          ) && (
+          ) && (*/
             <div style={{ marginTop: "1rem" }}>
               {/*withdrawableAmount > 0 && (
                 <Button
@@ -608,7 +610,8 @@ const StakeableManager: React.FC = () => {
                 Transfer Manager
               </Button>*/}
             </div>
-          )}
+            /*)*/
+          }
         </ResultContainer>
       )}
 

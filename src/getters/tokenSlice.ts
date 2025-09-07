@@ -3,14 +3,13 @@ import axios from "axios";
 import db from "../db";
 import { NFTIndexerTokenI, Token } from "../types";
 import { decodeRoyalties } from "../utils/hf";
-import { ARC72_INDEXER_API } from "../config/arc72-idx";
-
+import { MIMIR_API } from "../config/arc72-idx";
 
 export const getToken = async (contractId: number, tokenId: number) => {
   const token = await db.table("tokens").get(`${contractId}-${tokenId}`);
   if (token) return token;
   const response = await axios.get(
-    `${ARC72_INDEXER_API}/nft-indexer/v1/tokens/${contractId}/${tokenId}`
+    `${MIMIR_API}/nft-indexer/v1/tokens/${contractId}/${tokenId}`
   );
   const newToken = response.data;
   await db.table("tokens").put({
@@ -26,7 +25,7 @@ export const getToken = async (contractId: number, tokenId: number) => {
   return newToken;
 };
 
-export const getTokens = async() => {
+export const getTokens = async () => {
   try {
     const tokenTable = db.table("tokens");
     const tokens = await tokenTable.toArray();
@@ -34,20 +33,17 @@ export const getTokens = async() => {
       tokens?.length > 0
         ? Math.max(...tokens.map((token) => token.mintRound))
         : 0;
-    const response = await axios.get(
-      `${ARC72_INDEXER_API}/nft-indexer/v1/tokens`,
-      {
-        params: {
-          "mint-min-round": lastRound,
-        },
-      }
-    )
+    const response = await axios.get(`${MIMIR_API}/nft-indexer/v1/tokens`, {
+      params: {
+        "mint-min-round": lastRound,
+      },
+    });
 
     const newTokens = response?.data?.tokens.filter(
       (token: NFTIndexerTokenI) => token["mint-round"] > lastRound
     );
     await db.table("tokens").bulkPut(
-    newTokens?.map((token: NFTIndexerTokenI) => {
+      newTokens?.map((token: NFTIndexerTokenI) => {
         return {
           pk: `${token.contractId}-${token.tokenId}`,
           owner: token.owner,

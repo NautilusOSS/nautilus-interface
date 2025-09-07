@@ -20,7 +20,7 @@ import {
 import Wallet from "./pages/Wallet";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import { theme } from "./theme";
+import { createAppTheme } from "./theme";
 import CommunityChest from "./pages/CommunityChest";
 import EarlyAccessTokenSender from "./pages/EarlyAccessTokenSender";
 import SalesActivity from "./pages/SalesActivity";
@@ -28,6 +28,9 @@ import AccountOffers from "./pages/AccountOffers";
 import NFTDripsPage from "./pages/NFTDrips";
 import { Offers } from "./pages/Offers";
 import Tools from "./pages/Tools";
+import OfferDetail from "./pages/OfferDetail";
+import AuctionDetail from "./pages/Auction";
+import OffersManager from "./components/Tools/OffersManager";
 
 const BackgroundLayer = styled.div`
   width: 100%;
@@ -89,16 +92,49 @@ const AppRoutes: React.FC = () => {
               />
             }
           />
+          <Route
+            path="/wvoi"
+            element={
+              <CommunityChest
+                isDarkTheme={isDarkTheme}
+                connected={true}
+                address={activeAccount?.address}
+              />
+            }
+          />
           <Route path="/eat-wizard" element={<EarlyAccessTokenSender />} />
           <Route path="/sales-activity" element={<SalesActivity />} />
           <Route path="/account/:address/offers" element={<AccountOffers />} />
           <Route path="/nft-drips" element={<NFTDripsPage />} />
-          <Route path="/offers" element={<Offers />} />
+          <Route path="/offers" element={<OffersManager />} />
+          <Route path="/offers/:address" element={<OffersManager />} />
+          <Route path="/old-offers" element={<Offers />} />
           <Route path="/tools" element={<Tools />} />
+          <Route path="/offer/:txid" element={<OfferDetail />} />
+          <Route
+            path="/auction/:collectionId/:tokenId"
+            element={<AuctionDetail />}
+          />
           <Route path="/tools/:tool" element={<Tools />} />
         </Routes>
       </Router>
     </AppContainer>
+  );
+};
+
+// Create a component that provides the theme based on Redux state
+const ThemedAppRoutes: React.FC = () => {
+  const isDarkTheme = useSelector(
+    (state: RootState) => state.theme.isDarkTheme
+  );
+
+  const dynamicTheme = createAppTheme(isDarkTheme);
+
+  return (
+    <ThemeProvider theme={dynamicTheme}>
+      <CssBaseline />
+      <AppRoutes />
+    </ThemeProvider>
   );
 };
 
@@ -155,19 +191,16 @@ const App: React.FC = () => {
   });
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <WalletProvider manager={walletManager}>
-          <Provider store={store}>
-            <PersistGate loading={null} persistor={persistor}>
-              <AppRoutes />
-            </PersistGate>
-          </Provider>
-          <ToastContainer />
-        </WalletProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <WalletProvider manager={walletManager}>
+        <Provider store={store}>
+          <PersistGate loading={null} persistor={persistor}>
+            <ThemedAppRoutes />
+          </PersistGate>
+        </Provider>
+        <ToastContainer />
+      </WalletProvider>
+    </QueryClientProvider>
   );
 };
 

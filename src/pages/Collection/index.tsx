@@ -1109,6 +1109,7 @@ export const Collection: React.FC = () => {
   const { data: listings, isLoading: collectionListingsLoading } =
     useMarketplaceListings(Number(id));
 
+
   const normalListings = useMemo(() => {
     if (collectionListingsLoading) return [];
     return listings?.map((listing: NFTIndexerListingI) => {

@@ -15,7 +15,7 @@ const NFTCardWrapper = styled.div`
   );
   background-color: rgba(255, 255, 255, 1);
   */
-  border-radius: 20px;
+  border-radius: 24px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -50,7 +50,7 @@ const NFTCardWrapper = styled.div`
     align-self: stretch;
     backdrop-filter: blur(200px) brightness(100%);
     background-color: #40404060;
-    border-radius: 0px 0px 16px 16px;
+    border-radius: 0px 0px 20px 20px;
     display: flex;
     flex-direction: column;
     gap: 16px;

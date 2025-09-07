@@ -1,376 +1,203 @@
 import React from "react";
-import { Card, CardContent, Typography, Button, Skeleton } from "@mui/material";
+import { Card, CardContent, Typography, Box, Chip, Button } from "@mui/material";
 import styled from "styled-components";
-import { formatAmount } from "../../utils/format";
 import { NFT_NAVIGATOR_API } from "@/config/arc72-idx";
-import { toast } from "react-toastify";
-import { useWallet } from "@txnlab/use-wallet-react";
-import { getAlgorandClients } from "@/wallets";
-import { abi, CONTRACT } from "ulujs";
-import algosdk from "algosdk";
-import BigNumber from "bignumber.js";
-import { CancelOfferDialog } from "../modals/CancelOfferDialog";
+import axios from "axios";
+import { useState, useEffect } from "react";
 
 const OfferCardWrapper = styled(Card)<{ $isDark?: boolean }>`
-  &.MuiCard-root {
-    background: ${({ $isDark }) =>
-      $isDark ? "rgba(25, 25, 25, 0.95)" : "#fafafa"};
-    border: 1px solid
-      ${({ $isDark }) => ($isDark ? "rgba(255, 255, 255, 0.1)" : "#e0e0e0")};
-    transition: all 0.2s ease-in-out;
-    &:hover {
-      transform: translateY(-4px);
-      background: ${({ $isDark }) =>
-        $isDark ? "rgba(35, 35, 35, 0.95)" : "#fafafa"};
-      box-shadow: 0 4px 12px
-        rgba(0, 0, 0, ${({ $isDark }) => ($isDark ? "0.5" : "0.1")});
-    }
+  background-color: ${(props) => (props.$isDark ? "#2a2a2a" : "#fff")};
+  border: 1px solid ${(props) => (props.$isDark ? "#444" : "#e0e0e0")};
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${(props) => 
+      props.$isDark 
+        ? "0 4px 20px rgba(255, 255, 255, 0.1)" 
+        : "0 4px 20px rgba(0, 0, 0, 0.1)"
+    };
   }
 `;
 
-const StyledTypography = styled(Typography)<{ $isDark?: boolean }>`
-  && {
-    color: ${({ $isDark }) => ($isDark ? "#ffffff" : "#000000")};
-  }
+const TokenImage = styled.img`
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
 `;
 
-const StyledButton = styled(Button)<{ $isDark?: boolean }>`
-  && {
-    color: ${({ $isDark }) => ($isDark ? "#ffffff" : "#000000")};
-    border-color: ${({ $isDark }) => ($isDark ? "#ffffff" : "#000000")};
-    margin-top: 1rem;
-    &:hover {
-      border-color: ${({ $isDark }) => ($isDark ? "#ffffff" : "#000000")};
-      background: ${({ $isDark }) =>
-        $isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
-    }
-  }
+const PriceText = styled(Typography)<{ $isDark?: boolean }>`
+  color: ${(props) => (props.$isDark ? "#fff" : "#000")};
+  font-weight: bold;
+  font-size: 1.2rem;
 `;
 
-interface Offer {
-  mpListingId?: number;
-  listingId?: number;
-  id?: number;
-  transactionId: string;
-  tokenId: string;
-  price: number;
-  collectionId: number;
-  createTimestamp: number;
-  offerer: string;
-  currency: number;
-  active: number;
-}
+const AddressText = styled(Typography)<{ $isDark?: boolean }>`
+  color: ${(props) => (props.$isDark ? "#ccc" : "#666")};
+  font-family: monospace;
+  font-size: 0.8rem;
+`;
 
-interface TokenInfo {
-  name?: string;
-  image?: string;
-}
+const StatusChip = styled(Chip)<{ $isExpired?: boolean }>`
+  background-color: ${(props) => 
+    props.$isExpired ? "#f44336" : "#4caf50"
+  };
+  color: white;
+  font-size: 0.7rem;
+`;
 
 interface OfferCardProps {
-  offer: Offer;
+  offer: {
+    mpListingId: number;
+    contractId: number;
+    tokenId: number;
+    offerer: string;
+    price: number;
+    currency: number;
+    createTimestamp: number;
+    expireTimestamp: number;
+    active: number;
+  };
+  onCancel: (offerId: number) => void;
   isDarkTheme: boolean;
-  onCancel?: (offerId: number) => void;
+  approval?: any;
 }
 
 const OfferCard: React.FC<OfferCardProps> = ({
   offer,
-  isDarkTheme,
   onCancel,
+  isDarkTheme,
+  approval,
 }) => {
-  const [tokenInfo, setTokenInfo] = React.useState<TokenInfo>();
-  const [loading, setLoading] = React.useState(true);
-  const [manager, setManager] = React.useState<string>("");
-  const { activeAccount, signTransactions } = useWallet();
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [isCancelling, setIsCancelling] = React.useState(false);
+  const [tokenMetadata, setTokenMetadata] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Debug API response structure
-  React.useEffect(() => {
-    console.log("Offer object structure:", {
-      mpListingId: offer.mpListingId,
-      listingId: offer.listingId,
-      id: offer.id,
-    });
-  }, [offer]);
-
-  const getOfferId = (): number => {
-    const offerId = offer.mpListingId || offer.listingId || offer.id;
-    if (!offerId) {
-      console.error("No valid offer ID found in:", offer);
-      toast.error("Invalid offer format");
-      throw new Error("Invalid offer ID");
-    }
-    return offerId;
-  };
-
-  React.useEffect(() => {
-    const fetchManager = async () => {
+  useEffect(() => {
+    const fetchTokenMetadata = async () => {
       try {
-        const { algodClient, indexerClient } = getAlgorandClients();
-        const ctcInfoMP213 = 8329112;
-        const ci = new CONTRACT(
-          ctcInfoMP213,
-          algodClient,
-          indexerClient,
-          abi.mp,
-          {
-            addr: algosdk.getApplicationAddress(ctcInfoMP213),
-            sk: new Uint8Array(0),
-          }
-        );
-        const managerResponse = await ci.manager();
-        setManager(managerResponse.returnValue);
-      } catch (error) {
-        console.error("Error fetching manager:", error);
-      }
-    };
-
-    fetchManager();
-  }, []);
-
-  React.useEffect(() => {
-    if (!offer.collectionId || !offer.tokenId || tokenInfo) return;
-
-    const fetchTokenInfo = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
+        const response = await axios.get(
           `${NFT_NAVIGATOR_API}/nft-indexer/v1/tokens?contractId=${offer.collectionId}&tokenId=${offer.tokenId}`
         );
-        const data = await response.json();
-        if (data.tokens.length > 0) {
-          const metadata = JSON.parse(data.tokens[0].metadata);
-          setTokenInfo({
-            name: metadata.name,
-            image: metadata.image,
-          });
-        }
+        setTokenMetadata(response.data.tokens[0]);
       } catch (error) {
-        console.error("Error fetching token info:", error);
+        console.error("Error fetching token metadata:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTokenInfo();
-  }, [offer.collectionId, offer.tokenId]);
+    fetchTokenMetadata();
+  }, [offer.contractId, offer.tokenId]);
 
-  const handleCancelOffer = async (
-    offerer: string,
-    offerAmount: number,
-    simulate?: boolean
-  ) => {
-    try {
-      setIsCancelling(true);
-      const offerId = getOfferId();
-
-      const feeAmountBI = BigInt(
-        new BigNumber(offerAmount).multipliedBy(0.1).toFixed(0)
-      );
-      const totalAmount = BigInt(offerAmount) + feeAmountBI;
-
-      const { algodClient, indexerClient } = getAlgorandClients();
-      const ctcInfoMP213 = 8329112;
-      const ctcInfoNV = 8324600;
-
-      const builder = {
-        arc200: new CONTRACT(
-          ctcInfoNV,
-          algodClient,
-          indexerClient,
-          abi.nt200,
-          { addr: offerer, sk: new Uint8Array(0) },
-          true,
-          false,
-          true
-        ),
-        mp: new CONTRACT(
-          ctcInfoMP213,
-          algodClient,
-          indexerClient,
-          {
-            name: "mp213",
-            desc: "mp213",
-            methods: [
-              {
-                name: "a_offer_deleteListing",
-                args: [{ type: "uint256", name: "offerId" }],
-                returns: { type: "void" },
-              },
-            ],
-            events: [],
-          },
-          { addr: offerer, sk: new Uint8Array(0) },
-          true,
-          false,
-          true
-        ),
-      };
-
-      const buildN = [
-        {
-          ...(await builder.mp.a_offer_deleteListing(BigInt(offerId)))?.obj,
-          note: new TextEncoder().encode(`a_offer_deleteListing:${offerId}`),
-          foreignApps: [ctcInfoNV, offer.collectionId],
-          accounts: [
-            "RTKWX3FTDNNIHMAWHK5SDPKH3VRPPW7OS5ZLWN6RFZODF7E22YOBK2OGPE",
-          ],
-        },
-        {
-          ...(await builder.arc200.withdraw(totalAmount))?.obj,
-          note: new TextEncoder().encode(`withdraw:${totalAmount}`),
-        },
-      ];
-
-      const ci = new CONTRACT(
-        ctcInfoMP213,
-        algodClient,
-        indexerClient,
-        abi.custom,
-        { addr: offerer, sk: new Uint8Array(0) }
-      );
-
-      ci.setEnableGroupResourceSharing(true);
-      ci.setExtraTxns(buildN);
-      ci.setFee(3000);
-
-      const customR = await ci.custom();
-
-      if (simulate && customR.success) {
-        onCancel?.(offerId);
-        toast.success("Offer cancelled successfully!");
-        return;
-      }
-
-      if (!customR.success) {
-        throw new Error(customR.error || "Offer cancellation failed");
-      }
-
-      const stxns = await signTransactions(
-        customR.txns.map((el: any) => new Uint8Array(Buffer.from(el, "base64")))
-      );
-
-      const txn = await algodClient
-        .sendRawTransaction(stxns as Uint8Array[])
-        .do();
-
-      await algosdk.waitForConfirmation(algodClient, txn.txId, 4);
-      onCancel?.(offerId);
-      toast.success("Offer cancelled successfully!");
-    } catch (e: any) {
-      console.error("Cancel offer error:", e);
-      toast.error(e.message || "Failed to cancel offer");
-    } finally {
-      setIsCancelling(false);
-    }
+  const formatPrice = (price: number) => {
+    return (price / 1e6).toFixed(2);
   };
 
-  const handleCancelClick = () => {
-    try {
-      getOfferId(); // Verify ID exists before showing dialog
-      setDialogOpen(true);
-    } catch (error) {
-      // Error already handled in getOfferId
-    }
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString();
   };
 
-  const handleConfirmCancel = () => {
-    handleCancelOffer(offer.offerer, offer.price, false);
+  const isExpired = () => {
+    return Date.now() / 1000 > offer.expireTimestamp;
   };
 
-  const handleViewToken = () => {
-    window.open(
-      `/#/collection/${offer.collectionId}/token/${offer.tokenId}`,
-      "_blank"
-    );
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   return (
     <OfferCardWrapper $isDark={isDarkTheme}>
       <CardContent>
-        {loading ? (
-          <>
-            <Skeleton
-              variant="rectangular"
-              width="100%"
-              height={200}
+        {/* Token Image */}
+        <Box sx={{ mb: 2 }}>
+          {loading ? (
+            <Box
               sx={{
-                bgcolor: isDarkTheme ? "grey.800" : "grey.200",
-                marginBottom: "1rem",
+                width: "100%",
+                height: 200,
+                backgroundColor: isDarkTheme ? "#444" : "#f0f0f0",
+                borderRadius: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
-            />
-            <Skeleton
-              variant="text"
-              width="60%"
-              sx={{ bgcolor: isDarkTheme ? "grey.800" : "grey.200" }}
-            />
-            <Skeleton
-              variant="text"
-              width="40%"
-              sx={{ bgcolor: isDarkTheme ? "grey.800" : "grey.200" }}
-            />
-            <Skeleton
-              variant="rectangular"
-              width="100%"
-              height={36}
-              sx={{
-                bgcolor: isDarkTheme ? "grey.800" : "grey.200",
-                marginTop: "1rem",
-              }}
-            />
-          </>
-        ) : (
-          <>
-            {tokenInfo?.name && (
-              <StyledTypography variant="h6" $isDark={isDarkTheme}>
-                {tokenInfo.name}
-              </StyledTypography>
-            )}
-            {tokenInfo?.image && (
-              <img
-                style={{ width: "100%", marginBottom: "1rem" }}
-                src={tokenInfo.image}
-                alt={tokenInfo.name || "Token"}
-              />
-            )}
-            <StyledTypography $isDark={isDarkTheme}>
-              Offer: {formatAmount(offer.price)} VOI
-            </StyledTypography>
-            <StyledTypography $isDark={isDarkTheme}>
-              Created: {new Date(offer.createTimestamp * 1000).toLocaleString()}
-            </StyledTypography>
-
-            {(offer.offerer === activeAccount?.address ||
-              manager === activeAccount?.address) && (
-              <StyledButton
-                variant="outlined"
-                $isDark={isDarkTheme}
-                onClick={handleCancelClick}
-                disabled={!activeAccount || isCancelling}
-                fullWidth
-              >
-                {isCancelling ? "Cancelling..." : "Cancel Offer"}
-              </StyledButton>
-            )}
-
-            <StyledButton
-              variant="outlined"
-              $isDark={isDarkTheme}
-              onClick={handleViewToken}
-              fullWidth
             >
-              View Token Page
-            </StyledButton>
-          </>
-        )}
-      </CardContent>
+              <Typography variant="body2" sx={{ color: isDarkTheme ? "#ccc" : "#666" }}>
+                Loading...
+              </Typography>
+            </Box>
+          ) : (
+            <TokenImage
+              src={tokenMetadata?.metadata?.image || "/placeholder-nft.png"}
+              alt={`Token #${offer.tokenId}`}
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder-nft.png";
+              }}
+            />
+          )}
+        </Box>
 
-      <CancelOfferDialog
-        open={dialogOpen}
-        onClose={() => !isCancelling && setDialogOpen(false)}
-        onConfirm={handleConfirmCancel}
-        disabled={isCancelling}
-      />
+        {/* Token Info */}
+        <Box sx={{ mb: 2 }}>
+          <Typography
+            variant="h6"
+            sx={{ color: isDarkTheme ? "#fff" : "#000", mb: 1 }}
+          >
+            {tokenMetadata?.metadata?.name || `Token #${offer.tokenId}`}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: isDarkTheme ? "#ccc" : "#666" }}
+          >
+            Collection #{offer.contractId}
+          </Typography>
+        </Box>
+
+        {/* Offer Details */}
+        <Box sx={{ mb: 2 }}>
+          <PriceText $isDark={isDarkTheme}>
+            {formatPrice(offer.price)} {offer.currency === 8324600 ? "VOI" : offer.currency}
+          </PriceText>
+          <AddressText $isDark={isDarkTheme}>
+            From: {formatAddress(offer.offerer)}
+          </AddressText>
+        </Box>
+
+        {/* Status and Dates */}
+        <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <StatusChip
+            label={isExpired() ? "Expired" : "Active"}
+            $isExpired={isExpired()}
+            size="small"
+          />
+          <Typography
+            variant="caption"
+            sx={{ color: isDarkTheme ? "#ccc" : "#666" }}
+          >
+            Expires: {formatDate(offer.expireTimestamp)}
+          </Typography>
+        </Box>
+
+        {/* Action Buttons */}
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            fullWidth
+            onClick={() => onCancel(offer.mpListingId)}
+            sx={{
+              color: isDarkTheme ? "#fff" : "#000",
+              borderColor: isDarkTheme ? "#666" : "#ccc",
+              "&:hover": {
+                borderColor: isDarkTheme ? "#888" : "#999",
+              },
+            }}
+          >
+            Cancel Offer
+          </Button>
+        </Box>
+      </CardContent>
     </OfferCardWrapper>
   );
 };

@@ -1,12 +1,12 @@
-import { ARC72_INDEXER_API, NFT_NAVIGATOR_API } from "@/config/arc72-idx";
+import { MIMIR_API } from "@/config/arc72-idx";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
 export const useMarketplaceListings = (contractId: number) => {
-  const data = useQuery({
+  const query = useQuery({
     queryFn: () => {
       return axios
-        .get(`${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`, {
+        .get(`${MIMIR_API}/nft-indexer/v1/mp/listings`, {
           params: {
             active: true,
             collectionId: contractId,
@@ -19,6 +19,15 @@ export const useMarketplaceListings = (contractId: number) => {
         });
     },
     queryKey: ["marketplaceListings", contractId],
+    staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch on component mount if data exists
+    retry: 3, // Retry failed requests up to 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
-  return data;
+
+  return {
+    ...query,
+    refetch: query.refetch,
+  };
 };

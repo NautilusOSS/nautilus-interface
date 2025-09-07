@@ -44,6 +44,7 @@ import LaunchIcon from "@mui/icons-material/Launch";
 import CloseIcon from "@mui/icons-material/Close";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { useAccountBalance } from "@/hooks/useAccountBalance";
+import { MIMIR_API } from "@/config/arc72-idx";
 
 const findCommonRatio = (a: number, totalSum: number, n: number) => {
   // Using numerical method (binary search) to find r
@@ -553,6 +554,7 @@ interface ContractOption {
   };
   tokenomicsNote?: string;
   url?: string;
+  image?: string;
 }
 
 // Add color mapping for tokenomics properties
@@ -897,20 +899,22 @@ const CONTRACT_OPTIONS: ContractOption[] = [
     id: 40227315,
     name: "Virtual Babes VOiconomy (VBV)",
     description:
-      "Virtual Babes VOiconomy (VBV) is a wrapped VOI token that represents staked VOI in the Virtual Babes ecosystem. VBV holders support the development of Virtual Babes' decentralized applications and may be eligible for future incentives.",
+      "Staking in Virtual Babes VOiconomy allows users to grow their VOI in $VBV, rewarding users with $VBV. User rewards are compounded into their stake and their stake can be withdrawn 1:1 with VOI anytime, forfeiting those % of stakes unpaid rewards for the current epoch withdrawn in. Regular rewards are paid into users stake after each completed epoch has been cleared. Bonus rewards are paid irregularly and may vary, these bonuses will grow in value over time.",
     iconPath:
       "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
     tokenomics: {
-      holder: 0,
+      holder: 0.5,
       drawing: 0,
-      lpHolder: 0,
-      treasury: 0.9999,
+      lpHolder: 0.25,
+      treasury: 0.1,
       team: 0,
-      node: 0.0001,
-      other: 0,
+      node: 0.1,
+      other: 0.05,
       faucet: 0,
       future: 0,
     },
+    tokenomicsNote:
+      "Holders receive ~50% of epoch VOI block rewards as $VBV. LP and Bonus Reward System receives 25%, Treasury 10%, Node manager 10%, and Community wVOI 5%.",
   },
   {
     id: 40263883,
@@ -1050,7 +1054,7 @@ const getContractDescription = (
     case 40077073:
       return "COFFEE is GM's liquid staking token, representing staked VOI to support long-term GM/VOI trading liquidity without earning rewards. This token helps maintain stable liquidity for the GM ecosystem while allowing holders to maintain flexibility with their positions.";
     case 40227315:
-      return "Virtual Babes VOiconomy (VBV) is a wrapped VOI token that represents staked VOI in the Virtual Babes ecosystem. VBV holders support the development of Virtual Babes' decentralized applications and may be eligible for future incentives.";
+      return "Welcome to Virtual Babes VOiconomy (VBV) - a staking solution that allows users to grow their VOI in $VBV. User rewards are compounded into their stake and can be withdrawn 1:1 with VOI anytime. Regular rewards are paid after each completed epoch, while bonus rewards are paid irregularly and grow in value over time.";
     case 40263883:
       return "Neo Voi (NEO) is a wrapped VOI token that represents staked VOI in the Neo ecosystem. NEO holders support the development of Neo's decentralized applications and may be eligible for future incentives.";
     default:
@@ -2061,7 +2065,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
 
       // Fetch holders data for rankings
       const response = await axios.get(
-        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/balances?contractId=${selectedContract}`
+        `${MIMIR_API}/arc200/balances?contractId=${selectedContract}`
       );
       const filteredHolders =
         response?.data?.balances?.filter(
@@ -2118,7 +2122,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
       // Fetch user token balances if connected
       if (connected && address) {
         const balancesResponse = await axios.get(
-          `https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/balances?accountId=${address}`
+          `${MIMIR_API}/arc200/balances?accountId=${address}`
         );
 
         const relevantTokens = [
@@ -2383,7 +2387,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
     const fetchNFTs = async () => {
       try {
         const response = await axios.get(
-          `https://mainnet-idx.nautilus.sh/nft-indexer/v1/tokens?owner=MTGLPLANYNVD4OMZUQDIZ62G5LRX3JCC2H33VZNYY5VDWLEYW5JRZ3W3GQ`
+          `${MIMIR_API}/nft-indexer/v1/tokens?owner=MTGLPLANYNVD4OMZUQDIZ62G5LRX3JCC2H33VZNYY5VDWLEYW5JRZ3W3GQ`
         );
 
         const nftData = response.data.tokens
@@ -3945,7 +3949,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                   case 40077073:
                     return "COFFEE is GM's liquid staking token, representing staked VOI to support long-term GM/VOI trading liquidity without earning rewards. This token helps maintain stable liquidity for the GM ecosystem while allowing holders to maintain flexibility with their positions.";
                   case 40227315:
-                    return "Virtual Babes VOiconomy (VBV) is a wrapped VOI token that represents staked VOI in the Virtual Babes ecosystem. VBV holders support the development of Virtual Babes' decentralized applications and may be eligible for future incentives.";
+                    return "Virtual Babes VOiconomy (VBV) allows staking VOI to earn $VBV rewards. Rewards are compounded into your stake and can be withdrawn 1:1 with VOI anytime. Regular rewards are distributed after each epoch, with irregular bonus rewards that grow in value over time.";
                   case 40263883:
                     return "Neo Voi (NEO) is a wrapped VOI token that represents staked VOI in the Neo ecosystem. NEO holders support the development of Neo's decentralized applications and may be eligible for future incentives.";
                   default:

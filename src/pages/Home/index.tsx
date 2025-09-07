@@ -59,6 +59,7 @@ import { useProjects } from "@/hooks/useProjects";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import algosdk from "algosdk";
 import { getAlgorandClients } from "@/wallets";
+import { useListings } from "@/components/Navbar/hooks/collections";
 
 const formatPrice = (price: number) => {
   const value = price / 1e6; // Convert to VOI
@@ -1557,7 +1558,9 @@ const AirdropCenterSVG = () => (
           fill="white"
           opacity="0.8"
           style={{
-            animation: `sparkle ${2 + Math.random() * 2}s ease-in-out infinite ${i * 0.1}s`,
+            animation: `sparkle ${
+              2 + Math.random() * 2
+            }s ease-in-out infinite ${i * 0.1}s`,
           }}
         >
           <animateMotion
@@ -1583,7 +1586,9 @@ const AirdropCenterSVG = () => (
           stroke="url(#coinStroke)"
           strokeWidth="1"
           style={{
-            animation: `float ${4 + Math.random() * 2}s ease-in-out infinite ${i * 0.3}s`,
+            animation: `float ${4 + Math.random() * 2}s ease-in-out infinite ${
+              i * 0.3
+            }s`,
           }}
         >
           <animateMotion
@@ -1603,7 +1608,9 @@ const AirdropCenterSVG = () => (
           fill="white"
           opacity="0.6"
           style={{
-            animation: `shine ${2 + Math.random() * 1}s ease-in-out infinite ${i * 0.2}s`,
+            animation: `shine ${2 + Math.random() * 1}s ease-in-out infinite ${
+              i * 0.2
+            }s`,
           }}
         >
           <animateMotion
@@ -1825,6 +1832,10 @@ export const Home: React.FC = () => {
   }, []);
 
   /* Listings */
+
+  const { data: listings, status: listingsStatus } = useListings();
+
+  /*
   const listings = useSelector((state: any) => state.listings.listings);
   const listingsStatus = useSelector((state: any) => state.listings.status);
   useEffect(() => {
@@ -1832,6 +1843,7 @@ export const Home: React.FC = () => {
     dispatch(getListings() as unknown as UnknownAction);
   }, []);
   console.log({ listings });
+  */
 
   /* Theme */
   const isDarkTheme = useSelector(
@@ -1865,7 +1877,7 @@ export const Home: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const isLoading = !listings || !smartTokens || listingsStatus !== "succeeded";
+  const isLoading = !listings || !smartTokens;
 
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoadingSales, setIsLoadingSales] = useState(false);
@@ -3207,243 +3219,6 @@ export const Home: React.FC = () => {
                 })}
               </CollectionGrid>
             )}
-            {/*</TabPanel>*/}
-
-            {/* Add Active Listings Section */}
-            {/*<Box sx={{ mb: 3, mt: 6 }}>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 600,
-                  color: isDarkTheme ? "#fff" : "#000",
-                  fontFamily: '"Plus Jakarta Sans", sans-serif',
-                }}
-              >
-                Active Listings
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  mt: 1,
-                  color: isDarkTheme
-                    ? "rgba(255, 255, 255, 0.7)"
-                    : "rgba(0, 0, 0, 0.7)",
-                  fontFamily: '"Plus Jakarta Sans", sans-serif',
-                }}
-              >
-                Explore the latest NFTs available for purchase
-              </Typography>
-            </Box>
-
-            <Swiper
-              modules={[Navigation, Pagination]}
-              spaceBetween={30}
-              slidesPerView={4}
-              navigation
-              pagination={{ clickable: true }}
-              className="w-full mb-12"
-              style={{
-                borderRadius: "16px",
-                height: "400px",
-              }}
-              breakpoints={{
-                320: {
-                  slidesPerView: 1,
-                  spaceBetween: 20,
-                },
-                640: {
-                  slidesPerView: 2,
-                  spaceBetween: 30,
-                },
-                1024: {
-                  slidesPerView: 4,
-                  spaceBetween: 30,
-                },
-              }}
-            >
-              {listings.slice(0, 8).map((listing: NFTIndexerListingI) => {
-                const { token } = listing;
-                const metadata = token?.metadata
-                  ? JSON.parse(token.metadata)
-                  : null;
-                const name = metadata?.name || `Token #${listing.tokenId}`;
-                console.log({ listing, token, metadata, name });
-                return (
-                  <SwiperSlide
-                    key={`${listing.collectionId}-${listing.tokenId}`}
-                  >
-                    <div
-                      className="relative w-full h-full cursor-pointer"
-                      onClick={() =>
-                        navigate(
-                          `/collection/${listing.collectionId}/token/${listing.tokenId}`
-                        )
-                      }
-                    >
-                      <img
-                        src={
-                          metadata?.image
-                            ? metadata.image.indexOf("ipfs://") !== -1
-                              ? metadata.image.replace(
-                                  "ipfs://",
-                                  "https://ipfs.io/ipfs/"
-                                )
-                              : metadata.image
-                        }
-                        alt={metadata?.name || `Token #${listing.tokenId}`}
-                        className="w-full h-full object-cover rounded-lg"
-                        onError={(
-                          e: React.SyntheticEvent<HTMLImageElement>
-                        ) => {
-                          e.currentTarget.src = "/placeholder.png";
-                        }}
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 rounded-b-lg">
-                        <h3 className="text-lg font-bold mb-2">
-                          {metadata?.name || `Token #${listing.tokenId}`}
-                        </h3>
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-sm opacity-80">Price</p>
-                            <p className="font-bold">
-                              {formatPrice(listing.price)} VOI
-                            </p>
-                          </div>
-                          <MuiButton
-                            variant="contained"
-                            size="small"
-                            sx={{
-                              backgroundColor: "#93f",
-                              "&:hover": {
-                                backgroundColor: "#7a2adb",
-                              },
-                            }}
-                          >
-                            Buy Now
-                          </MuiButton>
-                        </div>
-                      </div>
-                    </div>
-                  </SwiperSlide>
-                );
-              })}
-            </Swiper>*/}
-
-            {/* NFT Games Section */}
-            {/*projects?.nftGamesProjects &&
-              projects.nftGamesProjects.length > 0 && (
-                <>
-                  <Box sx={{ mb: 3, mt: 6 }}>
-                    <Typography
-                      variant="h4"
-                      sx={{
-                        fontWeight: 600,
-                        color: isDarkTheme ? "#fff" : "#000",
-                        fontFamily: '"Plus Jakarta Sans", sans-serif',
-                      }}
-                    >
-                      NFT Games
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        mt: 1,
-                        color: isDarkTheme
-                          ? "rgba(255, 255, 255, 0.7)"
-                          : "rgba(0, 0, 0, 0.7)",
-                        fontFamily: '"Plus Jakarta Sans", sans-serif',
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "4px",
-                      }}
-                    >
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <FavoriteIcon sx={{ color: "#ff69b4", fontSize: 16 }} />
-                        10% of this project's proceeds goes to NFT Game Rewards.
-                      </Box>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <FavoriteIcon sx={{ color: "#ff69b4", fontSize: 16 }} />
-                        This project is part of the NFT Games.
-                      </Box>
-                    </Typography>
-                  </Box>
-                  <Swiper
-                    modules={[Navigation, Pagination]}
-                    spaceBetween={30}
-                    slidesPerView={3}
-                    centeredSlides={true}
-                    loop={true}
-                    navigation
-                    pagination={{ clickable: true }}
-                    autoplay={false}
-                    className="w-full mb-12"
-                    style={{
-                      borderRadius: "16px",
-                      height: "400px",
-                    }}
-                    breakpoints={{
-                      320: {
-                        slidesPerView: 1,
-                        spaceBetween: 20,
-                      },
-                      640: {
-                        slidesPerView: 2,
-                        spaceBetween: 30,
-                      },
-                      1024: {
-                        slidesPerView: 3,
-                        spaceBetween: 30,
-                      },
-                    }}
-                  >
-                    {projects.nftGamesProjects.map((project) => (
-                      <SwiperSlide key={project.applicationID}>
-                        {({ isActive, isNext, isPrev }) => (
-                          <div
-                            className="relative w-full h-full cursor-pointer transition-all duration-300"
-                            onClick={() =>
-                              navigate(`/collection/${project.applicationID}`)
-                            }
-                            style={{
-                              filter: isActive ? "none" : "blur(2px)",
-                              transform: isActive
-                                ? "scale(1.05)"
-                                : isNext || isPrev
-                                ? "scale(0.9)"
-                                : "scale(0.8)",
-                              opacity: isActive
-                                ? 1
-                                : isNext || isPrev
-                                ? 0.7
-                                : 0.5,
-                            }}
-                          >
-                            <img
-                              src={project.coverImageURL || "/placeholder.png"}
-                              alt={project.title}
-                              className="w-full h-full object-cover rounded-lg"
-                              onError={(
-                                e: React.SyntheticEvent<HTMLImageElement>
-                              ) => {
-                                e.currentTarget.src = "/placeholder.png";
-                              }}
-                            />
-                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 rounded-b-lg">
-                              <h3 className="text-xl font-bold mb-2">
-                                {project.title}
-                              </h3>
-                            </div>
-                          </div>
-                        )}
-                      </SwiperSlide>
-                    ))}
-                  </Swiper>
-                </>
-              )*/}
 
             {/* Activity */}
             <ActivitySection>

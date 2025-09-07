@@ -4,8 +4,6 @@ import axios from "axios";
 import db from "../db";
 import { RootState } from "./store";
 import { ListingI, NFTIndexerListingI } from "../types";
-import { ARC72_INDEXER_API } from "../config/arc72-idx";
-import { stripTrailingZeroBytes } from "@/utils/string";
 
 export interface ListingsState {
   listings: ListingI[];
@@ -23,27 +21,14 @@ export const getListings = createAsyncThunk<
   try {
     const lastRound = 0;
     const response = await axios.get(
-      `https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/mp/listings`,
+      `https://voi-mainnet-mimirapi.nftnavigator.xyz/nft-indexer/v1/mp/listings`,
       {
         params: {
           active: true,
         },
       }
     );
-    const response2 = await axios.get(
-      `${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`,
-      {
-        params: {
-          active: true,
-          collectionId: "421076",
-        },
-      }
-    );
-
-    const listings = [
-      ...response.data.listings,
-      ...response2.data.listings,
-    ].filter(
+    const listings = [...response.data.listings].filter(
       (listing: NFTIndexerListingI) =>
         listing.createRound > lastRound &&
         !blacklistContracts.includes(listing.collectionId)

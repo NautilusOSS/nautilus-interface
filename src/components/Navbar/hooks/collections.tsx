@@ -1,4 +1,4 @@
-import { ARC72_INDEXER_API } from "@/config/arc72-idx";
+import { ARC72_INDEXER_API, MIMIR_API } from "@/config/arc72-idx";
 import { getCollections } from "@/getters/collectionSlice";
 import { getPrices } from "@/getters/dexSlice";
 import { getSales } from "@/getters/saleSlice";
@@ -79,24 +79,24 @@ export const useCollectionInfo = () => {
   return data;
 };
 
-export const useListings = (options?: { seller?: string[] }) => {
+export const useListings = (options?: {
+  seller?: string[];
+  contractId?: number;
+}) => {
   const data = useQuery({
     queryFn: () => {
       return axios
-        .get(
-          `${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`,
-          //`https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/mp/listings`,
-          {
-            params: {
-              active: true,
-              ...(options ?? {}),
-            },
-          }
-        )
+        .get(`${MIMIR_API}/nft-indexer/v1/mp/listings`, {
+          params: {
+            active: true,
+            ...(options ?? {}),
+            limit: 100,
+          },
+        })
         .then((res) => res?.data?.listings);
     },
     queryKey: ["collection-listings", JSON.stringify(options ?? {})],
-    staleTime: 60 * 1000 * 2,
+    staleTime: 60 * 1000,
   });
   return data;
 };

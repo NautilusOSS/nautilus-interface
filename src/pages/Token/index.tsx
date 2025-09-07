@@ -19,7 +19,11 @@ import { getListings } from "../../store/listingSlice";
 import { getTokens } from "../../store/tokenSlice";
 import { getSales } from "../../store/saleSlice";
 import { getSmartTokens } from "../../store/smartTokenSlice";
-import { ARC72_INDEXER_API, HIGHFORGE_API } from "../../config/arc72-idx";
+import {
+  ARC72_INDEXER_API,
+  HIGHFORGE_API,
+  MIMIR_API,
+} from "../../config/arc72-idx";
 import { useWallet } from "@txnlab/use-wallet-react";
 import { useName } from "@/hooks/useName";
 
@@ -190,9 +194,7 @@ export const Token: React.FC = () => {
           tokens: [nftData],
         },
       } = await axios.get(
-        id !== "421076"
-          ? `https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}`
-          : `${ARC72_INDEXER_API}/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}&includes=all`
+        `${MIMIR_API}/nft-indexer/v1/tokens?contractId=${id}&tokenId=${tid}`
       );
       // TODO handle missing data
 
@@ -321,17 +323,12 @@ export const Token: React.FC = () => {
   React.useEffect(() => {
     try {
       axios
-        .get(
-          id !== "421076"
-            ? `https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1/mp/listings`
-            : `${ARC72_INDEXER_API}/nft-indexer/v1/mp/listings`,
-          {
-            params: {
-              active: true,
-              collectionId: id,
-            },
-          }
-        )
+        .get(`${MIMIR_API}/nft-indexer/v1/mp/listings`, {
+          params: {
+            active: true,
+            collectionId: id,
+          },
+        })
         .then(({ data }) => {
           setListings(data.listings);
         });

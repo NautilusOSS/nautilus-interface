@@ -4,7 +4,7 @@ import { styled } from "@mui/material/styles";
 export const ShadedInput = styled(TextField)<TextFieldProps>(({ theme }) => ({
   "& .MuiOutlinedInput-root": {
     backgroundColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)",
-    borderRadius: "8px",
+    borderRadius: "16px",
     "& fieldset": {
       borderColor: "transparent",
     },

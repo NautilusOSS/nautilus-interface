@@ -15,8 +15,11 @@ import StakeableManager from "@/components/Tools/StakeableManager";
 import WrappedVsaConverter from "@/components/Tools/WrappedVsaConverter";
 import NodeRewardClaim from "@/components/Tools/NodeRewardClaim";
 import Arc200VsaConverter from "@/components/Tools/Arc200VsaConverter";
+import OffersManager from "@/components/Tools/OffersManager";
 import MixedAssetSender from "@/components/Tools/MixedAssetSender";
 import UnitConverter from "@/components/Tools/UnitConverter";
+import NFTDupListingDetector from "@/components/Tools/NFTDupListingDetector";
+import RegisterOnline from "@/components/Tools/RegisterOnline";
 
 const toolsConfig = [
   {
@@ -60,6 +63,25 @@ const toolsConfig = [
         <circle cx="21" cy="24" r="1.5" fill="currentColor" />
       </svg>
     ),
+  },
+  {
+    id: "offersmanager",
+    name: "Offers Manager",
+    component: OffersManager,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path d="M16 2L20 8H12L16 2Z" fill="currentColor" />
+        <path d="M8 12H24V20H8V12Z" fill="currentColor" />
+        <path d="M16 24L12 18H20L16 24Z" fill="currentColor" />
+      </svg>
+    ),
+    description: "Manage your NFT offers",
   },
   {
     id: "diceroll",
@@ -334,22 +356,21 @@ const toolsConfig = [
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path
-          d="M22 11C22 14.866 18.866 18 15 18C11.134 18 8 14.866 8 11C8 7.13401 11.134 4 15 4C18.866 4 22 7.13401 22 11Z"
+        <rect
+          x="4"
+          y="4"
+          width="24"
+          height="24"
+          rx="2"
           stroke="currentColor"
           strokeWidth="2"
         />
         <path
-          d="M6 22L26 22"
+          d="M8 12L16 20L24 12"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
-        />
-        <path
-          d="M10 26L22 26"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
     ),
@@ -467,7 +488,6 @@ const toolsConfig = [
       </svg>
     ),
   },
-
   {
     id: "mixedassetsender",
     name: "Mixed Asset Sender",
@@ -537,6 +557,84 @@ const toolsConfig = [
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+      </svg>
+    ),
+  },
+  {
+    id: "nftduplistingdetector",
+    name: "NFT Dup Listing Detector",
+    component: NFTDupListingDetector,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="24"
+          height="24"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M8 8L24 24"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M8 24L24 8"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <circle cx="12" cy="12" r="2" fill="currentColor" />
+        <circle cx="20" cy="20" r="2" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    id: "registeronline",
+    name: "Register Online",
+    component: RegisterOnline,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="24"
+          height="24"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M8 12L16 20L24 12"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M8 16L16 8L24 16"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="12" cy="12" r="2" fill="currentColor" />
+        <circle cx="20" cy="20" r="2" fill="currentColor" />
       </svg>
     ),
   },

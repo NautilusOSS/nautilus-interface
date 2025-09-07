@@ -651,9 +651,10 @@ export const Listings: React.FC = () => {
   }, [listings]);
 
   const normalListings = useMemo(() => {
+    if (!smartTokens) return [];
     return (
       listings?.map((listing: ListingI) => {
-        const paymentCurrency = smartTokens.find(
+        const paymentCurrency = smartTokens?.find(
           (st: TokenType) => `${st.contractId}` === `${listing.currency}`
         );
         return {

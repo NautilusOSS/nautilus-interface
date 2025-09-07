@@ -44,7 +44,7 @@ export function isAlgorandAddress(address: string): boolean {
   return true;
 }
 
-export function bigIntToUint8Array(bigInt: bigint) {
+export function bigIntToUint8Array(bigInt: bigint, prefix?: Uint8Array) {
   const uint8Array = new Uint8Array(32);
   let tempBigInt = bigInt;
   // Find the highest non-zero byte
@@ -52,6 +52,14 @@ export function bigIntToUint8Array(bigInt: bigint) {
     uint8Array[i] = Number(tempBigInt & BigInt(0xff));
     tempBigInt >>= BigInt(8);
   }
+
+  if (prefix) {
+    const combined = new Uint8Array(prefix.length + uint8Array.length);
+    combined.set(prefix);
+    combined.set(uint8Array, prefix.length);
+    return combined;
+  }
+
   return uint8Array;
 }
 

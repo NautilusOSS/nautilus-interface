@@ -68,7 +68,7 @@ import { UnknownAction } from "@reduxjs/toolkit";
 import { CTCINFO_LP_WVOI_VOI } from "../../contants/dex";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import GavelIcon from "@mui/icons-material/Gavel";
-import { ARC72_INDEXER_API, NFT_NAVIGATOR_API } from "../../config/arc72-idx";
+import { MIMIR_API } from "../../config/arc72-idx";
 import { QUEST_ACTION, getActions, submitAction } from "../../config/quest";
 import { BigNumber } from "bignumber.js";
 import { getSmartTokens } from "../../store/smartTokenSlice";
@@ -883,8 +883,7 @@ const SweepModal = styled(Dialog)<{ $isDarkTheme: boolean }>`
 `;
 
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)<{ isDark: boolean }>`
-  border: 1px solid
-    ${(props) => (props.isDark ? "#3b3b3b" : "#eaebf0")};
+  border: 1px solid ${(props) => (props.isDark ? "#3b3b3b" : "#eaebf0")};
   background: ${(props) => (props.isDark ? "#2b2b2b" : "#fff")};
   border-radius: 8px;
 
@@ -893,18 +892,15 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)<{ isDark: boolean }>`
     color: ${(props) => (props.isDark ? "#fff" : "#000")};
 
     &:hover {
-      background: ${(props) =>
-        props.isDark ? "#3b3b3b" : "#f5f5f5"};
+      background: ${(props) => (props.isDark ? "#3b3b3b" : "#f5f5f5")};
     }
 
     &.Mui-selected {
-      background: ${(props) =>
-        props.isDark ? "#3b3b3b" : "#f5f5f5"};
+      background: ${(props) => (props.isDark ? "#3b3b3b" : "#f5f5f5")};
       color: ${(props) => (props.isDark ? "#fff" : "#000")};
 
       &:hover {
-        background: ${(props) =>
-          props.isDark ? "#4b4b4b" : "#e5e5e5"};
+        background: ${(props) => (props.isDark ? "#4b4b4b" : "#e5e5e5")};
       }
     }
   }
@@ -1240,7 +1236,7 @@ export const Account: React.FC = () => {
       (async () => {
         const {
           data: { collections: res },
-        } = await axios.get(`${ARC72_INDEXER_API}/nft-indexer/v1/collections`);
+        } = await axios.get(`${MIMIR_API}/nft-indexer/v1/collections`);
         const collections = [];
         for (const c of res) {
           const t = c.firstToken;
@@ -1271,22 +1267,14 @@ export const Account: React.FC = () => {
       (async () => {
         const {
           data: { tokens: tokens },
-        } = await axios.get(`${NFT_NAVIGATOR_API}/nft-indexer/v1/tokens`, {
+        } = await axios.get(`${MIMIR_API}/nft-indexer/v1/tokens`, {
           params: {
-            owner: idArr,
+            owner: idArr.join(","),
+            limit: 1000,
           },
         });
-        const {
-          data: { tokens: tokens2 },
-        } = await axios.get(`${ARC72_INDEXER_API}/nft-indexer/v1/tokens`, {
-          params: {
-            owner: idArr,
-            contractId: "421076",
-          },
-        });
-        console.log({ tokens, tokens2 });
         const nfts = [];
-        for (const t of [...tokens, ...tokens2]) {
+        for (const t of tokens) {
           // Skip NFTs with collection ID
           // 797610 (enVoi Reverse Registrar)
           // 846601 (enVoi Collection Registrar)
@@ -1607,6 +1595,7 @@ export const Account: React.FC = () => {
   };
 
   const handleDeleteListing = async (listingId: number) => {
+    if (!activeAccount) return;
     try {
       const ci = new CONTRACT(
         CTCINFO_MP206,
@@ -1856,12 +1845,13 @@ export const Account: React.FC = () => {
           (async () => {
             const {
               data: { tokens: res },
-            } = await axios.get(`${ARC72_INDEXER_API}/nft-indexer/v1/tokens`, {
+            } = await axios.get(`${MIMIR_API}/nft-indexer/v1/tokens`, {
               params: { owner: idArr },
             });
+            console.log(res);
             const updatedNfts = [];
             for (const t of res) {
-              if ([846601, 797610, 876578].includes(t.contractId)) continue;
+              //if ([846601, 797610, 876578].includes(t.contractId)) continue;
               const listing = listings?.find(
                 (l: any) =>
                   `${l.collectionId}` === `${t.contractId}` &&
@@ -2315,7 +2305,7 @@ export const Account: React.FC = () => {
         setLoadingStage("metadata");
         const {
           data: { tokens: res },
-        } = await axios.get(`${ARC72_INDEXER_API}/nft-indexer/v1/tokens`, {
+        } = await axios.get(`${MIMIR_API}/nft-indexer/v1/tokens`, {
           params: {
             owner: idArr,
           },
@@ -2422,6 +2412,14 @@ export const Account: React.FC = () => {
     if (!activeAccount || !id) return false;
     return idArr.includes(activeAccount.address);
   }, [activeAccount, id, idArr]);
+
+  const isAdmin = useMemo(() => {
+    if (!activeAccount) return false;
+    return (
+      activeAccount.address ===
+      "JFHP4IL4D3I4FDQFWGFDMCZLFSLGQAL4OZGQQKTPEE4SSW6JXSYQPZY2PM"
+    );
+  }, [activeAccount]);
 
   const [isSweepModalOpen, setIsSweepModalOpen] = React.useState(false);
   const [isPurchasePending, setIsPurchasePending] = React.useState(false);
@@ -2887,15 +2885,12 @@ export const Account: React.FC = () => {
     setIsNameModalOpen(true);
     setLoadingNames(true);
     try {
-      const response = await axios.get(
-        `${NFT_NAVIGATOR_API}/nft-indexer/v1/tokens`,
-        {
-          params: {
-            contractId: 797609, // .voi names contract
-            owner: activeAccount?.address,
-          },
-        }
-      );
+      const response = await axios.get(`${MIMIR_API}/nft-indexer/v1/tokens`, {
+        params: {
+          contractId: 797609, // .voi names contract
+          owner: activeAccount?.address,
+        },
+      });
       const tokenIds: string[] = response.data.tokens.map((token: any) =>
         String(token.tokenId)
       );
@@ -3875,23 +3870,25 @@ export const Account: React.FC = () => {
                 </ButtonGroup>
 
                 {/* Add Unlist button when forSaleOnly is true and user is owner */}
-                {forSaleOnly && isOwnAccount && selected.length >= 1 && (
-                  <Button
-                    variant="contained"
-                    color="error"
-                    size="small"
-                    onClick={() =>
-                      handleUnlistAll(
-                        filteredNfts
-                          .filter((_, i) => selected.includes(i))
-                          .map((nft) => nft.listing?.mpListingId || 0)
-                      )
-                    }
-                    startIcon={<RemoveShoppingCartIcon />}
-                  >
-                    Unlist
-                  </Button>
-                )}
+                {forSaleOnly &&
+                  (isOwnAccount || isAdmin) &&
+                  selected.length >= 1 && (
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      onClick={() =>
+                        handleUnlistAll(
+                          filteredNfts
+                            .filter((_, i) => selected.includes(i))
+                            .map((nft) => nft.listing?.mpListingId || 0)
+                        )
+                      }
+                      startIcon={<RemoveShoppingCartIcon />}
+                    >
+                      Unlist
+                    </Button>
+                  )}
 
                 <ButtonGroup color="primary" variant="contained" size="small">
                   {/* Add List button for owners */}
@@ -4140,7 +4137,7 @@ export const Account: React.FC = () => {
               )}
               {/* Owner actions */}
               {enableTransfer &&
-                isOwnAccount &&
+                (isOwnAccount || isAdmin) &&
                 selected.length > 0 &&
                 selected.every((index) => !filteredNfts[index].listing) && (
                   <Stack direction="row" spacing={0.5}>

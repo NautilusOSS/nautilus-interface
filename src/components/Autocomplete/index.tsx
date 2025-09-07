@@ -19,7 +19,7 @@ const InputContainer = styled.div`
   align-items: center;
   gap: var(--Main-System-8px, 8px);
   align-self: stretch;
-  border-radius: var(--Roundness-Inside-M, 6px);
+  border-radius: 16px;
   /* Shadow/XSM */
   box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.04);
   border: 1px solid #eaebf0;
@@ -59,7 +59,7 @@ const Listbox = styled.ul`
   max-height: 300px;
   z-index: 2;
   position: absolute;
-  border-radius: 12px;
+  border-radius: 20px;
   margin-top: 44px;
   /*
   width: 220px;
@@ -71,7 +71,7 @@ const Listbox = styled.ul`
 const Option = styled.li`
   list-style: none;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: default;
 
   &:last-of-type {

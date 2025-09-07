@@ -364,20 +364,25 @@ export const CreateARC200: React.FC = () => {
   const MAX_SYMBOL_LENGTH = 8;
 
   useEffect(() => {
+    if (!tokens.length) return;
+
     const fetchContracts = async () => {
       setIsLoadingContracts(true);
       try {
         const response = await axios.get(
-          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/stubs/token?active=0"
+          "https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/stubs/token"
         );
-        const contractOptions: ContractOption[] = response.data.stubs.map(
-          (stub: ContractStub) => ({
+        const contractOptions: ContractOption[] = response.data.stubs
+          .filter(
+            (stub: ContractStub) =>
+              !tokens.some((t: any) => t.contractId === stub.contractId)
+          )
+          .map((stub: ContractStub) => ({
             contractId: stub.contractId,
             address: algosdk.getApplicationAddress(stub.contractId),
             hash: stub.hash,
             creator: stub.creator,
-          })
-        );
+          }));
         setContracts(contractOptions);
       } catch (error) {
         console.error("Error fetching contracts:", error);
@@ -388,7 +393,7 @@ export const CreateARC200: React.FC = () => {
     };
 
     fetchContracts();
-  }, []);
+  }, [tokens]);
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -413,26 +418,32 @@ export const CreateARC200: React.FC = () => {
       const formData = new FormData();
 
       // Create Blobs with proper filenames including contractId
-      const pngBlob = new Blob([convertedPNG], { type: 'image/png' });
-      const svgBlob = new Blob([convertedSVG], { type: 'image/svg+xml' });
+      const pngBlob = new Blob([convertedPNG], { type: "image/png" });
+      const svgBlob = new Blob([convertedSVG], { type: "image/svg+xml" });
 
       // Required fields from SubmitProjectForm - using exact same field names
-      formData.append('logoPng', pngBlob, `${contractId}.png`);
-      formData.append('logoSvg', svgBlob, `${contractId}.svg`);
-      formData.append('assetId', contractId.toString());
-      formData.append('projectName', name);
-      formData.append('contactName', name); // Using token name as contact name
-      formData.append('projectUrl', `https://block.voi.network/explorer/application/${contractId}`);
-      formData.append('email', `${contractId}@voi.network`); // Changed from emailAddress to email
-      formData.append('discordLink', 'https://discord.gg/humble');
-      formData.append('telegramLink', 'https://t.me/HumbleDefi');
-      formData.append('twitterUsername', 'HumbleDefi');
-      formData.append('description', `${name} (${symbol}) is an ARC-200 token on the VOI network.`);
+      formData.append("logoPng", pngBlob, `${contractId}.png`);
+      formData.append("logoSvg", svgBlob, `${contractId}.svg`);
+      formData.append("assetId", contractId.toString());
+      formData.append("projectName", name);
+      formData.append("contactName", name); // Using token name as contact name
+      formData.append(
+        "projectUrl",
+        `https://block.voi.network/explorer/application/${contractId}`
+      );
+      formData.append("email", `${contractId}@voi.network`); // Changed from emailAddress to email
+      formData.append("discordLink", "https://discord.gg/humble");
+      formData.append("telegramLink", "https://t.me/HumbleDefi");
+      formData.append("twitterUsername", "HumbleDefi");
+      formData.append(
+        "description",
+        `${name} (${symbol}) is an ARC-200 token on the VOI network.`
+      );
 
       // Submit to verification API
-      await fetch('https://asset-verification.nautilus.sh/submit', {
-        method: 'POST',
-        body: formData
+      await fetch("https://asset-verification.nautilus.sh/submit", {
+        method: "POST",
+        body: formData,
       });
 
       toast.success("Token icon and verification submitted successfully");
@@ -914,14 +925,20 @@ export const CreateARC200: React.FC = () => {
                 {isSubmitting ? (
                   <>
                     <ButtonText>Creating Token...</ButtonText>
-                    <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                    <Box
+                      component="span"
+                      sx={{ display: { xs: "inline", sm: "none" } }}
+                    >
                       Creating...
                     </Box>
                   </>
                 ) : (
                   <>
                     <ButtonText>Create Token</ButtonText>
-                    <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                    <Box
+                      component="span"
+                      sx={{ display: { xs: "inline", sm: "none" } }}
+                    >
                       Create
                     </Box>
                   </>

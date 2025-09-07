@@ -1,0 +1,512 @@
+import React, { useState, useCallback, useEffect, useMemo } from "react";
+import {
+  Box,
+  Typography,
+  Button,
+  CircularProgress,
+  Alert,
+  Card,
+  CardContent,
+  Grid,
+  Chip,
+  IconButton,
+} from "@mui/material";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import { useWallet } from "@txnlab/use-wallet-react";
+import { CONTRACT, abi } from "ulujs";
+import { toast } from "react-toastify";
+import styled from "styled-components";
+import { MIMIR_API } from "@/config/arc72-idx";
+import axios from "axios";
+import BigNumber from "bignumber.js";
+import { getAlgorandClients } from "@/wallets";
+import { waitForConfirmation } from "algosdk";
+
+export const decodeMpCurrencyData = (currencyData: any) => {
+  const ct = currencyData[0];
+  const currency = ct == "00" ? 0 : parseInt(currencyData[1], 16);
+  const price =
+    ct == "00" ? Number(currencyData[1]) : parseInt(currencyData[2], 16);
+  return { currency, price };
+};
+
+const getListingEvent = (event: any[]) => {
+  // Parse listing event data
+  const { currency, price } = decodeMpCurrencyData(event[7]);
+  return {
+    transactionId: event[0],
+    createRound: Number(event[1]),
+    createTimestamp: Number(event[2]),
+    mpListingId: Number(event[3]),
+    contractId: Number(event[4]),
+    tokenId: event[5],
+    offerer: event[6],
+    price,
+    currency,
+  };
+};
+
+const getDeleteEvent = (event: any) => {
+  // Parse delete event data
+  return {
+    listingId: Number(event[0]),
+  };
+};
+
+const makeContract = (
+  contractId: number,
+  address: string,
+  algodClient: any,
+  indexerClient: any
+) =>
+  new CONTRACT(
+    contractId,
+    algodClient,
+    indexerClient,
+    {
+      name: "mp213",
+      desc: "mp213",
+      methods: [],
+      events: [
+        // ListEvent: [UInt256, Contract, UInt256, Address, Price], // ListId, CollectionId, TokenId, ListAddr, ListPrice
+        // AcceptEvent: [UInt256], // ListId
+        // DeleteListingEvent: [UInt256], // ListId
+        {
+          name: "e_offer_ListEvent",
+          args: [
+            {
+              type: "uint256",
+              name: "listingId",
+            },
+            {
+              type: "uint64",
+              name: "contractId",
+            },
+            {
+              type: "uint256",
+              name: "tokenId",
+            },
+            {
+              type: "address",
+              name: "listAddr",
+            },
+            {
+              type: "(byte,byte[40])",
+              name: "listPrice",
+            },
+          ],
+        },
+        {
+          name: "e_offer_AcceptEvent",
+          args: [
+            {
+              type: "uint256",
+              name: "listingId",
+            },
+          ],
+        },
+        {
+          name: "e_offer_DeleteListingEvent",
+          args: [
+            {
+              type: "uint256",
+              name: "listingId",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      addr: address,
+      sk: new Uint8Array(0),
+    }
+  );
+
+const OfferCard = styled.div`
+  background-color: ${(props: any) => (props.$isDark ? "#2a2a2a" : "#fff")};
+  border: 1px solid ${(props: any) => (props.$isDark ? "#444" : "#e0e0e0")};
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${(props: any) =>
+      props.$isDark
+        ? "0 4px 20px rgba(255, 255, 255, 0.1)"
+        : "0 4px 20px rgba(0, 0, 0, 0.1)"};
+  }
+`;
+
+const TokenImage = styled.img`
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 12px;
+`;
+
+interface Offer {
+  mpListingId: number;
+  contractId: number;
+  tokenId: number;
+  offerer: string;
+  price: number;
+  currency: number;
+  createTimestamp: number;
+  expireTimestamp: number;
+  active: number;
+  nftImage?: string;
+  nftName?: string;
+  status: "active" | "expired" | "accepted";
+}
+
+const OffersManager: React.FC = () => {
+  const { activeAccount, algodClient, signTransactions } = useWallet();
+  const isDarkTheme = useSelector(
+    (state: RootState) => state.theme.isDarkTheme
+  );
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const resolveImageUrl = (imageUrl: string): string => {
+    if (!imageUrl) return "/placeholder-nft.png";
+    if (imageUrl.startsWith("http")) return imageUrl;
+    if (imageUrl.startsWith("ipfs://")) {
+      return `https://ipfs.io/ipfs/${imageUrl.slice(7)}`;
+    }
+    return imageUrl;
+  };
+
+  // todo add abi to ulujs
+  const fetchMyOffers = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (!activeAccount) {
+        throw new Error("No active account");
+      }
+
+      const { algodClient, indexerClient } = getAlgorandClients();
+
+      // Fetch events from the marketplace contract
+      const ci = makeContract(
+        8329112,
+        activeAccount.address,
+        algodClient,
+        indexerClient
+      );
+
+      const tokenData =
+        (
+          await axios.get(
+            `${MIMIR_API}/nft-indexer/v1/tokens?owner=${activeAccount.address}&limit=1000`
+          )
+        )?.data?.tokens || [];
+      console.log({ tokenData });
+      const holdings = tokenData.map(
+        (token: any) => `${token.contractId}-${token.tokenId}`
+      );
+
+      const status = await algodClient.status().do();
+      const lastRound = status["last-round"];
+
+      const events = await ci.getEvents({
+        minRound: Math.max(lastRound - 2e6, 0),
+      });
+
+      const listEvents =
+        events.find((event: any) => event.name === "e_offer_ListEvent")
+          ?.events || [];
+
+      const deleteEvents =
+        events.find((event: any) => event.name === "e_offer_DeleteListingEvent")
+          ?.events || [];
+
+      const listings = listEvents.map(getListingEvent);
+      const deletions = deleteEvents.map(getDeleteEvent);
+
+      const offers = listings.filter(
+        (offer: any) =>
+          !deletions.some(
+            (deletion: any) => deletion.listingId === offer.mpListingId
+          )
+      );
+
+      console.log(offers);
+
+      // Normalize and process offers
+      const processedOffers = offers.map((offer: any) => ({
+        ...offer,
+        status: getOfferStatus(offer.expireTimestamp),
+        price: offer.price, // Convert from microAlgos to Algos
+        outBound: activeAccount.address === offer.offerer,
+        inBound: holdings.includes(`${offer.contractId}-${offer.tokenId}`),
+      }));
+
+      // Fetch NFT metadata for each offer
+      const offersWithMetadata = await Promise.all(
+        processedOffers.map(async (offer: any) => {
+          const metadata = await fetchNFTMetadata(
+            offer.contractId,
+            offer.tokenId
+          );
+          return {
+            ...offer,
+            nftImage: metadata ? resolveImageUrl(metadata.image) : undefined,
+            nftName: metadata?.name || `Token #${offer.tokenId}`,
+          };
+        })
+      );
+
+      const filteredOffers = offersWithMetadata.filter(
+        (offer: any) => offer.outBound || offer.inBound
+      );
+
+      setOffers(filteredOffers);
+    } catch (error) {
+      console.error("Error fetching offers:", error);
+      toast.error("Failed to fetch offers");
+    } finally {
+      setLoading(false);
+    }
+  }, [activeAccount]);
+
+  const filteredOffers = useMemo(() => {
+    return offers.filter((offer) => !!offer.nftName || !!offer.nftImage);
+  }, [offers]);
+
+  const getOfferStatus = (
+    expireTimestamp: number
+  ): "active" | "expired" | "accepted" => {
+    const now = Date.now() / 1000;
+    if (expireTimestamp < now) return "expired";
+    return "active";
+  };
+
+  const getOfferId = (offer: Offer): number => {
+    const offerId = offer.mpListingId;
+    if (!offerId) {
+      console.error("No valid offer ID found in:", offer);
+      toast.error("Invalid offer format");
+      throw new Error("Invalid offer ID");
+    }
+    return offerId;
+  };
+
+  const fetchManager = async () => {
+    if (!activeAccount) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+    await fetchMyOffers();
+  };
+
+  const handleCancelOffer = async (offer: Offer) => {
+    try {
+      if (!activeAccount) {
+        toast.error("Please connect your wallet");
+        return;
+      }
+
+      const offerId = getOfferId(offer);
+      const ctcInfoMP213 = 8329112; // mp213 offers
+      const ctcInfoNV = 8324600; // Nautilus Voi NV
+      const { algodClient, indexerClient } = getAlgorandClients();
+
+      const ci = new CONTRACT(
+        ctcInfoMP213,
+        algodClient,
+        indexerClient,
+        abi.custom,
+        { addr: activeAccount.address, sk: new Uint8Array(0) }
+      );
+
+      const ciARC200 = new CONTRACT(
+        ctcInfoNV,
+        algodClient,
+        indexerClient,
+        abi.nt200,
+        { addr: activeAccount.address, sk: new Uint8Array(0) }
+      );
+
+      const builder = {
+        mp: new CONTRACT(ctcInfoMP213, algodClient, indexerClient, abi.custom, {
+          addr: activeAccount.address,
+          sk: new Uint8Array(0),
+        }),
+        arc200: new CONTRACT(ctcInfoNV, algodClient, indexerClient, abi.nt200, {
+          addr: activeAccount.address,
+          sk: new Uint8Array(0),
+        }),
+      };
+
+      // Cancel offer transaction
+      const txnO = (await builder.mp.a_offer_deleteListing(BigInt(offerId)))
+        .obj;
+
+      const stxns = await signTransactions([
+        new Uint8Array(Buffer.from(txnO.txn, "base64")),
+      ]);
+
+      const { txId } = await algodClient
+        .sendRawTransaction(stxns as Uint8Array[])
+        .do();
+
+      await waitForConfirmation(algodClient, txId, 4);
+
+      // Remove from local state
+      setOffers(filteredOffers.filter((o) => o.mpListingId !== offerId));
+      toast.success("Offer cancelled successfully!");
+    } catch (error: any) {
+      console.error("Error cancelling offer:", error);
+      toast.error("Failed to cancel offer: " + error.message);
+    }
+  };
+
+  const fetchNFTMetadata = async (contractId: number, tokenId: number) => {
+    try {
+      const response = await axios.get(
+        `${MIMIR_API}/nft-indexer/v1/tokens?contractId=${contractId}&tokenId=${tokenId}`
+      );
+      const nftMetadata = JSON.parse(response.data.tokens[0]?.metadata);
+      return nftMetadata;
+    } catch (error) {
+      console.error("Error fetching NFT metadata:", error);
+      return null;
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return (price / 1e6).toFixed(2);
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString();
+  };
+
+  const isExpired = (offer: Offer) => {
+    return Date.now() / 1000 > offer.expireTimestamp;
+  };
+
+  useEffect(() => {
+    if (activeAccount) {
+      fetchMyOffers();
+    }
+  }, [activeAccount, fetchMyOffers]);
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography
+        variant="h4"
+        sx={{ color: isDarkTheme ? "#fff" : "#000", mb: 3 }}
+      >
+        Offers Manager
+      </Typography>
+
+      {!activeAccount ? (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Please connect your wallet to manage your offers
+        </Alert>
+      ) : (
+        <>
+          <Box sx={{ mb: 3, display: "flex", gap: 2 }}>
+            <Button
+              variant="contained"
+              onClick={fetchManager}
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={20} /> : null}
+            >
+              Refresh Offers
+            </Button>
+          </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          {loading ? (
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              minHeight="200px"
+            >
+              <CircularProgress />
+            </Box>
+          ) : filteredOffers.length === 0 ? (
+            <Alert severity="info">
+              No offers found. Create offers on NFTs to manage them here.
+            </Alert>
+          ) : (
+            <Grid container spacing={2}>
+              {filteredOffers.map((offer) => (
+                <Grid item xs={12} sm={6} md={4} key={offer.mpListingId}>
+                  <OfferCard $isDark={isDarkTheme}>
+                    <CardContent>
+                      {/* NFT Image */}
+                      <TokenImage
+                        src={offer.nftImage || "/placeholder-nft.png"}
+                        alt={offer.nftName || `Token #${offer.tokenId}`}
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder-nft.png";
+                        }}
+                      />
+
+                      {/* NFT Info */}
+                      <Typography
+                        variant="h6"
+                        sx={{ color: isDarkTheme ? "#fff" : "#000", mb: 1 }}
+                      >
+                        {offer.nftName || `Token #${offer.tokenId}`}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: isDarkTheme ? "#ccc" : "#666", mb: 2 }}
+                      >
+                        Collection #{offer.contractId}
+                      </Typography>
+
+                      {/* Offer Details */}
+                      <Typography
+                        variant="h6"
+                        sx={{ color: isDarkTheme ? "#fff" : "#000", mb: 1 }}
+                      >
+                        {formatPrice(offer.price)}{" "}
+                        {offer.currency === 8324600 ? "VOI" : offer.currency}
+                      </Typography>
+
+                      {/* Action Button */}
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        onClick={() => handleCancelOffer(offer)}
+                        disabled={isExpired(offer)}
+                        sx={{
+                          color: isDarkTheme ? "#fff" : "#000",
+                          borderColor: isDarkTheme ? "#666" : "#ccc",
+                          "&:hover": {
+                            borderColor: isDarkTheme ? "#888" : "#999",
+                          },
+                        }}
+                      >
+                        {isExpired(offer) ? "Expired" : "Cancel Offer"}
+                      </Button>
+                    </CardContent>
+                  </OfferCard>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </>
+      )}
+    </Box>
+  );
+};
+
+export default OffersManager;

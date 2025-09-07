@@ -1,185 +1,50 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  Grid,
-  Avatar,
-  Paper,
   Tabs,
   Tab,
-  Skeleton,
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  Chip,
+  Button,
+  CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
-import { formatAmount } from "../../utils/format";
-import { shortenAddress } from "../../utils/string";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { IconButton } from "@mui/material";
-import { toast } from "react-toastify";
-import styled from "styled-components";
 import { useSelector } from "react-redux";
-import { RootState } from "../../store/store";
-import Layout from "@/layouts/Default";
-import { useName } from "@/hooks/useName";
+import { RootState } from "@/store/store";
 import { useEnvoiResolver } from "@/hooks/useEnvoiResolver";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import OfferCard from "@/components/OfferCard";
+import { toast } from "react-toastify";
 import { useWallet } from "@txnlab/use-wallet-react";
+import { CONTRACT, abi } from "ulujs";
+import BigNumber from "bignumber.js";
 import { getAlgorandClients } from "@/wallets";
-import { abi, CONTRACT } from "ulujs";
 import algosdk from "algosdk";
-
-const ProfileSection = styled(Paper)<{ $isDark?: boolean }>`
-  &.MuiPaper-root {
-    padding: 32px;
-    margin-bottom: 32px;
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    background: ${({ $isDark }) =>
-      $isDark ? "rgba(25, 25, 25, 0.95)" : "#ffffff"};
-    border-radius: 16px;
-    box-shadow: ${({ $isDark }) =>
-      $isDark
-        ? "0 8px 16px rgba(0, 0, 0, 0.4)"
-        : "0 8px 16px rgba(0, 0, 0, 0.1)"};
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: ${({ $isDark }) =>
-        $isDark
-          ? "0 12px 20px rgba(0, 0, 0, 0.5)"
-          : "0 12px 20px rgba(0, 0, 0, 0.15)"};
-    }
-  }
-`;
-
-const StatsCard = styled(Card)<{ $isDark?: boolean }>`
-  &.MuiCard-root {
-    margin-bottom: 32px;
-    background: ${({ $isDark }) =>
-      $isDark ? "rgba(25, 25, 25, 0.95)" : "#ffffff"};
-    border-radius: 16px;
-    box-shadow: ${({ $isDark }) =>
-      $isDark
-        ? "0 8px 16px rgba(0, 0, 0, 0.4)"
-        : "0 8px 16px rgba(0, 0, 0, 0.1)"};
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-    }
-  }
-`;
-
-const StatsGrid = styled(Grid)`
-  padding: 16px;
-`;
-
-const StatItem = styled(Box)`
-  text-align: center;
-  padding: 24px;
-  position: relative;
-
-  &:not(:last-child)::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    top: 20%;
-    height: 60%;
-    width: 1px;
-    background: ${({ theme }) =>
-      theme.isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
-  }
-`;
-
-const LargeAvatar = styled(Avatar)`
-  width: 120px;
-  height: 120px;
-  border: 4px solid
-    ${({ theme }) =>
-      theme.isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: scale(1.05);
-  }
-`;
-
-const AddressBox = styled(Box)`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const StyledTypography = styled(Typography)<{ $isDark?: boolean }>`
-  && {
-    color: ${({ $isDark }) => ($isDark ? "#ffffff" : "#000000")};
-  }
-`;
-
-const SecondaryText = styled(Typography)<{ $isDark?: boolean }>`
-  && {
-    color: ${({ $isDark }) => ($isDark ? "#999999" : "#666666")};
-  }
-`;
-
-const StyledContentCopyIcon = styled(ContentCopyIcon)<{ $isDark?: boolean }>`
-  && {
-    color: ${({ $isDark }) => ($isDark ? "#ffffff" : "#000000")};
-  }
-`;
-
-const SkeletonCard = styled(Card)<{ $isDark?: boolean }>`
-  &.MuiCard-root {
-    background: ${({ $isDark }) =>
-      $isDark ? "rgba(25, 25, 25, 0.95)" : "#f8f8f8"};
-    border: 1px solid
-      ${({ $isDark }) => ($isDark ? "rgba(255, 255, 255, 0.1)" : "#e0e0e0")};
-  }
-`;
-
-const TabsContainer = styled(Box)<{ $isDark?: boolean }>`
-  margin-bottom: 16px;
-
-  .MuiTabs-root {
-    transition: all 0.3s ease;
-  }
-
-  @media (max-width: 600px) {
-    .MuiTabs-root {
-      border-right: 1px solid
-        ${({ $isDark }) =>
-          $isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)"};
-    }
-  }
-`;
 
 interface Offer {
   mpListingId: number;
-  listingId?: number;    // Optional alternative field
-  id?: number;          // Optional alternative field
-  transactionId: string;
-  tokenId: string;
-  price: number;
-  collectionId: number;
-  createTimestamp: number;
+  contractId: number;
+  tokenId: number;
   offerer: string;
+  owner: string;
+  price: number;
   currency: number;
+  createTimestamp: number;
+  expireTimestamp: number;
   active: number;
 }
 
-const getColorFromAddress = (address: string) => {
-  // Generate a hash from the address
-  const hash = address.split("").reduce((acc, char) => {
-    return char.charCodeAt(0) + ((acc << 5) - acc);
+const getColorFromAddress = (address: string): string => {
+  const hash = address.split("").reduce((a, b) => {
+    a = (a << 5) - a + b.charCodeAt(0);
+    return a & a;
   }, 0);
-
-  // Convert hash to HSL color (using hue rotation)
-  // Using 50% saturation and 65% lightness for good visibility
-  const hue = Math.abs(hash % 360);
+  const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 50%, 65%)`;
 };
 
@@ -205,7 +70,7 @@ const AccountOffers: React.FC = () => {
 
   useEffect(() => {
     if (resolver && address && !profile) {
-      resolver.getProfileFromAddress(address).then((profile) => {
+      resolver.resolveName(address).then((profile) => {
         setProfile(profile);
       });
     }
@@ -262,19 +127,27 @@ const AccountOffers: React.FC = () => {
 
   useEffect(() => {
     const fetchApproval = async () => {
-      if (activeAccount && address && activeAccount.address === address) {
-        const { algodClient } = getAlgorandClients();
-        const ctcInfoNV = 8324600; // Nautilus Voi NV
+      if (!activeAccount) return;
+      try {
         const ctcInfoMP213 = 8329112; // mp213 offers
+        const ctcInfoNV = 8324600; // Nautilus Voi NV
+        const { algodClient, indexerClient } = getAlgorandClients();
         const ci = new CONTRACT(
-          ctcInfoNV, // ctcInfoNV
+          ctcInfoMP213,
           algodClient,
-          undefined,
-          abi.nt200,
-          { addr: address, sk: new Uint8Array(0) }
+          indexerClient,
+          abi.custom,
+          { addr: activeAccount.address, sk: new Uint8Array(0) }
         );
-        const arc200_allowanceR = await ci.arc200_allowance(
-          address,
+        const ciARC200 = new CONTRACT(
+          ctcInfoNV,
+          algodClient,
+          indexerClient,
+          abi.nt200,
+          { addr: activeAccount.address, sk: new Uint8Array(0) }
+        );
+        const arc200_allowanceR = await ciARC200.arc200_allowance(
+          activeAccount.address,
           algosdk.getApplicationAddress(ctcInfoMP213)
         );
         console.log({ arc200_allowanceR });
@@ -282,46 +155,36 @@ const AccountOffers: React.FC = () => {
           ? arc200_allowanceR.returnValue
           : BigInt(0);
         setApproval(arc200_allowance);
+      } catch (error) {
+        console.error("Error fetching approval:", error);
       }
     };
 
     fetchApproval();
-  }, [activeAccount, address]);
-
-  const handleCopyAddress = () => {
-    navigator.clipboard.writeText(address || "");
-    toast.success("Address copied to clipboard!");
-  };
+  }, [activeAccount]);
 
   const handleOfferCancel = (cancelledOfferId: number) => {
     setOffers((prevOffers) => {
       const offerToCancel = prevOffers.find(
-        (offer) =>
-          offer.mpListingId === cancelledOfferId ||
-          (offer.listingId !== undefined &&
-            offer.listingId === cancelledOfferId) ||
-          (offer.id !== undefined && offer.id === cancelledOfferId)
+        (offer) => offer.mpListingId === cancelledOfferId
       );
-
       if (!offerToCancel) {
-        console.warn(`Offer ${cancelledOfferId} not found`);
+        console.error("Offer not found for cancellation");
         return prevOffers;
       }
 
       const updatedOffers = prevOffers.filter((offer) => {
-        const currentId = offer.mpListingId ?? offer.listingId ?? offer.id;
-        return currentId !== cancelledOfferId;
+        return offer.mpListingId !== cancelledOfferId;
       });
 
-      // Update stats
+      // Recalculate stats
       const totalValue = updatedOffers.reduce(
         (sum: number, offer: Offer) => sum + offer.price,
         0
       );
-
       setStats({
         totalOffers: updatedOffers.length,
-        totalValue,
+        totalValue: totalValue,
         averageOffer:
           updatedOffers.length > 0 ? totalValue / updatedOffers.length : 0,
       });
@@ -337,294 +200,272 @@ const AccountOffers: React.FC = () => {
     }));
   };
 
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
+
   if (loading) {
     return (
-      <Layout>
-        <Box p={3}>
-          {/* Profile Link */}
-          <Box mb={2}>
-            <Link
-              to={`/account/${address}`}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <Typography>← Go to profile</Typography>
-            </Link>
-          </Box>
-
-          {/* Profile Section Skeleton */}
-          <ProfileSection $isDark={isDarkTheme}>
-            <Skeleton variant="circular" width={96} height={96} />
-            <Box sx={{ width: "100%" }}>
-              <Skeleton variant="text" width={200} height={32} />
-            </Box>
-          </ProfileSection>
-
-          {/* Stats Section Skeleton */}
-          <StatsCard $isDark={isDarkTheme}>
-            <StatsGrid container>
-              {[1, 2, 3].map((item) => (
-                <Grid item xs={12} sm={4} key={item}>
-                  <StatItem>
-                    <Skeleton variant="text" width={80} height={32} />
-                    <Skeleton variant="text" width={120} height={24} />
-                  </StatItem>
-                </Grid>
-              ))}
-            </StatsGrid>
-          </StatsCard>
-
-          {/* Tabs Skeleton */}
-          <TabsContainer $isDark={isDarkTheme}>
-            <Tabs
-              value={activeTab}
-              orientation={isMobile ? "vertical" : "horizontal"}
-              variant={isMobile ? "fullWidth" : "standard"}
-              sx={{
-                "& .MuiTab-root": {
-                  fontSize: "1.1rem",
-                  fontWeight: 500,
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    opacity: 0.8,
-                    transform: isMobile
-                      ? "translateX(-2px)"
-                      : "translateY(-2px)",
-                  },
-                },
-                "& .Mui-selected": {
-                  fontWeight: 600,
-                },
-                borderBottom: !isMobile ? 1 : 0,
-                borderColor: "divider",
-              }}
-            >
-              <Tab
-                label="Offers Made"
-                value="maker"
-                sx={{
-                  color: isDarkTheme ? "#ffffff" : "#000000",
-                  minHeight: isMobile ? "48px" : undefined,
-                }}
-              />
-              <Tab
-                label="Offers Received"
-                value="taker"
-                sx={{
-                  color: isDarkTheme ? "#ffffff" : "#000000",
-                  minHeight: isMobile ? "48px" : undefined,
-                }}
-              />
-            </Tabs>
-          </TabsContainer>
-
-          {/* Offers Grid Skeleton */}
-          <Grid container spacing={2}>
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <Grid item xs={12} sm={6} md={4} key={item}>
-                <SkeletonCard $isDark={isDarkTheme}>
-                  <CardContent>
-                    <Skeleton
-                      variant="rectangular"
-                      height={200}
-                      sx={{
-                        bgcolor: isDarkTheme
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "rgba(0, 0, 0, 0.1)",
-                      }}
-                    />
-                    <Box sx={{ mt: 1 }}>
-                      <Skeleton
-                        variant="text"
-                        sx={{
-                          bgcolor: isDarkTheme
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(0, 0, 0, 0.1)",
-                        }}
-                      />
-                      <Skeleton
-                        variant="text"
-                        width="60%"
-                        sx={{
-                          bgcolor: isDarkTheme
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(0, 0, 0, 0.1)",
-                        }}
-                      />
-                    </Box>
-                  </CardContent>
-                </SkeletonCard>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-      </Layout>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
+      >
+        <CircularProgress />
+      </Box>
     );
   }
 
   return (
-    <Layout>
-      <Box p={3}>
-        {/* Profile Link */}
-        <Box mb={2}>
-          <Link
-            to={`/account/${address}`}
-            style={{ textDecoration: "none", color: "inherit" }}
-          >
-            <Typography>← Go to profile</Typography>
-          </Link>
+    <Box sx={{ p: 3 }}>
+      {/* Profile Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          sx={{ color: isDarkTheme ? "#fff" : "#000", mb: 1 }}
+        >
+          {profile?.name || address?.slice(0, 8) + "..." + address?.slice(-8)}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{ color: isDarkTheme ? "#ccc" : "#666" }}
+        >
+          {address}
+        </Typography>
+      </Box>
+
+      {/* Stats Cards */}
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ backgroundColor: isDarkTheme ? "#2a2a2a" : "#fff" }}>
+            <CardContent>
+              <Typography
+                variant="h6"
+                sx={{ color: isDarkTheme ? "#fff" : "#000" }}
+              >
+                {stats.totalOffers}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: isDarkTheme ? "#ccc" : "#666" }}
+              >
+                Active Offers
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ backgroundColor: isDarkTheme ? "#2a2a2a" : "#fff" }}>
+            <CardContent>
+              <Typography
+                variant="h6"
+                sx={{ color: isDarkTheme ? "#fff" : "#000" }}
+              >
+                {(stats.totalValue / 1e6).toFixed(2)}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: isDarkTheme ? "#ccc" : "#666" }}
+              >
+                Total Value (VOI)
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ backgroundColor: isDarkTheme ? "#2a2a2a" : "#fff" }}>
+            <CardContent>
+              <Typography
+                variant="h6"
+                sx={{ color: isDarkTheme ? "#fff" : "#000" }}
+              >
+                {(stats.averageOffer / 1e6).toFixed(2)}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: isDarkTheme ? "#ccc" : "#666" }}
+              >
+                Average Offer (VOI)
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(e, newValue) => setActiveTab(newValue)}
+          sx={{
+            "& .MuiTab-root": {
+              color: isDarkTheme ? "#ccc" : "#666",
+              "&.Mui-selected": {
+                color: isDarkTheme ? "#fff" : "#000",
+              },
+            },
+          }}
+        >
+          <Tab
+            label="Offers Made"
+            value="maker"
+            sx={{ textTransform: "none" }}
+          />
+          <Tab
+            label="Offers Received"
+            value="taker"
+            sx={{ textTransform: "none" }}
+          />
+        </Tabs>
+      </Box>
+
+      {/* Offers Grid Skeleton */}
+      {loading && (
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="200px"
+        >
+          <CircularProgress />
         </Box>
+      )}
 
-        {/* Profile Section */}
-        <ProfileSection $isDark={isDarkTheme}>
-          <LargeAvatar
-            src={profile?.metadata?.avatar}
-            sx={{
-              bgcolor: !profile?.metadata?.avatar
-                ? getColorFromAddress(address || "")
-                : "grey.200",
-            }}
-          >
-            {!profile?.metadata?.avatar && (
-              <AccountCircleIcon sx={{ width: "100%", height: "100%" }} />
-            )}
-          </LargeAvatar>
-          <Box>
-            <AddressBox>
-              <StyledTypography variant="h5" $isDark={isDarkTheme}>
-                {profile?.name || shortenAddress(address || "")}
-              </StyledTypography>
-              <IconButton onClick={handleCopyAddress} size="small">
-                <StyledContentCopyIcon $isDark={isDarkTheme} />
-              </IconButton>
-            </AddressBox>
-          </Box>
-        </ProfileSection>
+      {/* Stats Display */}
+      <Box sx={{ mb: 3 }}>
+        <Typography
+          variant="h6"
+          sx={{ color: isDarkTheme ? "#fff" : "#000", mb: 1 }}
+        >
+          {stats.totalOffers}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{ color: isDarkTheme ? "#ccc" : "#666" }}
+        >
+          Active Offers
+        </Typography>
+      </Box>
 
-        {/* Stats Section */}
-        <StatsCard $isDark={isDarkTheme}>
-          <StatsGrid container>
-            <Grid item xs={12} sm={4}>
-              <StatItem>
-                <StyledTypography variant="h6" $isDark={isDarkTheme}>
-                  {stats.totalOffers}
-                </StyledTypography>
-                <SecondaryText $isDark={isDarkTheme}>
-                  Active Offers
-                </SecondaryText>
-              </StatItem>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <StatItem>
-                <StyledTypography variant="h6" $isDark={isDarkTheme}>
-                  {formatAmount(stats.totalValue)} VOI
-                </StyledTypography>
-                <SecondaryText $isDark={isDarkTheme}>Total Value</SecondaryText>
-              </StatItem>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <StatItem>
-                <StyledTypography variant="h6" $isDark={isDarkTheme}>
-                  {formatAmount(stats.averageOffer)} VOI
-                </StyledTypography>
-                <SecondaryText $isDark={isDarkTheme}>
-                  Average Offer
-                </SecondaryText>
-              </StatItem>
-            </Grid>
-            {/*<Grid item xs={12} sm={3}>
-              <StatItem>
-                <StyledTypography variant="h6" $isDark={isDarkTheme}>
-                  {approval !== null
-                    ? `${formatAmount(Number(approval))} VOI`
-                    : "-"}
-                </StyledTypography>
-                <SecondaryText $isDark={isDarkTheme}>
-                  Spending Approval
-                </SecondaryText>
-              </StatItem>
-            </Grid>*/}
-          </StatsGrid>
-        </StatsCard>
-
-        {/* Tabs Section */}
-        <TabsContainer $isDark={isDarkTheme}>
+      {/* Mobile Layout */}
+      {isMobile ? (
+        <Box>
           <Tabs
             value={activeTab}
-            onChange={(_, newValue) => setActiveTab(newValue)}
-            textColor="primary"
-            indicatorColor="primary"
-            orientation={window.innerWidth <= 600 ? "vertical" : "horizontal"}
-            variant={window.innerWidth <= 600 ? "fullWidth" : "standard"}
+            onChange={(e, newValue) => setActiveTab(newValue)}
+            variant="fullWidth"
             sx={{
+              mb: 2,
               "& .MuiTab-root": {
-                fontSize: "1.1rem",
-                fontWeight: 500,
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  opacity: 0.8,
-                  transform:
-                    window.innerWidth <= 600
-                      ? "translateX(-2px)"
-                      : "translateY(-2px)",
+                color: isDarkTheme ? "#ccc" : "#666",
+                "&.Mui-selected": {
+                  color: isDarkTheme ? "#fff" : "#000",
                 },
               },
-              "& .Mui-selected": {
-                fontWeight: 600,
-              },
-              borderBottom: window.innerWidth > 600 ? 1 : 0,
-              borderColor: "divider",
             }}
           >
             <Tab
               label="Offers Made"
               value="maker"
-              sx={{
-                color: isDarkTheme ? "#ffffff" : "#000000",
-                minHeight: window.innerWidth <= 600 ? "48px" : undefined,
-              }}
+              sx={{ textTransform: "none" }}
             />
             <Tab
               label="Offers Received"
               value="taker"
-              sx={{
-                color: isDarkTheme ? "#ffffff" : "#000000",
-                minHeight: window.innerWidth <= 600 ? "48px" : undefined,
-              }}
+              sx={{ textTransform: "none" }}
             />
           </Tabs>
-        </TabsContainer>
 
-        {/* Active Offers Title */}
-        <StyledTypography variant="h6" gutterBottom $isDark={isDarkTheme}>
-          {activeTab === "maker" ? "Offers Made" : "Offers Received"}
-        </StyledTypography>
+          {/* Active Offers Title */}
+          <Typography
+            variant="h6"
+            sx={{ color: isDarkTheme ? "#fff" : "#000", mb: 2 }}
+          >
+            {activeTab === "maker" ? "Offers Made" : "Offers Received"}
+          </Typography>
 
-        {/* Offers Grid */}
-        <Grid container spacing={2}>
-          {offers.length > 0 ? (
-            offers.map((offer) => (
-              <Grid item xs={12} sm={6} md={4} key={offer.transactionId}>
-                <OfferCard
-                  offer={offer}
-                  isDarkTheme={isDarkTheme}
-                  onCancel={handleOfferCancel}
-                />
+          {/* Offers Grid */}
+          <Grid container spacing={2}>
+            {offers.length > 0 ? (
+              offers.map((offer) => (
+                <Grid item xs={12} key={offer.mpListingId}>
+                  <OfferCard
+                    offer={offer}
+                    onCancel={handleOfferCancel}
+                    isDarkTheme={isDarkTheme}
+                    approval={approval}
+                  />
+                </Grid>
+              ))
+            ) : (
+              <Grid item xs={12}>
+                <Card
+                  sx={{
+                    backgroundColor: isDarkTheme ? "#2a2a2a" : "#fff",
+                    p: 3,
+                  }}
+                >
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: isDarkTheme ? "#ccc" : "#666",
+                      textAlign: "center",
+                    }}
+                  >
+                    No offers found
+                  </Typography>
+                </Card>
               </Grid>
-            ))
-          ) : (
-            <Grid item xs={12}>
-              <Box textAlign="center" py={4}>
-                <StyledTypography variant="h6" $isDark={isDarkTheme}>
-                  {activeTab === "maker"
-                    ? "No offers made by this account"
-                    : "No offers received by this account"}
-                </StyledTypography>
-              </Box>
-            </Grid>
-          )}
-        </Grid>
-      </Box>
-    </Layout>
+            )}
+          </Grid>
+        </Box>
+      ) : (
+        /* Desktop Layout */
+        <Box>
+          <Typography
+            variant="h6"
+            sx={{ color: isDarkTheme ? "#fff" : "#000", mb: 2 }}
+          >
+            {activeTab === "maker" ? "Offers Made" : "Offers Received"}
+          </Typography>
+
+          {/* Offers Grid */}
+          <Grid container spacing={2}>
+            {offers.length > 0 ? (
+              offers.map((offer) => (
+                <Grid item xs={12} sm={6} md={4} key={offer.mpListingId}>
+                  <OfferCard
+                    offer={offer}
+                    onCancel={handleOfferCancel}
+                    isDarkTheme={isDarkTheme}
+                    approval={approval}
+                  />
+                </Grid>
+              ))
+            ) : (
+              <Grid item xs={12}>
+                <Card
+                  sx={{
+                    backgroundColor: isDarkTheme ? "#2a2a2a" : "#fff",
+                    p: 3,
+                  }}
+                >
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: isDarkTheme ? "#ccc" : "#666",
+                      textAlign: "center",
+                    }}
+                  >
+                    No offers found
+                  </Typography>
+                </Card>
+              </Grid>
+            )}
+          </Grid>
+        </Box>
+      )}
+    </Box>
   );
 };
 

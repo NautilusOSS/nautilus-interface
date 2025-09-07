@@ -112,6 +112,13 @@ const WrappedVsaConverter: React.FC = () => {
       return;
     }
 
+    // Validate input amounts
+    const currentAmount = direction === "vsaToWvsa" ? vsaAmount : wvsaAmount;
+    if (!currentAmount || isNaN(Number(currentAmount)) || Number(currentAmount) <= 0) {
+      console.error("Invalid amount provided");
+      return;
+    }
+
     setIsConverting(true);
     try {
       // The conversion rate is 1:1
@@ -158,7 +165,7 @@ const WrappedVsaConverter: React.FC = () => {
         const decimals = Number(decimalsR.returnValue);
         ci.setFee(2000);
         const amount = BigInt(
-          new BigNumber(vsaAmount).times(10 ** decimals).toFixed()
+          new BigNumber(vsaAmount || 0).times(10 ** decimals).toFixed()
         );
         const buildN = [];
         {
@@ -216,7 +223,7 @@ const WrappedVsaConverter: React.FC = () => {
         const decimals = Number(decimalsR.returnValue);
         ci.setFee(2000);
         const amount = BigInt(
-          new BigNumber(wvsaAmount).times(10 ** decimals).toFixed()
+          new BigNumber(wvsaAmount || 0).times(10 ** decimals).toFixed(0)
         );
         const withdrawR = await ci.withdraw(amount);
         if (!withdrawR.success) {
@@ -328,7 +335,12 @@ const WrappedVsaConverter: React.FC = () => {
 
       <Button
         onClick={handleConvert}
-        disabled={(!vsaAmount && !wvsaAmount) || !contractId || isConverting}
+        disabled={
+          !contractId || 
+          isConverting || 
+          (direction === "vsaToWvsa" && (!vsaAmount || Number(vsaAmount) <= 0)) ||
+          (direction === "wvsaToVsa" && (!wvsaAmount || Number(wvsaAmount) <= 0))
+        }
       >
         {isConverting ? "Converting..." : "Convert"}
       </Button>

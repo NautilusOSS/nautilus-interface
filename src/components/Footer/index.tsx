@@ -231,7 +231,6 @@ const Footer: React.FC = () => {
                   <Link to="/listing">Listings</Link>
                 </FooterLink>
                 <FooterLink>
-                  <Link to="/offers">Offers</Link>
                 </FooterLink>
                 <FooterLink>
                   <Link to="/collection">Collections</Link>
@@ -239,7 +238,9 @@ const Footer: React.FC = () => {
 
                 <FooterLink>
                   <Link to="/sales-activity">Activity</Link>
-                </FooterLink>
+                <FooterLink>
+                  <Link to="/offers">Offers</Link>
+                </FooterLink>                </FooterLink>
               </FooterList>
             </Grid>
             <Grid item xs={6} md={6}>

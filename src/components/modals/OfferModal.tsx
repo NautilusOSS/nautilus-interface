@@ -1,191 +1,188 @@
 import React, { useState } from "react";
 import {
-  Button,
   Dialog,
-  DialogActions,
-  DialogContent,
   DialogTitle,
-  Stack,
+  DialogContent,
+  DialogActions,
+  Button,
   TextField,
+  Typography,
+  Box,
+  CircularProgress,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 
 interface OfferModalProps {
-  token: any;
-  image?: string;
-  title: string;
-  loading?: boolean;
   open: boolean;
   handleClose: () => void;
   onSave: (amount: string) => void;
-  buttonText: string;
+  loading: boolean;
+  token?: any;
+  image?: string;
+  title?: string;
+  buttonText?: string;
   marketplaceFeePercentage?: number;
 }
 
-const StyledDialog = styled(Dialog)<{ isDarkTheme: boolean }>(
-  ({ isDarkTheme }) => ({
-    "& .MuiDialogContent-root": {
-      padding: "16px",
-      backgroundColor: isDarkTheme ? "#1a1a1a" : "#ffffff",
-      color: isDarkTheme ? "#ffffff" : "#000000",
-    },
-    "& .MuiDialogActions-root": {
-      padding: "8px",
-      backgroundColor: isDarkTheme ? "#1a1a1a" : "#ffffff",
-    },
-    "& .MuiDialogTitle-root": {
-      backgroundColor: isDarkTheme ? "#1a1a1a" : "#ffffff",
-      color: isDarkTheme ? "#ffffff" : "#000000",
-    },
-    "& .MuiTextField-root": {
-      "& .MuiOutlinedInput-root": {
-        "& fieldset": {
-          borderColor: isDarkTheme
-            ? "rgba(255, 255, 255, 0.23)"
-            : "rgba(0, 0, 0, 0.23)",
-        },
-        "&:hover fieldset": {
-          borderColor: isDarkTheme ? "#ffffff" : "#000000",
-        },
-        "&.Mui-focused fieldset": {
-          borderColor: isDarkTheme ? "#90caf9" : "#1976d2",
-        },
-      },
-      "& .MuiInputLabel-root": {
-        color: isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.7)",
-        "&.Mui-focused": {
-          color: isDarkTheme ? "#90caf9" : "#1976d2",
-        },
-      },
-      "& input": {
-        color: isDarkTheme ? "#ffffff" : "#000000",
-      },
-    },
-  })
-);
-
 const OfferModal: React.FC<OfferModalProps> = ({
-  token,
-  image,
-  title,
-  loading,
   open,
   handleClose,
   onSave,
-  buttonText,
-  marketplaceFeePercentage = 2.5,
+  loading,
+  token,
+  image,
+  title = "Make an Offer",
+  buttonText = "Make Offer",
+  marketplaceFeePercentage = 10,
 }) => {
-  const isDarkTheme = useSelector(
-    (state: RootState) => state.theme.isDarkTheme
-  );
-
   const [offerAmount, setOfferAmount] = useState("");
+  const isDarkTheme = useSelector((state: RootState) => state.theme.isDarkTheme);
 
   const handleSubmit = () => {
-    onSave(offerAmount);
+    if (offerAmount && parseFloat(offerAmount) > 0) {
+      onSave(offerAmount);
+    }
   };
 
-  const calculateFee = (amount: string): number => {
-    const numAmount = parseFloat(amount) || 0;
-    const totalFee = (numAmount * marketplaceFeePercentage) / 100;
-    const platformFee = totalFee * 0.25;
-    const royaltyFee = totalFee * 0.25;
-    const gamesFee = totalFee * 0;
-    return totalFee;
+  const handleCloseModal = () => {
+    setOfferAmount("");
+    handleClose();
   };
 
-  const calculateTotal = (amount: string): number => {
-    const numAmount = parseFloat(amount) || 0;
-    return numAmount + calculateFee(amount);
+  const calculateTotal = () => {
+    const amount = parseFloat(offerAmount);
+    if (isNaN(amount)) return 0;
+    const fee = amount * (marketplaceFeePercentage / 100);
+    return amount + fee;
   };
 
   return (
-    <StyledDialog
-      isDarkTheme={isDarkTheme}
-      onClose={handleClose}
-      aria-labelledby="customized-dialog-title"
+    <Dialog
       open={open}
+      onClose={handleCloseModal}
       maxWidth="sm"
       fullWidth
+      PaperProps={{
+        sx: {
+          backgroundColor: isDarkTheme ? "#2a2a2a" : "#fff",
+          color: isDarkTheme ? "#fff" : "#000",
+        },
+      }}
     >
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={2}>
-          {image && (
+      <DialogTitle sx={{ color: isDarkTheme ? "#fff" : "#000" }}>
+        {title}
+      </DialogTitle>
+      
+      <DialogContent>
+        {/* Token Image */}
+        {image && (
+          <Box sx={{ mb: 2, textAlign: "center" }}>
             <img
               src={image}
               alt="NFT"
               style={{
-                width: "100%",
-                maxHeight: "300px",
-                objectFit: "contain",
+                width: "100px",
+                height: "100px",
+                objectFit: "cover",
+                borderRadius: "8px",
               }}
             />
-          )}
-          <TextField
-            label="Offer Amount (VOI)"
-            type="number"
-            value={offerAmount}
-            onChange={(e) => setOfferAmount(e.target.value)}
-            fullWidth
-          />
-          {offerAmount && (
-            <Stack
-              spacing={1}
-              sx={{ mt: 2, color: isDarkTheme ? "#ffffff" : "#000000" }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Offer Amount:</span>
-                <span>{offerAmount} VOI</span>
-              </div>
-              {/*<div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Marketplace Fee ({marketplaceFeePercentage}%):</span>
-                <span>{calculateFee(offerAmount).toFixed(4)} VOI</span>
-              </div>*/}
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Platform Fee ({marketplaceFeePercentage * 0.5}%):</span>
-                <span>{(calculateFee(offerAmount) * 0.5).toFixed(4)} VOI</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Royalty Fee ({marketplaceFeePercentage * 0.5}%):</span>
-                <span>{(calculateFee(offerAmount) * 0.5).toFixed(4)} VOI</span>
-              </div>
-              {/*<div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Games Fee ({marketplaceFeePercentage * 0.5}%):</span>
-                  <span>{(calculateFee(offerAmount) * 0.5).toFixed(4)} VOI</span>
-                </div>*/}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontWeight: "bold",
-                }}
-              >
-                <span>Total Cost:</span>
-                <span>{calculateTotal(offerAmount).toFixed(4)} VOI</span>
-              </div>
-            </Stack>
-          )}
-        </Stack>
+          </Box>
+        )}
+
+        {/* Token Info */}
+        {token && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ color: isDarkTheme ? "#fff" : "#000" }}>
+              {token.metadata?.name || `Token #${token.tokenId}`}
+            </Typography>
+            <Typography variant="body2" sx={{ color: isDarkTheme ? "#ccc" : "#666" }}>
+              Collection #{token.contractId}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Offer Amount Input */}
+        <TextField
+          fullWidth
+          label="Offer Amount (VOI)"
+          type="number"
+          value={offerAmount}
+          onChange={(e) => setOfferAmount(e.target.value)}
+          sx={{
+            mb: 2,
+            "& .MuiOutlinedInput-root": {
+              color: isDarkTheme ? "#fff" : "#000",
+              "& fieldset": {
+                borderColor: isDarkTheme ? "#666" : "#ccc",
+              },
+              "&:hover fieldset": {
+                borderColor: isDarkTheme ? "#888" : "#999",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: isDarkTheme ? "#fff" : "#000",
+              },
+            },
+            "& .MuiInputLabel-root": {
+              color: isDarkTheme ? "#ccc" : "#666",
+              "&.Mui-focused": {
+                color: isDarkTheme ? "#fff" : "#000",
+              },
+            },
+          }}
+        />
+
+        {/* Fee Calculation */}
+        {offerAmount && parseFloat(offerAmount) > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ color: isDarkTheme ? "#ccc" : "#666" }}>
+              Marketplace Fee ({marketplaceFeePercentage}%): {(parseFloat(offerAmount) * marketplaceFeePercentage / 100).toFixed(2)} VOI
+            </Typography>
+            <Typography variant="body2" sx={{ color: isDarkTheme ? "#ccc" : "#666" }}>
+              Total Required: {calculateTotal().toFixed(2)} VOI
+            </Typography>
+          </Box>
+        )}
+
+        {/* Warning */}
+        <Typography variant="caption" sx={{ color: isDarkTheme ? "#ff9800" : "#f57c00" }}>
+          Note: Offers are binding and will be automatically accepted if the seller accepts.
+        </Typography>
       </DialogContent>
-      <DialogActions>
+
+      <DialogActions sx={{ p: 2 }}>
         <Button
-          onClick={handleClose}
-          sx={{ color: isDarkTheme ? "#ffffff" : "#000000" }}
+          onClick={handleCloseModal}
+          disabled={loading}
+          sx={{
+            color: isDarkTheme ? "#ccc" : "#666",
+            "&:hover": {
+              backgroundColor: isDarkTheme ? "#444" : "#f0f0f0",
+            },
+          }}
         >
           Cancel
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={loading || !offerAmount}
+          disabled={loading || !offerAmount || parseFloat(offerAmount) <= 0}
           variant="contained"
+          sx={{
+            backgroundColor: isDarkTheme ? "#1976d2" : "#1976d2",
+            "&:hover": {
+              backgroundColor: isDarkTheme ? "#1565c0" : "#1565c0",
+            },
+          }}
         >
-          {loading ? "Processing..." : buttonText}
+          {loading ? (
+            <CircularProgress size={20} color="inherit" />
+          ) : (
+            buttonText
+          )}
         </Button>
       </DialogActions>
-    </StyledDialog>
+    </Dialog>
   );
 };
 
