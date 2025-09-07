@@ -35,6 +35,7 @@ interface ListSaleModalProps {
   //image: string;
   //royalties: number;
   nft: any;
+  fullScreen?: boolean;
 }
 
 const ListSaleModal: React.FC<ListSaleModalProps> = ({
@@ -47,7 +48,7 @@ const ListSaleModal: React.FC<ListSaleModalProps> = ({
   nft,
   title = "Enter Address",
   buttonText = "List for Sale",
-}) => {
+  fullScreen = false,}) => {
   /* Price */
   const [price, setPrice] = useState("");
   const [royalties, setRoyalties] = useState<boolean>(true);
@@ -152,7 +153,7 @@ const ListSaleModal: React.FC<ListSaleModalProps> = ({
       onClose={onClose}
       aria-labelledby="address-modal-title"
       aria-describedby="address-modal-description"
-    >
+      fullScreen={fullScreen}    >
       <div
         style={{
           position: "absolute",

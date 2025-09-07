@@ -112,7 +112,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/tools" element={<Tools />} />
           <Route path="/offer/:txid" element={<OfferDetail />} />
           <Route
-            path="/auction/:collectionId/:tokenId"
+            path="/collection/:collectionId/token/:tokenId/trade"
             element={<AuctionDetail />}
           />
           <Route path="/tools/:tool" element={<Tools />} />

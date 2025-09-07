@@ -103,13 +103,18 @@ export const Token: React.FC = () => {
   useEffect(() => {
     dispatch(getSmartTokens() as unknown as UnknownAction);
   }, [dispatch]);
-  console.log({ smartTokens, smartTokenStatus });
+
   /* Listings */
+  /*
   const listings = useSelector((state: any) => state.listings.listings);
   const listingsStatus = useSelector((state: any) => state.listings.status);
   useEffect(() => {
     dispatch(getListings() as unknown as UnknownAction);
   }, [dispatch]);
+  */
+  const listings: any[] = [];
+  const listingsStatus = "succeeded";
+
   /* Dex */
   const prices = useSelector((state: RootState) => state.dex.prices);
   const dexStatus = useSelector((state: RootState) => state.dex.status);
@@ -176,7 +181,7 @@ export const Token: React.FC = () => {
   }, [id]);
   console.log({ collectionInfo });
 
-  const { fetchName } = useName();
+  //const { fetchName } = useName(activeAccount?.address);
 
   const [nft, setNft] = React.useState<any>(null);
   useEffect(() => {
@@ -209,8 +214,8 @@ export const Token: React.FC = () => {
           sk: new Uint8Array(0),
         },
       });
-      const arc72_ownerOfR = await ciARC72.arc72_ownerOf(BigInt(tid));
-      const arc72_getApprovedR = await ciARC72.arc72_getApproved(BigInt(tid));
+      const arc72_ownerOfR = await ciARC72.arc72_ownerOf(Number(tid));
+      const arc72_getApprovedR = await ciARC72.arc72_getApproved(Number(tid));
       if (!arc72_ownerOfR.success) throw new Error("Failed to get owner");
       if (!arc72_getApprovedR.success)
         throw new Error("Failed to get approved");
@@ -273,7 +278,8 @@ export const Token: React.FC = () => {
         ? decodeRoyalties(nft?.metadata?.royalties || "")
         : {};
 
-      const ownerName = await fetchName(arc72_ownerOf);
+      //const ownerName = await fetchName(arc72_ownerOf);
+      let ownerName = "a";
 
       const displayNft = {
         ...nftData,
@@ -289,14 +295,7 @@ export const Token: React.FC = () => {
       console.log(e);
       toast.error(e.message);
     });
-  }, [
-    id,
-    tid,
-    collection,
-    //collectionInfo,
-    collectionListings,
-    activeAccount,
-  ]);
+  }, [id, tid]);
   console.log({ nft });
 
   const [tokenName, setTokenName] = React.useState<string | null>(null);
@@ -321,6 +320,7 @@ export const Token: React.FC = () => {
 
   const [listings2, setListings] = React.useState<any>([]);
   React.useEffect(() => {
+    if (!id) return;
     try {
       axios
         .get(`${MIMIR_API}/nft-indexer/v1/mp/listings`, {
@@ -335,7 +335,7 @@ export const Token: React.FC = () => {
     } catch (e) {
       console.log(e);
     }
-  }, []);
+  }, [id]);
 
   const listedNfts = useMemo(() => {
     const listedNfts =
@@ -390,18 +390,13 @@ export const Token: React.FC = () => {
         <Container sx={{ pt: 5 }} maxWidth="xl">
           <Stack style={{ gap: "64px" }}>
             <NFTInfo
-              tokenName={tokenName}
+              tokenName={tokenName || undefined}
               collectionName={nft?.collectionName}
               nft={nft}
               collection={collection}
               collectionInfo={collectionInfo}
               loading={isLoading}
               exchangeRate={exchangeRate}
-            />
-            <NFTTabs
-              exchangeRate={exchangeRate}
-              nft={nft}
-              loading={isLoading}
             />
           </Stack>
         </Container>

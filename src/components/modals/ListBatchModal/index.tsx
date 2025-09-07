@@ -33,6 +33,7 @@ import { decodeRoyalties } from "@/utils/hf";
 import CostBreakdown from "@/components/CostBreakdown";
 import { mp } from "ulujs";
 import party from "party-js";
+import { MIMIR_API } from "@/config/arc72-idx";
 
 // function to split array into chunks
 
@@ -131,7 +132,7 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
     try {
       // here
       const response = await axios.get(
-        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/sales?collectionId=${contractId}&tokenId=${tokenId}`
+        `${MIMIR_API}/nft-indexer/v1/mp/sales?collectionId=${contractId}&tokenId=${tokenId}`
       );
       return response.data.sales.map((sale: any) => ({
         price: sale.price / 1e6,
@@ -263,7 +264,7 @@ const ListBatchModal: React.FC<ListBatchModalProps> = ({
         return existingPrice;
       }
       const response = await axios.get(
-        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/mp/listings?collectionId=${collectionId}&active=true`
+        `${MIMIR_API}/nft-indexer/v1/mp/listings?collectionId=${collectionId}&active=true`
       );
       const listings = response.data.listings || [];
       if (listings.length > 0) {

@@ -48,6 +48,7 @@ import { fetchTokenInfo } from "@/utils/dex";
 import OfferModal from "../modals/OfferModal";
 import useNSFW from "@/hooks/useNSFW";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import { useActiveListings } from "@/pages/Auction";
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 
@@ -394,8 +395,8 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
 
   const [manager, setManager] = useState<string>("");
   useEffect(() => {
-    if (!nft.listing) return;
-    new mp(nft.listing.mpContractId, algodClient, indexerClient)
+    if (!listings?.length) return;
+    new mp(listings[0].mpContractId, algodClient, indexerClient)
       .manager()
       .then((r: any) => {
         setManager(r.returnValue);
@@ -404,13 +405,15 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
 
   const dispatch = useDispatch();
 
-  const smartTokens = useSelector((state: any) => state.smartTokens.tokens);
-  const smartTokenStatus = useSelector(
-    (state: any) => state.smartTokens.status
-  );
-  useEffect(() => {
-    dispatch(getSmartTokens() as unknown as UnknownAction);
-  }, [dispatch]);
+  const { data: listings } = useActiveListings(nft.contractId, nft.tokenId);
+
+  // const smartTokens = useSelector((state: any) => state.smartTokens.tokens);
+  // const smartTokenStatus = useSelector(
+  //   (state: any) => state.smartTokens.status
+  // );
+  // useEffect(() => {
+  //   dispatch(getSmartTokens() as unknown as UnknownAction);
+  // }, [dispatch]);
 
   const handleDeleteListing = async (listingId: number) => {
     try {
@@ -714,10 +717,8 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
             tokenId // TokenId
           ),
         ];
-        if (listedNft.listing) {
-          buildP.push(
-            builder.mp.a_sale_deleteListing(listedNft.listing.mpListingId)
-          );
+        if (listings?.length) {
+          buildP.push(builder.mp.a_sale_deleteListing(listings[0].mpListingId));
         }
         const customTxns = (await Promise.all(buildP)).map(({ obj }) => obj);
         ci.setAccounts([
@@ -919,10 +920,8 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
             tokenId
           ),
         ];
-        if (listedNft.listing) {
-          buildP.push(
-            builder.mp.a_sale_deleteListing(listedNft.listing.mpListingId)
-          );
+        if (listings?.length) {
+          buildP.push(builder.mp.a_sale_deleteListing(listings[0].mpListingId));
         }
         const customTxns = (await Promise.all(buildP)).map(({ obj }) => obj);
         ci.setAccounts([
@@ -978,15 +977,15 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
   };
 
   const handleMangerDelete = useCallback(async () => {
-    if (!activeAccount || !manager || !nft.listing) return;
+    if (!activeAccount || !manager || !listings?.length) return;
     try {
-      const ci = new mp(nft.listing.mpContractId, algodClient, indexerClient, {
+      const ci = new mp(listings[0].mpContractId, algodClient, indexerClient, {
         acc: {
           addr: activeAccount.address,
           sk: new Uint8Array(0),
         },
       });
-      const res = await ci.deleteListing(nft.listing.mpListingId);
+      const res = await ci.deleteListing(listings[0].mpListingId);
       if (!res.success) throw new Error("failed to delete listing");
       const stxns = await signTransactions(
         res.txns.map(
@@ -1157,7 +1156,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
         return;
       }
       const ci = new CONTRACT(
-        nft.listing.mpContractId,
+        listings[0].mpContractId,
         algodClient,
         indexerClient,
         {
@@ -1183,7 +1182,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
         { addr: activeAccount.address, sk: new Uint8Array(0) }
       );
       const v_sale_listingByIndexR = await ci.v_sale_listingByIndex(
-        nft.listing.mpListingId
+        listings[0].mpListingId
       );
       if (!v_sale_listingByIndexR.success) {
         throw new Error("Failed to get listing");
@@ -1247,9 +1246,10 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
     }
   };
 
-  const currency = smartTokens?.find(
-    (el: TokenType) => `${el.contractId}` === `${nft.listing?.currency}`
-  );
+  const currency = null;
+  // const currency = smartTokens?.find(
+  //   (el: TokenType) => `${el.contractId}` === `${nft.listing?.currency}`
+  // );
   const currencySymbol =
     currency?.tokenId === "0" ? "VOI" : currency?.symbol || "VOI";
   const currencyDecimals =
@@ -1511,6 +1511,7 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
       // -------------------------------------
       toast.success("Offer submitted successfully!");
       setOpenOfferModal(false);
+      navigate(`/collection/${nft.contractId}/token/${nft.tokenId}/auction`);
     } catch (e: any) {
       console.log(e);
       toast.error(e.message);
@@ -1548,7 +1549,9 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
         spacing="60px"
       >
         <Grid item xs={12} md={6}>
-          <div style={{ position: "relative", width: "100%", aspectRatio: "1" }}>
+          <div
+            style={{ position: "relative", width: "100%", aspectRatio: "1" }}
+          >
             <PixelatedImage
               showNSFW={showNSFWContent}
               isNSFW={isNSFW(nft.contractId)}
@@ -1732,11 +1735,9 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                       color: isDarkTheme ? "#FFFFFF" : undefined,
                     }}
                   >
-                    {!nft.listing ||
-                    nft.approved ===
-                      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
-                      ? "Not Available"
-                      : `${price} ${currencySymbol}`}
+                    {listings?.length > 0
+                      ? `${listings[0].price / 10 ** 6} ${currencySymbol}`
+                      : "Not Available"}
                   </div>
                 </Stack>
               </PriceDisplay>
@@ -1746,19 +1747,23 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
             <Stack direction="row" gap={2} sx={{ alignItems: "center" }}>
               {nft.approved !==
                 "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ" &&
-              nft?.listing ? (
+              listings?.length > 0 ? (
                 nft.owner !== activeAccount?.address ? (
                   <BuyButton
                     src={ButtonBuy}
                     alt="Buy Button"
-                    onClick={handleBuyButtonClick}
+                    onClick={() => {
+                      navigate(
+                        `/collection/${nft.contractId}/token/${nft.tokenId}/trade`
+                      );
+                    }}
                   />
                 ) : (
                   <>
                     <Button
                       variant="text"
                       onClick={() => {
-                        handleDeleteListing(nft.listing.mpListingId);
+                        handleDeleteListing(listings[0].mpListingId);
                       }}
                     >
                       Cancel
@@ -1770,7 +1775,11 @@ export const NFTInfo: React.FC<NFTInfoProps> = ({
                 <OfferButton
                   src={ButtonOffer}
                   alt="Offer Button"
-                  onClick={() => setOpenOfferModal(true)}
+                  onClick={() => {
+                    navigate(
+                      `/collection/${nft.contractId}/token/${nft.tokenId}/trade`
+                    );
+                  }}
                 />
               )}
               {activeAccount?.address === manager ? (

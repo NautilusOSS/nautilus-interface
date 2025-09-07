@@ -3369,11 +3369,11 @@ export const Account: React.FC = () => {
             <Button
               size="large"
               variant="outlined"
-              onClick={() => navigate(`/account/${id}/offers`)} // Changed from setIsOffersModalOpen(true)
+              onClick={() => navigate(`/offers`)}
               startIcon={<LocalOfferIcon />}
               sx={{ ml: 1 }}
             >
-              Offers ({accountOffers.length + offers.length})
+              Offers
             </Button>
           </Stack>
 

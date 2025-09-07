@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAlgorandClients } from "@/wallets";
+import { MIMIR_API } from "@/config/arc72-idx";
 
 interface Arc200Balance {
   assetId: string;
@@ -57,7 +58,7 @@ export const useBalances = (address?: string) => {
       }
 
       const tokenResponse = await fetch(
-        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/tokens?includes=all&contractId=${contractId}`
+        `${MIMIR_API}/arc200/tokens?includes=all&contractId=${contractId}`
       );
       const tokenData: TokenInfoResponse = await tokenResponse.json();
       const tokenInfo = tokenData.tokens[0];
@@ -113,7 +114,7 @@ export const useBalances = (address?: string) => {
 
         // Fetch ARC200 balances from indexer
         const response = await fetch(
-          `https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/balances?accountId=${address}`
+          `${MIMIR_API}/arc200/balances?accountId=${address}`
         );
 
         if (!response.ok) {

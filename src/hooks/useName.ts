@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getAlgorandClients } from "@/wallets";
 import { CONTRACT } from "ulujs";
 import { stringToUint8Array, stripTrailingZeroBytes } from "@/utils/string";
@@ -90,10 +90,17 @@ const fetchName = async (address: string) => {
       }
     }
     console.log("name for", address, "is", name);
+    
+    // ✅ CACHE THE RESULT
+    nameInfoCache[cacheKey] = name;
     return name;
   } catch (error) {
     console.error(error);
-    return address?.slice(0, 4) + "..." + address?.slice(-4);
+    const fallbackName = address?.slice(0, 4) + "..." + address?.slice(-4);
+    
+    // ✅ CACHE THE FALLBACK RESULT TOO
+    nameInfoCache[address] = fallbackName;
+    return fallbackName;
   }
 };
 
@@ -144,6 +151,7 @@ export const useName = (address?: string) => {
   const [avatar, setAvatar] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
   useEffect(() => {
     if (!address) return;
     fetchName(address).then((name: string) => {
@@ -155,13 +163,18 @@ export const useName = (address?: string) => {
       });
     });
   }, [address]);
+
+  const memoizedFetchName = useCallback(fetchName, []);
+  const memoizedFetchCollectionName = useCallback(fetchCollectionName, []);
+  const memoizedFetchText = useCallback(fetchText, []);
+
   return {
     name,
     avatar,
     loading,
     error,
-    fetchName,
-    fetchCollectionName,
-    fetchText,
+    fetchName: memoizedFetchName,
+    fetchCollectionName: memoizedFetchCollectionName,
+    fetchText: memoizedFetchText,
   };
 };

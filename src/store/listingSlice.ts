@@ -4,6 +4,7 @@ import axios from "axios";
 import db from "../db";
 import { RootState } from "./store";
 import { ListingI, NFTIndexerListingI } from "../types";
+import { MIMIR_API } from "@/config/arc72-idx";
 
 export interface ListingsState {
   listings: ListingI[];
@@ -21,12 +22,7 @@ export const getListings = createAsyncThunk<
   try {
     const lastRound = 0;
     const response = await axios.get(
-      `https://voi-mainnet-mimirapi.nftnavigator.xyz/nft-indexer/v1/mp/listings`,
-      {
-        params: {
-          active: true,
-        },
-      }
+      `${MIMIR_API}/nft-indexer/v1/mp/listings?active=true&limit=100`
     );
     const listings = [...response.data.listings].filter(
       (listing: NFTIndexerListingI) =>

@@ -146,7 +146,7 @@ const DropdownMenu: React.FC<{
   isDarkTheme: boolean;
 }> = ({ menuState, config, isDarkTheme }) => {
   const navigate = useNavigate();
-  
+
   return (
     <>
       <Button
@@ -204,7 +204,8 @@ const DropdownMenu: React.FC<{
 
 const AccountInfo: React.FC<{ isDarkTheme: boolean }> = ({ isDarkTheme }) => {
   const { activeAccount } = useWallet();
-  const { data: accountInfoData, isLoading: isAccountInfoLoading } = useAccountInfo();
+  const { data: accountInfoData, isLoading: isAccountInfoLoading } =
+    useAccountInfo();
 
   if (!activeAccount) return null;
 
@@ -243,9 +244,9 @@ const Navbar: React.FC = () => {
 
   /* Wallet */
 
-  const { activeAccount, signTransactions } = useWallet();
+  const { activeAccount } = useWallet();
 
-  const resolver = useName();
+  const resolver = useName(activeAccount?.address);
 
   const {
     resolver: envoiResolver,
@@ -414,11 +415,26 @@ const Navbar: React.FC = () => {
                           label: "Earn",
                           items: [
                             { label: "Staking", href: "/staking" },
-                            { label: "Wrapped Voi LP Incentives", href: "/community-chest?contract=390001" },
-                            { label: "Fountain Voi", href: "/community-chest?contract=770561" },
-                            { label: "Community Chest Voi", href: "/community-chest?contract=664258" },
-                            { label: "NFT Voi", href: "/community-chest?contract=913147" },
-                            { label: "Liquid Voi", href: "/community-chest?contract=8372092" },
+                            {
+                              label: "Wrapped Voi LP Incentives",
+                              href: "/community-chest?contract=390001",
+                            },
+                            {
+                              label: "Fountain Voi",
+                              href: "/community-chest?contract=770561",
+                            },
+                            {
+                              label: "Community Chest Voi",
+                              href: "/community-chest?contract=664258",
+                            },
+                            {
+                              label: "NFT Voi",
+                              href: "/community-chest?contract=913147",
+                            },
+                            {
+                              label: "Liquid Voi",
+                              href: "/community-chest?contract=8372092",
+                            },
                           ],
                         }}
                         isDarkTheme={isDarkTheme}
@@ -439,10 +455,11 @@ const Navbar: React.FC = () => {
                         }}
                         config={{
                           label: "Stats",
-                          items: item.children?.map((child, childKey) => ({
-                            label: child.label,
-                            href: child.href,
-                          })) || [],
+                          items:
+                            item.children?.map((child, childKey) => ({
+                              label: child.label,
+                              href: child.href,
+                            })) || [],
                         }}
                         isDarkTheme={isDarkTheme}
                       />
@@ -462,10 +479,11 @@ const Navbar: React.FC = () => {
                         }}
                         config={{
                           label: "Marketplace",
-                          items: item.children?.map((child, childKey) => ({
-                            label: child.label,
-                            href: child.href,
-                          })) || [],
+                          items:
+                            item.children?.map((child, childKey) => ({
+                              label: child.label,
+                              href: child.href,
+                            })) || [],
                         }}
                         isDarkTheme={isDarkTheme}
                       />

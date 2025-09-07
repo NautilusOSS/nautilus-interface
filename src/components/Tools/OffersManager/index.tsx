@@ -590,7 +590,7 @@ const OffersManager: React.FC<OffersManagerProps> = () => {
   };
 
   const handleViewAuction = (offer: Offer) => {
-    navigate(`/auction/${offer.contractId}/${offer.tokenId}`);
+    navigate(`/collection/${offer.contractId}/token/${offer.tokenId}/trade`);
   };
 
   const fetchNFTMetadata = async (contractId: number, tokenId: number) => {
@@ -838,7 +838,7 @@ const OffersManager: React.FC<OffersManagerProps> = () => {
                             },
                           }}
                         >
-                          View Auction
+                          View Trade
                         </Button>
                       </Box>
                     </CardContent>

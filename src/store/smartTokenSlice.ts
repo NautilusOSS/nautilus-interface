@@ -22,9 +22,7 @@ export const getSmartTokens = createAsyncThunk<
     if (storedTokens.length > 0) {
       return storedTokens;
     }
-    const response = await axios.get(
-      `${ARC72_INDEXER_API}/nft-indexer/v1/arc200/tokens?includes=all`
-    );
+    const response = await axios.get(`${MIMIR_API}/arc200/tokens`);
     const tokens = response.data.tokens;
     await db.table("smartTokens").bulkPut(
       tokens.map((token: TokenType) => {
