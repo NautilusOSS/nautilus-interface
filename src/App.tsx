@@ -30,6 +30,7 @@ import { Offers } from "./pages/Offers";
 import Tools from "./pages/Tools";
 import OfferDetail from "./pages/OfferDetail";
 import AuctionDetail from "./pages/Auction";
+import CollectionOffers from "./pages/CollectionOffers";
 import OffersManager from "./components/Tools/OffersManager";
 
 const BackgroundLayer = styled.div`
@@ -114,6 +115,10 @@ const AppRoutes: React.FC = () => {
           <Route
             path="/collection/:collectionId/token/:tokenId/trade"
             element={<AuctionDetail />}
+          />
+          <Route
+            path="/collection/:id/trade"
+            element={<CollectionOffers />}
           />
           <Route path="/tools/:tool" element={<Tools />} />
         </Routes>
