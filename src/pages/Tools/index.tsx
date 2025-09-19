@@ -20,6 +20,7 @@ import MixedAssetSender from "@/components/Tools/MixedAssetSender";
 import UnitConverter from "@/components/Tools/UnitConverter";
 import NFTDupListingDetector from "@/components/Tools/NFTDupListingDetector";
 import RegisterOnline from "@/components/Tools/RegisterOnline";
+import Arc200BalanceChecker from "@/components/Tools/Arc200BalanceChecker";
 import Offers from "@/pages/Offers";
 
 const toolsConfig = [
@@ -679,6 +680,41 @@ const toolsConfig = [
         <circle cx="20" cy="20" r="2" fill="currentColor" />
       </svg>
     ),
+  },
+  {
+    id: "arc200balancechecker",
+    name: "ARC200 Balance Checker",
+    component: Arc200BalanceChecker,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="24"
+          height="24"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path
+          d="M8 12H24M8 16H20M8 20H16"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <circle cx="12" cy="8" r="2" fill="currentColor" />
+        <circle cx="20" cy="8" r="2" fill="currentColor" />
+        <circle cx="12" cy="24" r="2" fill="currentColor" />
+        <circle cx="20" cy="24" r="2" fill="currentColor" />
+      </svg>
+    ),
+    description: "Check ARC200 token balances for any wallet address",
   },
 ];
 

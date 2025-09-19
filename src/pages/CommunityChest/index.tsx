@@ -935,6 +935,25 @@ const CONTRACT_OPTIONS: ContractOption[] = [
       future: 0,
     },
   },
+  {
+    id: 41877720,
+    name: "Dork Voi (DV)",
+    description:
+      "Dork Voi (DV) is a wrapped VOI token that represents staked VOI in the Dorks ecosystem. DV holders support the development of the Dorks NFT community and may be eligible for future incentives and rewards.",
+    iconPath:
+      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0.9999,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0,
+    },
+  },
 ];
 
 const getContractInfo = (contractId: number) => {
@@ -1057,6 +1076,8 @@ const getContractDescription = (
       return "Welcome to Virtual Babes VOiconomy (VBV) - a staking solution that allows users to grow their VOI in $VBV. User rewards are compounded into their stake and can be withdrawn 1:1 with VOI anytime. Regular rewards are paid after each completed epoch, while bonus rewards are paid irregularly and grow in value over time.";
     case 40263883:
       return "Neo Voi (NEO) is a wrapped VOI token that represents staked VOI in the Neo ecosystem. NEO holders support the development of Neo's decentralized applications and may be eligible for future incentives.";
+    case 41877720:
+      return "Welcome to Dork Voi (DV) - a wrapped VOI token that represents staked VOI in the Dorks ecosystem. DV holders support the development of the Dorks NFT community and may be eligible for future incentives and rewards related to the Dorks NFT collections.";
     default:
       return "";
   }

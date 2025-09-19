@@ -11,9 +11,10 @@ import { getAlgorandClients } from "@/wallets";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { ViewList, ViewModule, PieChart } from "@mui/icons-material";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Pie } from 'react-chartjs-2';
-import { useBalances } from '../hooks/useBalance';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Pie } from "react-chartjs-2";
+import { useBalances } from "../hooks/useBalance";
+import { MIMIR_API } from "@/config/arc72-idx";
 
 // Register ChartJS components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -60,7 +61,9 @@ const MAX_SUPPLY =
 
 export default function Wallet() {
   const { accountId } = useParams();
-  const isDarkTheme = useSelector((state: RootState) => state.theme.isDarkTheme);
+  const isDarkTheme = useSelector(
+    (state: RootState) => state.theme.isDarkTheme
+  );
   const [balances, setBalances] = useState<TokenBalance[]>([]);
   const [tokenInfo, setTokenInfo] = useState<Record<number, TokenInfo>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -69,10 +72,10 @@ export default function Wallet() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedToken, setSelectedToken] = useState<TokenInfo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'pie'>('list');
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "pie">("list");
 
   // Example array of ARC200 asset IDs
-  const arc200AssetIds = ['asset1', 'asset2'];
+  const arc200AssetIds = ["asset1", "asset2"];
   const arc200Balances = useBalances(accountId);
 
   const fetchBalances = async () => {
@@ -81,7 +84,7 @@ export default function Wallet() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/balances?accountId=${accountId}`
+        `https://${MIMIR_API}/arc200/balances?accountId=${accountId}`
       );
 
       if (!response.ok) {
@@ -94,7 +97,7 @@ export default function Wallet() {
       // Fetch token info for each balance
       const tokenInfoPromises = data.balances.map(async (balance) => {
         const tokenResponse = await fetch(
-          `https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/tokens?includes=all&contractId=${balance.contractId}`
+          `https://${MIMIR_API}/arc200/tokens?includes=all&contractId=${balance.contractId}`
         );
         if (!tokenResponse.ok) return null;
         const tokenData: TokenResponse = await tokenResponse.json();
@@ -152,12 +155,14 @@ export default function Wallet() {
     .sort((a, b) => {
       const tokenA = tokenInfo[a.contractId];
       const tokenB = tokenInfo[b.contractId];
-      
-      const valueA = (parseFloat(a.balance) * parseFloat(tokenA?.price || '0')) / 
+
+      const valueA =
+        (parseFloat(a.balance) * parseFloat(tokenA?.price || "0")) /
         Math.pow(10, tokenA?.decimals || 0);
-      const valueB = (parseFloat(b.balance) * parseFloat(tokenB?.price || '0')) / 
+      const valueB =
+        (parseFloat(b.balance) * parseFloat(tokenB?.price || "0")) /
         Math.pow(10, tokenB?.decimals || 0);
-      
+
       return valueB - valueA; // Sort in descending order
     });
 
@@ -179,37 +184,36 @@ export default function Wallet() {
   };
 
   const getPieChartData = () => {
-    const chartData = filteredBalances.map(balance => {
+    const chartData = filteredBalances.map((balance) => {
       const token = tokenInfo[balance.contractId];
-      const value = (parseFloat(balance.balance) * parseFloat(token?.price || '0')) / 
+      const value =
+        (parseFloat(balance.balance) * parseFloat(token?.price || "0")) /
         Math.pow(10, token?.decimals || 0);
       return {
         value,
-        label: token ? `${token.symbol}` : `Contract ${balance.contractId}`
+        label: token ? `${token.symbol}` : `Contract ${balance.contractId}`,
       };
     });
 
     // Sort by value and take top 10
-    const top10Data = chartData
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10);
+    const top10Data = chartData.sort((a, b) => b.value - a.value).slice(0, 10);
 
     return {
-      labels: top10Data.map(item => item.label),
+      labels: top10Data.map((item) => item.label),
       datasets: [
         {
-          data: top10Data.map(item => item.value),
+          data: top10Data.map((item) => item.value),
           backgroundColor: [
-            '#FF6384',
-            '#36A2EB',
-            '#FFCE56',
-            '#4BC0C0',
-            '#9966FF',
-            '#FF9F40',
-            '#FF6384',
-            '#36A2EB',
-            '#FFCE56',
-            '#4BC0C0',
+            "#FF6384",
+            "#36A2EB",
+            "#FFCE56",
+            "#4BC0C0",
+            "#9966FF",
+            "#FF9F40",
+            "#FF6384",
+            "#36A2EB",
+            "#FFCE56",
+            "#4BC0C0",
           ],
           borderWidth: 1,
         },
@@ -220,48 +224,74 @@ export default function Wallet() {
   const calculateTotalValue = (balances: TokenBalance[]) => {
     return balances.reduce((total, balance) => {
       const token = tokenInfo[balance.contractId];
-      const value = (parseFloat(balance.balance) * parseFloat(token?.price || '0')) / 
+      const value =
+        (parseFloat(balance.balance) * parseFloat(token?.price || "0")) /
         Math.pow(10, token?.decimals || 0);
       return total + (isNaN(value) ? 0 : value);
     }, 0);
   };
 
-  if (isLoading) return <div className={`min-h-screen ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>Loading wallet data...</div>;
-  if (error) return <div className={`min-h-screen ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>Error: {error}</div>;
-  if (!accountId) return <div className={`min-h-screen ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>No account ID provided</div>;
+  if (isLoading)
+    return (
+      <div
+        className={`min-h-screen ${isDarkTheme ? "bg-gray-900" : "bg-white"}`}
+      >
+        Loading wallet data...
+      </div>
+    );
+  if (error)
+    return (
+      <div
+        className={`min-h-screen ${isDarkTheme ? "bg-gray-900" : "bg-white"}`}
+      >
+        Error: {error}
+      </div>
+    );
+  if (!accountId)
+    return (
+      <div
+        className={`min-h-screen ${isDarkTheme ? "bg-gray-900" : "bg-white"}`}
+      >
+        No account ID provided
+      </div>
+    );
 
   return (
     <Layout>
-      <div className={`p-4 min-h-screen ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
+      <div
+        className={`p-4 min-h-screen ${
+          isDarkTheme ? "bg-gray-900" : "bg-white"
+        }`}
+      >
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Wallet Holdings</h1>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => setViewMode("list")}
               className={`p-2 rounded-lg ${
-                viewMode === 'list' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 dark:bg-gray-700'
+                viewMode === "list"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 dark:bg-gray-700"
               }`}
             >
               <ViewList />
             </button>
             <button
-              onClick={() => setViewMode('grid')}
+              onClick={() => setViewMode("grid")}
               className={`p-2 rounded-lg ${
-                viewMode === 'grid' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 dark:bg-gray-700'
+                viewMode === "grid"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 dark:bg-gray-700"
               }`}
             >
               <ViewModule />
             </button>
             <button
-              onClick={() => setViewMode('pie')}
+              onClick={() => setViewMode("pie")}
               className={`p-2 rounded-lg ${
-                viewMode === 'pie' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 dark:bg-gray-700'
+                viewMode === "pie"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 dark:bg-gray-700"
               }`}
             >
               <PieChart />
@@ -304,67 +334,79 @@ export default function Wallet() {
               <button
                 onClick={() => setSearchTerm("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                
-              </button>
+              ></button>
             )}
           </div>
         </div>
 
-        {viewMode === 'pie' ? (
+        {viewMode === "pie" ? (
           <div className="max-w-2xl mx-auto mt-8">
             <div className="text-center mb-6">
-              <h3 className="text-xl font-semibold mb-2">Portfolio Distribution</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                Portfolio Distribution
+              </h3>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                Total Value: {calculateTotalValue(filteredBalances).toFixed(2)} VOI
+                Total Value: {calculateTotalValue(filteredBalances).toFixed(2)}{" "}
+                VOI
               </p>
             </div>
-            <Pie 
+            <Pie
               data={getPieChartData()}
               options={{
                 plugins: {
                   legend: {
-                    position: 'right' as const,
+                    position: "right" as const,
                     labels: {
-                      color: isDarkTheme ? 'white' : 'black',
+                      color: isDarkTheme ? "white" : "black",
                       generateLabels: (chart) => {
                         const dataset = chart.data.datasets[0];
                         const labels = chart.data.labels || [];
                         return labels.map((label, i) => {
                           const value = dataset.data[i] as number;
-                          const percentage = ((value / calculateTotalValue(filteredBalances)) * 100).toFixed(1);
+                          const percentage = (
+                            (value / calculateTotalValue(filteredBalances)) *
+                            100
+                          ).toFixed(1);
                           return {
-                            text: `${label} - ${value.toFixed(2)} VOI (${percentage}%)`,
-                            fillStyle: (dataset.backgroundColor as string[])[i] || '#000000',
+                            text: `${label} - ${value.toFixed(
+                              2
+                            )} VOI (${percentage}%)`,
+                            fillStyle:
+                              (dataset.backgroundColor as string[])[i] ||
+                              "#000000",
                             hidden: false,
                             index: i,
-                            strokeStyle: isDarkTheme ? '#ffffff' : '#000000',
-                            fontColor: isDarkTheme ? '#ffffff' : '#000000',
+                            strokeStyle: isDarkTheme ? "#ffffff" : "#000000",
+                            fontColor: isDarkTheme ? "#ffffff" : "#000000",
                           };
                         });
                       },
-                    }
+                    },
                   },
                   tooltip: {
-                    titleColor: isDarkTheme ? 'white' : 'black',
-                    bodyColor: isDarkTheme ? 'white' : 'black',
-                    backgroundColor: isDarkTheme ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                    titleColor: isDarkTheme ? "white" : "black",
+                    bodyColor: isDarkTheme ? "white" : "black",
+                    backgroundColor: isDarkTheme
+                      ? "rgba(0, 0, 0, 0.8)"
+                      : "rgba(255, 255, 255, 0.8)",
                     callbacks: {
-                      label: function(context) {
+                      label: function (context) {
                         const value = context.raw as number;
                         const total = calculateTotalValue(filteredBalances);
                         const percentage = ((value / total) * 100).toFixed(1);
-                        return `${context.label}: ${value.toFixed(2)} VOI (${percentage}%)`;
-                      }
-                    }
-                  }
+                        return `${context.label}: ${value.toFixed(
+                          2
+                        )} VOI (${percentage}%)`;
+                      },
+                    },
+                  },
                 },
                 maintainAspectRatio: true,
                 responsive: true,
               }}
             />
           </div>
-        ) : viewMode === 'list' ? (
+        ) : viewMode === "list" ? (
           <div className="overflow-hidden rounded-lg border border-gray-600 dark:border-gray-700">
             <table className="min-w-full">
               <thead>
@@ -482,10 +524,12 @@ export default function Wallet() {
                 ? formatBalance(balance.balance, token.decimals)
                 : balance.balance;
               const price = token ? parseFloat(token.price) : 0;
-              const value = (parseFloat(balance.balance) * price) / Math.pow(10, token?.decimals || 0);
+              const value =
+                (parseFloat(balance.balance) * price) /
+                Math.pow(10, token?.decimals || 0);
 
               return (
-                <div 
+                <div
                   key={balance.contractId}
                   className="p-4 rounded-lg border border-gray-600 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                   onClick={() => {
@@ -500,14 +544,18 @@ export default function Wallet() {
                           <>
                             {token.name} ({token.symbol})
                             {token.verified === 1 && (
-                              <span className="ml-2 text-green-600 dark:text-green-500">✓</span>
+                              <span className="ml-2 text-green-600 dark:text-green-500">
+                                ✓
+                              </span>
                             )}
                           </>
                         ) : (
                           "Unknown Token"
                         )}
                       </h3>
-                      <p className="text-sm text-gray-500">{balance.contractId}</p>
+                      <p className="text-sm text-gray-500">
+                        {balance.contractId}
+                      </p>
                     </div>
                   </div>
                   <div className="mt-2">
