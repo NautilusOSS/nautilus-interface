@@ -84,8 +84,16 @@ interface CommunityChestProps {
 }
 
 function weightedRandomSelect(data: any) {
+  // Exclude specific address from CCV drawing
+  const EXCLUDED_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
+  
+  // Filter out excluded address
+  const filteredBalances = data.balances.filter(
+    (item: any) => item.accountId !== EXCLUDED_ADDRESS
+  );
+
   // Step 1: Convert balances to numbers and calculate total weight
-  const totalBalance = data.balances.reduce(
+  const totalBalance = filteredBalances.reduce(
     (sum: number, item: any) => sum + Number(item.balance),
     0
   );
@@ -93,7 +101,7 @@ function weightedRandomSelect(data: any) {
   // Step 2: Calculate cumulative weights
   const cumulativeWeights = [];
   let cumulativeSum = 0;
-  for (const item of data.balances) {
+  for (const item of filteredBalances) {
     cumulativeSum += Number(item.balance) / totalBalance;
     cumulativeWeights.push(cumulativeSum);
   }
@@ -102,7 +110,7 @@ function weightedRandomSelect(data: any) {
   const random = Math.random();
   for (let i = 0; i < cumulativeWeights.length; i++) {
     if (random < cumulativeWeights[i]) {
-      return data.balances[i].accountId;
+      return filteredBalances[i].accountId;
     }
   }
 }
@@ -937,9 +945,9 @@ const CONTRACT_OPTIONS: ContractOption[] = [
   },
   {
     id: 41877720,
-    name: "Dork Voi (DV)",
+    name: "Dork Voi (DORK)",
     description:
-      "Dork Voi (DV) is a wrapped VOI token that represents staked VOI in the Dorks ecosystem. DV holders support the development of the Dorks NFT community and may be eligible for future incentives and rewards.",
+      "Dork Voi (DORK) is a wrapped VOI token that represents staked VOI in the Dorks ecosystem. DV holders support the development of the Dorks NFT community and may be eligible for future incentives and rewards.",
     iconPath:
       "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
     tokenomics: {
@@ -1077,7 +1085,7 @@ const getContractDescription = (
     case 40263883:
       return "Neo Voi (NEO) is a wrapped VOI token that represents staked VOI in the Neo ecosystem. NEO holders support the development of Neo's decentralized applications and may be eligible for future incentives.";
     case 41877720:
-      return "Welcome to Dork Voi (DV) - a wrapped VOI token that represents staked VOI in the Dorks ecosystem. DV holders support the development of the Dorks NFT community and may be eligible for future incentives and rewards related to the Dorks NFT collections.";
+      return "Welcome to Dork Voi (DORK) - a wrapped VOI token that represents staked VOI in the Dorks ecosystem. DV holders support the development of the Dorks NFT community and may be eligible for future incentives and rewards related to the Dorks NFT collections.";
     default:
       return "";
   }
@@ -2066,10 +2074,15 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch contract stats
+      // Fetch contract stats from nautilus API (MIMIR doesn't have stats endpoint)
       const statsResponse = await axios.get<StatsResponse>(
         "https://mainnet-idx.nautilus.sh/nft-indexer/v1/arc200/stats/wvoi"
       );
+
+      console.log("Stats response:", statsResponse.data);
+      console.log("Available contract IDs:", statsResponse.data.tokens.map(t => t.contractId));
+      console.log("Looking for DORK (41877720) in stats:", statsResponse.data.tokens.find(t => t.contractId === 41877720));
+      console.log("DORK is missing from stats API - this is why it shows 'No data available'");
 
       setStatsResponse(statsResponse.data); // Store the entire response
 
@@ -2142,20 +2155,45 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
 
       // Fetch user token balances if connected
       if (connected && address) {
+        console.log("Fetching user token balances for address:", address);
         const balancesResponse = await axios.get(
           `${MIMIR_API}/arc200/balances?accountId=${address}`
         );
 
+        const ARB_CONTRACT_ID = 917261;
+        const NEO_CONTRACT_ID = 40263883;
+        const DORK_CONTRACT_ID = 41877720;
         const relevantTokens = [
-          664258, 390001, 770561, 828295, 888305, 913147, 917261, 8324600,
-          8372092, 8471125, 39949746, 40077073, 40227315, 40263820,
+          664258,
+          390001,
+          770561,
+          828295,
+          888305,
+          913147,
+          ARB_CONTRACT_ID,
+          8324600,
+          8372092,
+          8471125,
+          39949746,
+          40077073,
+          40227315,
+          40263820,
+          NEO_CONTRACT_ID,
+          DORK_CONTRACT_ID,
         ];
+        
+        console.log("Raw balances response:", balancesResponse.data);
+        console.log("Looking for DORK contract ID:", DORK_CONTRACT_ID);
+        
         const filteredBalances = balancesResponse.data.balances.filter(
           (balance: any) =>
             relevantTokens.includes(balance.contractId) &&
             balance.balance !== "0" // Filter out zero balances
         );
 
+        console.log("Filtered balances:", filteredBalances);
+        console.log("DORK balance found:", filteredBalances.find((b: any) => b.contractId === DORK_CONTRACT_ID));
+        
         setUserTokenBalances(filteredBalances);
       }
     } catch (error) {
@@ -2852,9 +2890,9 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                   <td>
                     {stats
                       ? `${formatAmount(stats.adjusted_total_balance)} VOI`
-                      : "Loading..."}
+                      : "No data available"}
                   </td>
-                  <td>{stats ? stats.account_count : "Loading..."}</td>
+                  <td>{stats ? stats.account_count : "No data"}</td>
                 </ClickableTableRow>
               );
             })}
@@ -3049,58 +3087,89 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         </StatsHighlight>
       </HeroSection>
       {/* Add this section after HeroSection */}
-      {connected && address && userTokenBalances.length > 0 && (
+      {connected && address && (
         <UserBalancesSection $isDarkTheme={isDarkTheme}>
           <Label $isDarkTheme={isDarkTheme}>Your Token Balances</Label>
-          <BalanceTable $isDarkTheme={isDarkTheme}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Token</th>
-                  <th style={{ textAlign: "right" }}>Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...userTokenBalances]
-                  .sort((a, b) => {
-                    // Convert balance strings to BigInt for accurate comparison
-                    const balanceA = BigInt(a.balance);
-                    const balanceB = BigInt(b.balance);
-                    return balanceB > balanceA
-                      ? 1
-                      : balanceB < balanceA
-                      ? -1
-                      : 0;
-                  })
-                  .map((balance) => (
-                    <tr key={balance.contractId}>
-                      <td>{balance.symbol}</td>
+          {isLoading ? (
+            <BalanceTable $isDarkTheme={isDarkTheme}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Token</th>
+                    <th style={{ textAlign: "right" }}>Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...Array(3)].map((_, i) => (
+                    <tr key={i}>
+                      <td>
+                        <BalanceCardSkeleton $isDarkTheme={isDarkTheme} />
+                      </td>
                       <td style={{ textAlign: "right" }}>
-                        <span className="balance-value">
-                          {formatAmount(balance.balance)}
-                        </span>{" "}
-                        <span className="token-symbol">{balance.symbol}</span>
+                        <BalanceCardSkeleton $isDarkTheme={isDarkTheme} />
                       </td>
                     </tr>
                   ))}
-              </tbody>
-            </table>
-          </BalanceTable>
+                </tbody>
+              </table>
+            </BalanceTable>
+          ) : userTokenBalances.length > 0 ? (
+            <>
+              <BalanceTable $isDarkTheme={isDarkTheme}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Token</th>
+                      <th style={{ textAlign: "right" }}>Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...userTokenBalances]
+                      .sort((a, b) => {
+                        // Convert balance strings to BigInt for accurate comparison
+                        const balanceA = BigInt(a.balance);
+                        const balanceB = BigInt(b.balance);
+                        return balanceB > balanceA
+                          ? 1
+                          : balanceB < balanceA
+                          ? -1
+                          : 0;
+                      })
+                      .map((balance) => (
+                        <tr key={balance.contractId}>
+                          <td>{balance.symbol}</td>
+                          <td style={{ textAlign: "right" }}>
+                            <span className="balance-value">
+                              {formatAmount(balance.balance)}
+                            </span>{" "}
+                            <span className="token-symbol">{balance.symbol}</span>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </BalanceTable>
 
-          <TotalBalance $isDarkTheme={isDarkTheme}>
-            <span className="total-label">Total Balance</span>
-            <span className="total-value">
-              {formatAmount(
-                userTokenBalances
-                  .reduce(
-                    (sum, balance) => sum + BigInt(balance.balance),
-                    BigInt(0)
-                  )
-                  .toString()
-              )}{" "}
-              VOI
-            </span>
-          </TotalBalance>
+              <TotalBalance $isDarkTheme={isDarkTheme}>
+                <span className="total-label">Total Balance</span>
+                <span className="total-value">
+                  {formatAmount(
+                    userTokenBalances
+                      .reduce(
+                        (sum, balance) => sum + BigInt(balance.balance),
+                        BigInt(0)
+                      )
+                      .toString()
+                  )}{" "}
+                  VOI
+                </span>
+              </TotalBalance>
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: "20px", opacity: 0.7 }}>
+              No token balances found
+            </div>
+          )}
         </UserBalancesSection>
       )}
       {/* Add manager section if user is manager */}
