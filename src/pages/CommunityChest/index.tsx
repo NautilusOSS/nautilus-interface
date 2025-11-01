@@ -962,6 +962,25 @@ const CONTRACT_OPTIONS: ContractOption[] = [
       future: 0,
     },
   },
+  {
+    id: 46023346,
+    name: "enChain Voi",
+    description:
+      "enChain Voi is a wrapped VOI token that represents staked VOI in the enChain ecosystem. Holders support the development of enChain's decentralized applications and may be eligible for future incentives.",
+    iconPath:
+      "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+    tokenomics: {
+      holder: 0,
+      drawing: 0,
+      lpHolder: 0,
+      treasury: 0.9999,
+      team: 0,
+      node: 0.0001,
+      other: 0,
+      faucet: 0,
+      future: 0,
+    },
+  },
 ];
 
 const getContractInfo = (contractId: number) => {
@@ -1041,6 +1060,12 @@ const getContractInfo = (contractId: number) => {
         iconPath:
           "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
       };
+    case 46023346:
+      return {
+        title: "enChain Voi",
+        iconPath:
+          "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z",
+      };
     default:
       return {
         title: "Community Chest",
@@ -1086,6 +1111,8 @@ const getContractDescription = (
       return "Neo Voi (NEO) is a wrapped VOI token that represents staked VOI in the Neo ecosystem. NEO holders support the development of Neo's decentralized applications and may be eligible for future incentives.";
     case 41877720:
       return "Welcome to Dork Voi (DORK) - a wrapped VOI token that represents staked VOI in the Dorks ecosystem. DV holders support the development of the Dorks NFT community and may be eligible for future incentives and rewards related to the Dorks NFT collections.";
+    case 46023346:
+      return "Welcome to enChain Voi - a wrapped VOI token that represents staked VOI in the enChain ecosystem. Holders support the development of enChain's decentralized applications and may be eligible for future incentives.";
     default:
       return "";
   }
@@ -2163,6 +2190,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
         const ARB_CONTRACT_ID = 917261;
         const NEO_CONTRACT_ID = 40263883;
         const DORK_CONTRACT_ID = 41877720;
+        const ENCHAIN_CONTRACT_ID = 46023346;
         const relevantTokens = [
           664258,
           390001,
@@ -2180,6 +2208,7 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
           40263820,
           NEO_CONTRACT_ID,
           DORK_CONTRACT_ID,
+          ENCHAIN_CONTRACT_ID,
         ];
         
         console.log("Raw balances response:", balancesResponse.data);
@@ -4042,6 +4071,8 @@ const CommunityChest: React.FC<CommunityChestProps> = ({
                     return "Virtual Babes VOiconomy (VBV) allows staking VOI to earn $VBV rewards. Rewards are compounded into your stake and can be withdrawn 1:1 with VOI anytime. Regular rewards are distributed after each epoch, with irregular bonus rewards that grow in value over time.";
                   case 40263883:
                     return "Neo Voi (NEO) is a wrapped VOI token that represents staked VOI in the Neo ecosystem. NEO holders support the development of Neo's decentralized applications and may be eligible for future incentives.";
+                  case 46023346:
+                    return "enChain Voi is a wrapped VOI token that represents staked VOI in the enChain ecosystem. Holders support the development of enChain's decentralized applications and may be eligible for future incentives.";
                   default:
                     return "";
                 }
