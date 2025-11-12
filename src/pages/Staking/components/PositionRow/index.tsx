@@ -530,13 +530,13 @@ const MintModal: React.FC<{
                 color={isDarkTheme ? "#FFFFFF" : undefined}
                 gutterBottom
               >
-                • Total Staked: {formatNumber(stakingData.value / 1e6)} VOI
+                • Total Staked: {formatNumber((stakingData?.value ?? 0) / 1e6)} VOI
               </Typography>
               <Typography
                 color={isDarkTheme ? "#FFFFFF" : undefined}
                 gutterBottom
               >
-                • Withdrawable: {Number(stakingData.withdrawable) / 1e6} VOI
+                • Withdrawable: {Number(stakingData?.withdrawable ?? 0) / 1e6} VOI
               </Typography>
               <Typography color={isDarkTheme ? "#FFFFFF" : undefined}>
                 • Unlock Time:{" "}
