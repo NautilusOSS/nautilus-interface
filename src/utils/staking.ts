@@ -13,8 +13,9 @@ export const computeListingDiscount = (listing: ListingI) => {
 };
 
 export const getStakingUnlockTime = (stakingContract: any) => {
+  const funding = stakingContract?.global_funding || stakingContract?.funding || AIRDROP_FUNDING;
   return (
-    (stakingContract?.funding || AIRDROP_FUNDING) +
+    funding +
     getStakingLockupTime(stakingContract) +
     getStakingVestingTime(stakingContract)
   );

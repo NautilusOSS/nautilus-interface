@@ -635,7 +635,7 @@ export const Staking: React.FC = () => {
 
   const { activeAccount } = useWallet();
 
-  const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedTab, setSelectedTab] = useState(1);
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
   };

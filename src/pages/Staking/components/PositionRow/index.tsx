@@ -33,7 +33,13 @@ import { getAlgorandClients } from "@/wallets";
 import { CONTRACT } from "ulujs";
 import { toast } from "react-toastify";
 import VIAIcon from "/src/static/crypto-icons/voi/6779767.svg";
-import { getStakingTotalTokens, getStakingUnlockTime } from "@/utils/staking";
+import {
+  getStakingTotalTokens,
+  getStakingUnlockTime,
+  getStakingLockupTime,
+  getStakingVestingTime,
+} from "@/utils/staking";
+import { AIRDROP_FUNDING } from "@/contants/staking";
 import { useStakingContract } from "@/hooks/staking";
 import algosdk, { waitForConfirmation } from "algosdk";
 import party from "party-js";
@@ -49,6 +55,7 @@ import {
   PowerIcon,
   BarChart3Icon,
   CoinsIcon,
+  InfoIcon,
 } from "lucide-react";
 import BlockProductionGraph from "@/pages/CommunityChest/components/BlockProductionGraph";
 import { useBlocks } from "@/hooks/useBlocks";
@@ -366,6 +373,7 @@ const MintModal: React.FC<{
     part_vote_lst: number;
   };
   stakingData: any;
+  onOpenUnlockTimeBreakdown?: () => void;
 }> = ({
   open,
   onClose,
@@ -374,6 +382,7 @@ const MintModal: React.FC<{
   isMinting,
   position,
   stakingData,
+  onOpenUnlockTimeBreakdown,
 }) => {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard
@@ -530,18 +539,46 @@ const MintModal: React.FC<{
                 color={isDarkTheme ? "#FFFFFF" : undefined}
                 gutterBottom
               >
-                • Total Staked: {formatNumber((stakingData?.value ?? 0) / 1e6)} VOI
+                • Total Staked: {formatNumber((stakingData?.value ?? 0) / 1e6)}{" "}
+                VOI
               </Typography>
               <Typography
                 color={isDarkTheme ? "#FFFFFF" : undefined}
                 gutterBottom
               >
-                • Withdrawable: {Number(stakingData?.withdrawable ?? 0) / 1e6} VOI
+                • Withdrawable: {Number(stakingData?.withdrawable ?? 0) / 1e6}{" "}
+                VOI
               </Typography>
-              <Typography color={isDarkTheme ? "#FFFFFF" : undefined}>
-                • Unlock Time:{" "}
-                {moment.unix(getStakingUnlockTime(position)).fromNow()}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Typography color={isDarkTheme ? "#FFFFFF" : undefined}>
+                  • Unlock Time:{" "}
+                  {stakingData
+                    ? (() => {
+                        const unlockTime = getStakingUnlockTime(stakingData);
+                        const currentTime = Math.floor(Date.now() / 1000);
+                        const timeUntilUnlock = unlockTime - currentTime;
+                        if (timeUntilUnlock <= 0) return "Unlocked";
+                        const years = timeUntilUnlock / (365.25 * 24 * 60 * 60);
+                        if (years >= 1) {
+                          return `${years.toFixed(1)} years`;
+                        }
+                        return humanizeDuration(timeUntilUnlock * 1000, {
+                          largest: 2,
+                          round: true,
+                          units: ["mo", "d", "h", "m"],
+                        });
+                      })()
+                    : moment.unix(getStakingUnlockTime(position)).fromNow()}
+                </Typography>
+                <InfoIcon
+                  size={16}
+                  style={{
+                    cursor: "pointer",
+                    opacity: 0.7,
+                  }}
+                  onClick={() => onOpenUnlockTimeBreakdown?.()}
+                />
+              </Box>
               <Typography
                 color={
                   isDarkTheme ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)"
@@ -1006,6 +1043,10 @@ const PositionRow: React.FC<PositionRowProps> = ({
   // Add new state for dropdown menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+
+  // Add state for unlock time breakdown modal
+  const [isUnlockTimeBreakdownOpen, setIsUnlockTimeBreakdownOpen] =
+    useState(false);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -1526,9 +1567,45 @@ const PositionRow: React.FC<PositionRowProps> = ({
           }}
           align="right"
         >
-          <Typography variant="body2" sx={{ flexShrink: 0 }}>
-            {moment.unix(getStakingUnlockTime(position)).fromNow(true)}
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 0.5,
+            }}
+          >
+            <Typography variant="body2" sx={{ flexShrink: 0 }}>
+              {data
+                ? (() => {
+                    const unlockTime = getStakingUnlockTime(data);
+                    const currentTime = Math.floor(Date.now() / 1000);
+                    const timeUntilUnlock = unlockTime - currentTime;
+                    if (timeUntilUnlock <= 0) return "Unlocked";
+                    const years = timeUntilUnlock / (365.25 * 24 * 60 * 60);
+                    if (years >= 1) {
+                      return `${years.toFixed(1)} years`;
+                    }
+                    return humanizeDuration(timeUntilUnlock * 1000, {
+                      largest: 2,
+                      round: true,
+                      units: ["mo", "d", "h", "m"],
+                    });
+                  })()
+                : moment.unix(getStakingUnlockTime(position)).fromNow(true)}
+            </Typography>
+            <InfoIcon
+              size={16}
+              style={{
+                cursor: "pointer",
+                opacity: 0.7,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsUnlockTimeBreakdownOpen(true);
+              }}
+            />
+          </Box>
         </TableCell>
         <TableCell
           onClick={(event) => {
@@ -1542,7 +1619,17 @@ const PositionRow: React.FC<PositionRowProps> = ({
           }}
           align="right"
         >
-          <Typography variant="body2" sx={{ flexShrink: 0 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              flexShrink: 0,
+              color: (() => {
+                if (!position.part_vote_lst || !currentRound) return "inherit";
+                const roundDifference = position.part_vote_lst - currentRound;
+                return roundDifference <= 0 ? "error.main" : "inherit";
+              })(),
+            }}
+          >
             {getExpirationTime(position.part_vote_lst)}
           </Typography>
         </TableCell>
@@ -2137,6 +2224,7 @@ const PositionRow: React.FC<PositionRowProps> = ({
         isMinting={isMinting}
         position={position}
         stakingData={data}
+        onOpenUnlockTimeBreakdown={() => setIsUnlockTimeBreakdownOpen(true)}
       />
 
       <Dialog
@@ -2187,6 +2275,274 @@ const PositionRow: React.FC<PositionRowProps> = ({
         <DialogActions>
           <Button
             onClick={() => setIsSuccessModalOpen(false)}
+            variant={isDarkTheme ? "outlined" : "contained"}
+            sx={{
+              color: isDarkTheme ? "#FFFFFF" : undefined,
+            }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={isUnlockTimeBreakdownOpen}
+        onClose={() => setIsUnlockTimeBreakdownOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: isDarkTheme
+              ? "rgba(30, 30, 30, 0.95)"
+              : "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(10px)",
+            borderRadius: "16px",
+          },
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h6" color={isDarkTheme ? "#FFFFFF" : undefined}>
+            Unlock Time Breakdown
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            {(() => {
+              if (!data) {
+                return (
+                  <Typography color={isDarkTheme ? "#FFFFFF" : undefined}>
+                    Loading unlock time data...
+                  </Typography>
+                );
+              }
+
+              const funding = data?.global_funding || AIRDROP_FUNDING;
+              const lockupTime = getStakingLockupTime(data);
+              const vestingTime = getStakingVestingTime(data);
+              const totalUnlockTime = getStakingUnlockTime(data);
+              const currentTime = Math.floor(Date.now() / 1000);
+              const unlockTimestamp = totalUnlockTime;
+              const timeUntilUnlock = unlockTimestamp - currentTime;
+
+              console.log("data", data);
+
+              return (
+                <>
+                  <Typography
+                    variant="body1"
+                    color={isDarkTheme ? "#FFFFFF" : undefined}
+                    sx={{ mb: 2, fontWeight: 500 }}
+                  >
+                    Total Unlock Time:{" "}
+                    {moment
+                      .unix(totalUnlockTime)
+                      .format("MMM D, YYYY [at] h:mm A")}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color={
+                      isDarkTheme ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)"
+                    }
+                    sx={{ mb: 3 }}
+                  >
+                    {timeUntilUnlock > 0
+                      ? `Unlocks in ${humanizeDuration(timeUntilUnlock * 1000, {
+                          largest: 3,
+                          round: true,
+                        })}`
+                      : "Already unlocked"}
+                  </Typography>
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                  >
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.05)"
+                          : "rgba(0, 0, 0, 0.05)",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        color={isDarkTheme ? "#FFFFFF" : undefined}
+                        sx={{ mb: 1, fontWeight: 600 }}
+                      >
+                        Funding Time
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.7)"
+                            : "rgba(0,0,0,0.6)"
+                        }
+                      >
+                        {moment.unix(funding).format("MMM D, YYYY [at] h:mm A")}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.5)"
+                            : "rgba(0,0,0,0.5)"
+                        }
+                        sx={{ mt: 0.5, display: "block" }}
+                      >
+                        {funding > currentTime
+                          ? `Starts in ${humanizeDuration(
+                              (funding - currentTime) * 1000,
+                              { largest: 2, round: true }
+                            )}`
+                          : `Started ${humanizeDuration(
+                              (currentTime - funding) * 1000,
+                              { largest: 2, round: true }
+                            )} ago`}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.05)"
+                          : "rgba(0, 0, 0, 0.05)",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        color={isDarkTheme ? "#FFFFFF" : undefined}
+                        sx={{ mb: 1, fontWeight: 600 }}
+                      >
+                        Lockup Time
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.7)"
+                            : "rgba(0,0,0,0.6)"
+                        }
+                      >
+                        Duration: {humanizeDuration(lockupTime * 1000, {
+                          largest: 3,
+                          round: true,
+                        })}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.7)"
+                            : "rgba(0,0,0,0.6)"
+                        }
+                        sx={{ mt: 0.5 }}
+                      >
+                        Period: {moment.unix(funding).format("MMM D, YYYY")} → {moment.unix(funding + lockupTime).format("MMM D, YYYY")}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.5)"
+                            : "rgba(0,0,0,0.5)"
+                        }
+                        sx={{ mt: 0.5, display: "block" }}
+                      >
+                        Formula: (lockupDelay × period + vestingDelay) ×
+                        periodSeconds
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.5)"
+                            : "rgba(0,0,0,0.5)"
+                        }
+                        sx={{ display: "block" }}
+                      >
+                        Values: lockupDelay={data?.global_lockup_delay || 0},
+                        period={data?.global_period || 0}, vestingDelay=
+                        {data?.global_vesting_delay || 0}, periodSeconds=
+                        {data?.global_period_seconds || 0}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: isDarkTheme
+                          ? "rgba(255, 255, 255, 0.05)"
+                          : "rgba(0, 0, 0, 0.05)",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        color={isDarkTheme ? "#FFFFFF" : undefined}
+                        sx={{ mb: 1, fontWeight: 600 }}
+                      >
+                        Vesting Time
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.7)"
+                            : "rgba(0,0,0,0.6)"
+                        }
+                      >
+                        Duration: {humanizeDuration(vestingTime * 1000, {
+                          largest: 3,
+                          round: true,
+                        })}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.7)"
+                            : "rgba(0,0,0,0.6)"
+                        }
+                        sx={{ mt: 0.5 }}
+                      >
+                        Period: {moment.unix(funding + lockupTime).format("MMM D, YYYY")} → {moment.unix(funding + lockupTime + vestingTime).format("MMM D, YYYY")}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.5)"
+                            : "rgba(0,0,0,0.5)"
+                        }
+                        sx={{ mt: 0.5, display: "block" }}
+                      >
+                        Formula: distributionCount × distributionSeconds
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color={
+                          isDarkTheme
+                            ? "rgba(255,255,255,0.5)"
+                            : "rgba(0,0,0,0.5)"
+                        }
+                        sx={{ display: "block" }}
+                      >
+                        Values: distributionCount=
+                        {data?.global_distribution_count || 0},
+                        distributionSeconds=
+                        {data?.global_distribution_seconds || 0}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </>
+              );
+            })()}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setIsUnlockTimeBreakdownOpen(false)}
             variant={isDarkTheme ? "outlined" : "contained"}
             sx={{
               color: isDarkTheme ? "#FFFFFF" : undefined,

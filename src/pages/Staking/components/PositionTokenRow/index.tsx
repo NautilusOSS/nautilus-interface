@@ -529,6 +529,11 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
       );
     }
 
+    // Safety check for currentRound
+    if (!currentRound) {
+      return <Skeleton width={80} />;
+    }
+
     const roundDifference = data.part_vote_lst - currentRound;
     const isExpired = roundDifference <= 0;
     const timeRemaining = getExpirationTime(data.part_vote_lst);

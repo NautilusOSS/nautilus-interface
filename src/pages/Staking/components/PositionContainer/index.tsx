@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import PositionTable from "../PositionTable";
-import { useOwnedStakingContract } from "@/hooks/staking";
+import { useOwnedStakingContract, useStakingContract } from "@/hooks/staking";
 import { useWallet } from "@txnlab/use-wallet-react";
 import { useOwnedARC72Token } from "@/hooks/arc72";
 import PositionSummary from "../PositionSummary";
@@ -9,8 +9,16 @@ import { RootState } from "@/store/store";
 import { TOKEN_NAUT_VOI_STAKING } from "@/contants/tokens";
 import { useInView } from "react-intersection-observer";
 import styled from "styled-components";
-import { Dialog, DialogContent, DialogTitle } from "@mui/material";
-import { Close } from "@mui/icons-material";
+import { Dialog, DialogContent, DialogTitle, DialogActions, Button, TextField, Box, IconButton, Chip } from "@mui/material";
+import { Close, Add, Delete } from "@mui/icons-material";
+import { toast } from "react-hot-toast";
+import { useQueries } from "@tanstack/react-query";
+import axios from "axios";
+import algosdk from "algosdk";
+import { SCS_API } from "@/contants/endpoints";
+import { getAlgorandClients } from "@/wallets";
+import { transformAppData, addRewardEstimates } from "@/hooks/staking";
+import { getStakingWithdrawableAmount } from "@/utils/staking";
 
 const NotConnectedContainer = styled.div`
   display: flex;
@@ -159,12 +167,50 @@ const WalletProviderCard = styled.div`
   }
 `;
 
+const AddContractButton = styled(Button)`
+  margin-bottom: 16px;
+  &.dark {
+    background: #9933ff;
+    color: #fff;
+    &:hover {
+      background: #8829e0;
+    }
+  }
+  &.light {
+    background: #9933ff;
+    color: #fff;
+    &:hover {
+      background: #8829e0;
+    }
+  }
+`;
+
+const ContractChipContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+`;
+
+const STORAGE_KEY = "staking_manual_contracts";
+
 const PositionContainer: React.FC = () => {
   const { activeAccount, providers, connect } = useWallet();
   const isDarkTheme = useSelector(
     (state: RootState) => state.theme.isDarkTheme
   );
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showAddContractModal, setShowAddContractModal] = useState(false);
+  const [contractIdInput, setContractIdInput] = useState("");
+  const [manualContractIds, setManualContractIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   if (!activeAccount) {
     return (
@@ -270,6 +316,149 @@ const PositionContainer: React.FC = () => {
     includeStaking: true,
   });
 
+  // Fetch data for manually added contracts using useQueries
+  const { algodClient } = getAlgorandClients();
+  const manualContractQueries = useQueries({
+    queries: manualContractIds.map((contractId) => ({
+      queryKey: ["stakingAccount", contractId, { includeRewards: true, includeWithdrawable: true }],
+      queryFn: async () => {
+        const response = await axios.get(`${SCS_API}/app/${contractId}`);
+        const appData = response.data;
+        
+        // Get creator from appInfo or try to find it from accounts endpoint
+        let creator = appData.appInfo?.creator;
+        if (!creator) {
+          try {
+            const accountResponse = await axios.get(`${SCS_API}/account/${appData.address}`);
+            creator = accountResponse.data.creator;
+          } catch (e) {
+            console.warn("Could not fetch creator from account endpoint", e);
+          }
+        }
+        
+        const account = transformAppData(
+          {
+            id: appData.id,
+            address: appData.address,
+            globalState: appData.appInfo?.globalState || [],
+          },
+          creator || ""
+        );
+
+        const transformedAccount = addRewardEstimates([account])[0];
+
+        // Fetch account information to get part_vote_lst and calculate expires
+        try {
+          const appAddress = algosdk.getApplicationAddress(transformedAccount.contractId);
+          const accInfo = await algodClient.accountInformation(appAddress).do();
+          
+          const part_vote_lst = accInfo?.participation?.["vote-last-valid"] || 0;
+          const expires = part_vote_lst;
+          
+          let result = {
+            ...transformedAccount,
+            part_vote_lst: Number(part_vote_lst),
+            expires: Number(expires),
+          };
+          
+          // Include withdrawable if needed
+          const withdrawable = await getStakingWithdrawableAmount(
+            algodClient,
+            Number(contractId),
+            transformedAccount.global_owner
+          );
+          result = {
+            ...result,
+            value: accInfo.amount,
+            withdrawable: withdrawable.toString(),
+            unlockTime:
+              transformedAccount.global_funding +
+              (transformedAccount.global_lockup_delay +
+                transformedAccount.global_vesting_delay * transformedAccount.global_period) *
+                transformedAccount.global_period_seconds +
+              transformedAccount.global_distribution_count *
+                transformedAccount.global_distribution_seconds,
+          };
+          
+          return result;
+        } catch (e) {
+          console.warn(`Failed to fetch account info for contract ${contractId}`, e);
+          return {
+            ...transformedAccount,
+            part_vote_lst: 0,
+            expires: 0,
+          };
+        }
+      },
+      enabled: !!contractId,
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
+    })),
+  });
+
+  const manualContracts = useMemo(() => {
+    return manualContractQueries
+      .map((query) => query.data)
+      .filter((data): data is NonNullable<typeof data> => data !== undefined);
+  }, [manualContractQueries]);
+
+  // Merge owned contracts with manually added contracts
+  const allStakingContracts = useMemo(() => {
+    const owned = stakingContractData || [];
+    const ownedIds = new Set(owned.map((c: any) => c.contractId.toString()));
+    
+    // Only include manual contracts that aren't already in owned contracts
+    const manualFiltered = manualContracts.filter(
+      (contract) => !ownedIds.has(contract.contractId.toString())
+    );
+    
+    return [...owned, ...manualFiltered];
+  }, [stakingContractData, manualContracts]);
+
+  // Functions to manage manual contracts
+  const handleAddContract = () => {
+    const contractId = contractIdInput.trim();
+    if (!contractId) {
+      toast.error("Please enter a contract ID");
+      return;
+    }
+
+    // Validate it's a number
+    if (isNaN(Number(contractId))) {
+      toast.error("Contract ID must be a number");
+      return;
+    }
+
+    // Check if already added
+    if (manualContractIds.includes(contractId)) {
+      toast.error("Contract already added");
+      return;
+    }
+
+    // Check if already in owned contracts
+    const ownedIds = new Set(
+      (stakingContractData || []).map((c: any) => c.contractId.toString())
+    );
+    if (ownedIds.has(contractId)) {
+      toast.error("Contract already in your positions");
+      return;
+    }
+
+    const newContractIds = [...manualContractIds, contractId];
+    setManualContractIds(newContractIds);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newContractIds));
+    setContractIdInput("");
+    setShowAddContractModal(false);
+    toast.success("Contract added successfully");
+  };
+
+  const handleRemoveContract = (contractId: string) => {
+    const newContractIds = manualContractIds.filter((id) => id !== contractId);
+    setManualContractIds(newContractIds);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newContractIds));
+    toast.success("Contract removed");
+  };
+
   // Infinite scroll setup
   const [displayCount, setDisplayCount] = useState(10);
   const { ref: loadMoreRef, inView } = useInView();
@@ -286,28 +475,163 @@ const PositionContainer: React.FC = () => {
     }
   }, [inView, loadMore]);
 
-  if (stakingContractLoading || arc72TokenLoading) {
+  const isLoadingManualContracts = manualContractQueries.some(
+    (query) => query.isLoading || query.isFetching
+  );
+
+  if (stakingContractLoading || arc72TokenLoading || isLoadingManualContracts) {
     return <div>Loading...</div>;
   }
 
   return (
     <div style={{ marginTop: "20px" }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <AddContractButton
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => setShowAddContractModal(true)}
+          className={isDarkTheme ? "dark" : "light"}
+        >
+          Add Contract by ID
+        </AddContractButton>
+        {manualContractIds.length > 0 && (
+          <ContractChipContainer>
+            {manualContractIds.map((contractId) => (
+              <Chip
+                key={contractId}
+                label={`Contract ${contractId}`}
+                onDelete={() => handleRemoveContract(contractId)}
+                deleteIcon={<Delete />}
+                sx={{
+                  backgroundColor: isDarkTheme ? "#2b2b2b" : "#f8f9fa",
+                  color: isDarkTheme ? "#fff" : "#161717",
+                  "& .MuiChip-deleteIcon": {
+                    color: isDarkTheme ? "#fff" : "#161717",
+                  },
+                }}
+              />
+            ))}
+          </ContractChipContainer>
+        )}
+      </Box>
+
+      <Dialog
+        open={showAddContractModal}
+        onClose={() => {
+          setShowAddContractModal(false);
+          setContractIdInput("");
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: isDarkTheme
+              ? "rgba(30, 30, 30, 0.95)"
+              : "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(10px)",
+            borderRadius: "16px",
+          },
+        }}
+      >
+        <DialogTitle>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span style={{ color: isDarkTheme ? "#fff" : "inherit" }}>
+              Add Contract by ID
+            </span>
+            <Close
+              onClick={() => {
+                setShowAddContractModal(false);
+                setContractIdInput("");
+              }}
+              style={{ cursor: "pointer", color: isDarkTheme ? "#fff" : "inherit" }}
+            />
+          </div>
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Contract ID"
+            value={contractIdInput}
+            onChange={(e) => setContractIdInput(e.target.value)}
+            placeholder="Enter contract ID (e.g., 123456)"
+            sx={{
+              mt: 2,
+              "& .MuiInputBase-input": {
+                color: isDarkTheme ? "white" : "inherit",
+              },
+              "& .MuiInputLabel-root": {
+                color: isDarkTheme ? "rgba(255, 255, 255, 0.7)" : "inherit",
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: isDarkTheme ? "#3b3b3b" : "#eaebf0",
+                },
+                "&:hover fieldset": {
+                  borderColor: isDarkTheme ? "#9933ff" : "#9933ff",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#9933ff",
+                },
+              },
+            }}
+            onKeyPress={(e) => {
+              if (e.key === "Enter") {
+                handleAddContract();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setShowAddContractModal(false);
+              setContractIdInput("");
+            }}
+            sx={{
+              color: isDarkTheme ? "white" : "inherit",
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddContract}
+            variant="contained"
+            sx={{
+              backgroundColor: "#9933ff",
+              color: "white",
+              "&:hover": { backgroundColor: "#7f2adb" },
+            }}
+          >
+            Add Contract
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <PositionSummary
-        stakingContracts={stakingContractData}
+        stakingContracts={allStakingContracts}
         arc72Tokens={arc72TokenData}
         isDarkTheme={isDarkTheme}
       />
       <PositionTable
-        stakingContracts={stakingContractData?.slice(0, displayCount) || []}
+        stakingContracts={allStakingContracts?.slice(0, displayCount) || []}
         arc72Tokens={arc72TokenData?.slice(0, displayCount)}
         onRefresh={() => {
           refetchStakingContract();
           refetchArc72Token();
+          manualContractQueries.forEach((query) => {
+            query.refetch();
+          });
         }}
       />
 
       {/* Invisible load more trigger */}
-      {(stakingContractData?.length > displayCount ||
+      {(allStakingContracts?.length > displayCount ||
         arc72TokenData?.length > displayCount) && (
         <div ref={loadMoreRef} style={{ height: "20px", margin: "20px 0" }} />
       )}
