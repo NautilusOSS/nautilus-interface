@@ -21,6 +21,7 @@ import UnitConverter from "@/components/Tools/UnitConverter";
 import NFTDupListingDetector from "@/components/Tools/NFTDupListingDetector";
 import RegisterOnline from "@/components/Tools/RegisterOnline";
 import Arc200BalanceChecker from "@/components/Tools/Arc200BalanceChecker";
+import RocketFrenExchange from "@/components/Tools/RocketFrenExchange";
 import Offers from "@/pages/Offers";
 
 const toolsConfig = [
@@ -715,6 +716,43 @@ const toolsConfig = [
       </svg>
     ),
     description: "Check ARC200 token balances for any wallet address",
+  },
+  {
+    id: "rocketfrenexchange",
+    name: "Rocket Fren Exchange",
+    component: RocketFrenExchange,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M16 4L20 12L28 14L20 16L16 24L12 16L4 14L12 12L16 4Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M8 20L16 24L24 20"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12 22L16 26L20 22"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    description: "Swap tokens on Rocket Fren Exchange",
   },
 ];
 
