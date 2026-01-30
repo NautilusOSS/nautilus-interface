@@ -11,7 +11,7 @@ import { getAlgorandClients } from "@/wallets";
 // Contract IDs - Update these with actual ROCKET and FREN contract IDs
 const ROCKET_CONTRACT_ID = 401384; // ROCKET contract ID
 const FREN_CONTRACT_ID = 419385; // FREN contract ID
-const EXCHANGE_RATE = 20000; // 20k:1 rate (20,000 ROCKET = 1 FREN)
+const EXCHANGE_RATE = 80000; // 80k:1 rate (80,000 ROCKET = 1 FREN)
 const EXCHANGE_CONTRACT_ID = 48498647; // Exchange contract ID
 const SPECIAL_ACCOUNT_ADDRESS = "FPY4KD56PCABYDMNN426FBJJUOGCFYD4VPKTVK2OZUC3SNTBSVHGXCRVZI";
 
@@ -290,7 +290,7 @@ const RocketFrenExchange: React.FC = () => {
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setRocketAmount(value);
 
-      // Validate increment of 20000
+      // Validate increment of 80000
       if (value && parseFloat(value) > 0) {
         const amount = new BigNumber(value);
         const remainder = amount.mod(EXCHANGE_RATE);
@@ -378,7 +378,7 @@ const RocketFrenExchange: React.FC = () => {
     const rocketAmountNum = parseFloat(rocketAmount);
     const userBalance = parseFloat(rocketBalance);
 
-    // Validate increment of 20000 using BigNumber for precision
+    // Validate increment of 80000 using BigNumber for precision
     const amount = new BigNumber(rocketAmount);
     const remainder = amount.mod(EXCHANGE_RATE);
     if (!remainder.isZero() && remainder.abs().isGreaterThan(new BigNumber(0.000001))) {
@@ -558,13 +558,13 @@ const RocketFrenExchange: React.FC = () => {
     <Container>
       <Card>
         <Title>Rocket Fren Exchange</Title>
-        <Subtitle>Convert ROCKET to FREN at 20,000:1 rate</Subtitle>
+        <Subtitle>Convert ROCKET to FREN at 80,000:1 rate</Subtitle>
 
         <ExchangeRateInfo>
-          Exchange Rate: 20,000 ROCKET = 1 FREN
+          Exchange Rate: {EXCHANGE_RATE.toLocaleString()} ROCKET = 1 FREN
           <br />
           <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
-            Amount must be in increments of 20,000 ROCKET
+            Amount must be in increments of {EXCHANGE_RATE.toLocaleString()} ROCKET
           </span>
         </ExchangeRateInfo>
 
