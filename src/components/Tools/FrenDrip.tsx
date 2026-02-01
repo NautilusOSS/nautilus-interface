@@ -960,6 +960,14 @@ const FrenDrip: React.FC = () => {
           <CollectionLink href={`/#/collection/${VOI_FRENS_CONTRACT_ID}`}>
             View Collection
           </CollectionLink>
+          {' · '}
+          <CollectionLink
+            href="https://voiager.xyz/token/419385"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View Token
+          </CollectionLink>
         </Hero>
 
         {!activeAccount?.address && (

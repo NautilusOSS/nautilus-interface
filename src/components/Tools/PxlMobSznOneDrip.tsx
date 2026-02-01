@@ -916,6 +916,14 @@ const PxlMobSznOneDrip: React.FC = () => {
           <CollectionLink href={`/#/collection/${PXLMOB_NFT_CONTRACT_ID}`}>
             View Collection
           </CollectionLink>
+          {' · '}
+          <CollectionLink
+            href={`https://voiager.xyz/token/${PIX_TOKEN_CONTRACT_ID}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View Token
+          </CollectionLink>
         </Hero>
 
         {!activeAccount?.address && (
