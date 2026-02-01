@@ -9,6 +9,10 @@ export interface NFTDrip {
   symbol: string;
   note?: string;
   isPercentage?: boolean;
+  /** When set, dripAmount is per period (e.g. 1 FREN biweekly). Used for display; weekly value uses half for biweekly. */
+  period?: "weekly" | "biweekly";
+  /** When false, excluded from main list and stats. */
+  active?: boolean;
 }
 
 const DRIPS_DATA: NFTDrip[] = [
@@ -35,6 +39,7 @@ const DRIPS_DATA: NFTDrip[] = [
     paymentTokenId: 300279,
     dripAmount: 192, // standard units
     symbol: "GM",
+    active: false,
   },
   {
     collectionId: 447482,
@@ -51,6 +56,7 @@ const DRIPS_DATA: NFTDrip[] = [
     paymentTokenId: 913147,
     dripAmount: Number((74 / 1007).toFixed(6)),
     symbol: "PXD",
+    active: false,
   },
   {
     collectionId: 8301084,
@@ -59,6 +65,7 @@ const DRIPS_DATA: NFTDrip[] = [
     paymentTokenId: 913147,
     dripAmount: Number((74 / 547).toFixed(6)),
     symbol: "PXD",
+    active: false,
   },
   {
     collectionId: 3819679,
@@ -67,6 +74,7 @@ const DRIPS_DATA: NFTDrip[] = [
     paymentTokenId: 412682,
     dripAmount: Number((2 / 3).toFixed(6)), // standard units
     symbol: "CORN",
+    active: false,
   },
   {
     collectionId: 8392903,
@@ -75,6 +83,7 @@ const DRIPS_DATA: NFTDrip[] = [
     paymentTokenId: 913147,
     dripAmount: Number((74 / 10000).toFixed(6)),
     symbol: "PXD",
+    active: false,
   },
   {
     collectionId: 398796,
@@ -83,6 +92,16 @@ const DRIPS_DATA: NFTDrip[] = [
     paymentTokenId: 913147,
     dripAmount: 300_000,
     symbol: "ROCKET",
+    active: false,
+  },
+  {
+    collectionId: 40408061,
+    collectionName: "VoiFrens2.0",
+    collectionSupply: 500,
+    paymentTokenId: 419385,
+    dripAmount: 1,
+    symbol: "FREN",
+    period: "biweekly",
   },
 ];
 

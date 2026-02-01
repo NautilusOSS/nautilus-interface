@@ -22,6 +22,8 @@ import NFTDupListingDetector from "@/components/Tools/NFTDupListingDetector";
 import RegisterOnline from "@/components/Tools/RegisterOnline";
 import Arc200BalanceChecker from "@/components/Tools/Arc200BalanceChecker";
 import RocketFrenExchange from "@/components/Tools/RocketFrenExchange";
+import FrenDrip from "@/components/Tools/FrenDrip";
+import PxlMobSznOneDrip from "@/components/Tools/PxlMobSznOneDrip";
 import Offers from "@/pages/Offers";
 
 const toolsConfig = [
@@ -753,6 +755,78 @@ const toolsConfig = [
       </svg>
     ),
     description: "Swap tokens on Rocket Fren Exchange",
+  },
+  {
+    id: "frendrip",
+    name: "FREN Drip",
+    component: FrenDrip,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M16 4C16 4 10 10 10 16C10 20.4 12.9 24 16 24C19.1 24 22 20.4 22 16C22 10 16 4 16 4Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M16 24V28"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 28H20"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <circle cx="16" cy="30" r="1.5" fill="currentColor" />
+      </svg>
+    ),
+    description: "Claim and manage your FREN token drips",
+  },
+  {
+    id: "pxlmobsznonedrip",
+    name: "PXLMOB SZN ONE Drip",
+    component: PxlMobSznOneDrip,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M16 4C16 4 10 10 10 16C10 20.4 12.9 24 16 24C19.1 24 22 20.4 22 16C22 10 16 4 16 4Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M16 24V28"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 28H20"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <circle cx="16" cy="30" r="1.5" fill="currentColor" />
+      </svg>
+    ),
+    description: "Claim and manage your PXLMOB SZN ONE PIX token drips",
   },
 ];
 

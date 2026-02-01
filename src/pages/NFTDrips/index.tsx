@@ -40,6 +40,8 @@ const NFTDripsPage = () => {
   const [prices, setPrices] = useState<PriceData[]>([]);
   const { isDarkTheme } = useSelector((state: RootState) => state.theme);
 
+  const activeDrips = nftDrips?.filter((d) => d.active !== false) ?? [];
+
   // Add useEffect to fetch prices
   useEffect(() => {
     const fetchPrices = async () => {
@@ -56,25 +58,31 @@ const NFTDripsPage = () => {
     fetchPrices();
   }, []);
 
+  // Weekly amount per NFT (biweekly drips count as half per week for value)
+  const getWeeklyAmountPerNft = (drip: any) =>
+    drip.period === "biweekly"
+      ? parseFloat(drip.dripAmount) / 2
+      : parseFloat(drip.dripAmount);
+
   // Add function to calculate weekly value
   const calculateWeeklyValue = (drip: any) => {
     const price = prices.find((p) => p.symbolA === drip.symbol)?.price || 1;
-    const weeklyAmount = parseFloat(drip.dripAmount) * drip.collectionSupply;
+    const weeklyAmountPerNft = getWeeklyAmountPerNft(drip);
+    const weeklyAmount = weeklyAmountPerNft * drip.collectionSupply;
     const weeklyValue = weeklyAmount / price;
     return weeklyValue;
   };
 
-  // Update the stats section to include USD value
+  // Update the stats section to include USD value (active drips only)
   const stats = [
-    { label: "Total Collections", value: nftDrips?.length || 0 },
+    { label: "Total Collections", value: activeDrips.length },
     {
       label: "Total Weekly Value (VOI)",
       value: `${new Intl.NumberFormat("en-US", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(
-        nftDrips?.reduce((acc, drip) => acc + calculateWeeklyValue(drip), 0) ||
-          0
+        activeDrips.reduce((acc, drip) => acc + calculateWeeklyValue(drip), 0)
       )}`,
     },
   ];
@@ -249,7 +257,7 @@ const NFTDripsPage = () => {
               gap: 2,
             }}
           >
-            {nftDrips?.map((drip, index) => (
+            {activeDrips.map((drip, index) => (
               <Box
                 key={drip.collectionId.toString()}
                 sx={{
@@ -315,7 +323,8 @@ const NFTDripsPage = () => {
                       }}
                     >
                       {drip.dripAmount}
-                      {drip.isPercentage ? "%" : ""} {drip.symbol} per week
+                      {drip.isPercentage ? "%" : ""} {drip.symbol}{" "}
+                      {drip.period === "biweekly" ? "biweekly" : "per week"}
                     </Typography>
                     {!drip.isPercentage && (
                       <Typography
@@ -362,8 +371,19 @@ const NFTDripsPage = () => {
                   }}
                 >
                   <a
-                    href={`/#/collection/${drip.collectionId}`}
-                    target="_blank"
+                    href={
+                      drip.collectionId === 40408061
+                        ? "/#/tools/frendrip"
+                        : drip.collectionId === 447482
+                          ? "/#/tools/pxlmobsznonedrip"
+                          : `/#/collection/${drip.collectionId}`
+                    }
+                    target={
+                      drip.collectionId === 40408061 ||
+                      drip.collectionId === 447482
+                        ? "_self"
+                        : "_blank"
+                    }
                     rel="noopener noreferrer"
                     style={{ textDecoration: "none" }}
                   >
@@ -384,7 +404,11 @@ const NFTDripsPage = () => {
                         },
                       }}
                     >
-                      View Collection
+                      {drip.collectionId === 40408061
+                        ? "Claim FREN"
+                        : drip.collectionId === 447482
+                          ? "Claim PIX"
+                          : "View Collection"}
                     </Typography>
                   </a>
                 </Box>
@@ -392,7 +416,7 @@ const NFTDripsPage = () => {
             ))}
           </Box>
 
-          {nftDrips?.length === 0 && (
+          {activeDrips.length === 0 && (
             <Typography textAlign="center" color="text.secondary">
               No NFT drips found
             </Typography>
