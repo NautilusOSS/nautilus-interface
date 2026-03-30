@@ -24,6 +24,8 @@ import Arc200BalanceChecker from "@/components/Tools/Arc200BalanceChecker";
 import RocketFrenExchange from "@/components/Tools/RocketFrenExchange";
 import FrenDrip from "@/components/Tools/FrenDrip";
 import PxlMobSznOneDrip from "@/components/Tools/PxlMobSznOneDrip";
+import DorkDrip from "@/components/Tools/DorkDrip";
+import DorkV2Drip from "@/components/Tools/DorkV2Drip";
 import Offers from "@/pages/Offers";
 
 const toolsConfig = [
@@ -827,6 +829,78 @@ const toolsConfig = [
       </svg>
     ),
     description: "Claim and manage your PXLMOB SZN ONE PIX token drips",
+  },
+  {
+    id: "dorkdrip",
+    name: "Dorks Drip",
+    component: DorkDrip,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M16 4C16 4 10 10 10 16C10 20.4 12.9 24 16 24C19.1 24 22 20.4 22 16C22 10 16 4 16 4Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M16 24V28"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 28H20"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <circle cx="16" cy="30" r="1.5" fill="currentColor" />
+      </svg>
+    ),
+    description: "Claim UNIT drips for Dorks NFTs",
+  },
+  {
+    id: "dorkv2drip",
+    name: "Dorks V2 Drip",
+    component: DorkV2Drip,
+    icon: (
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M16 4C16 4 10 10 10 16C10 20.4 12.9 24 16 24C19.1 24 22 20.4 22 16C22 10 16 4 16 4Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M16 24V28"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 28H20"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <circle cx="16" cy="30" r="1.5" fill="currentColor" />
+      </svg>
+    ),
+    description: "Claim UNIT drips for Dorks V2 NFTs",
   },
 ];
 

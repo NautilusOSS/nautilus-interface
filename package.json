@@ -10,8 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy-prod": "gh-pages -d dist --repo https://github.com/temptemp3/nautilus.sh.git -b main",
-    "deploy-beta": "gh-pages -d dist --repo https://github.com/temptemp3/beta.nautilus.app.git -b main"
+    "deploy-prod": "env -u GIT_TRACE -u GIT_TRACE_PACKET -u GIT_TRACE_FSM -u GIT_TRACE_SETUP -u GIT_CURL_VERBOSE gh-pages -d dist --repo https://github.com/temptemp3/nautilus.sh.git -b main",
+    "deploy-beta": "env -u GIT_TRACE -u GIT_TRACE_PACKET -u GIT_TRACE_FSM -u GIT_TRACE_SETUP -u GIT_CURL_VERBOSE gh-pages -d dist --repo https://github.com/temptemp3/beta.nautilus.app.git -b main"
   },
   "keywords": [],
   "author": "",

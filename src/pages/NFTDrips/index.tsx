@@ -376,11 +376,17 @@ const NFTDripsPage = () => {
                         ? "/#/tools/frendrip"
                         : drip.collectionId === 447482
                           ? "/#/tools/pxlmobsznonedrip"
-                          : `/#/collection/${drip.collectionId}`
+                          : drip.collectionId === 313597
+                            ? "/#/tools/dorkdrip"
+                            : drip.collectionId === 894888
+                              ? "/#/tools/dorkv2drip"
+                              : `/#/collection/${drip.nftDripAppId ?? drip.collectionId}`
                     }
                     target={
                       drip.collectionId === 40408061 ||
-                      drip.collectionId === 447482
+                      drip.collectionId === 447482 ||
+                      drip.collectionId === 313597 ||
+                      drip.collectionId === 894888
                         ? "_self"
                         : "_blank"
                     }
@@ -408,7 +414,10 @@ const NFTDripsPage = () => {
                         ? "Claim FREN"
                         : drip.collectionId === 447482
                           ? "Claim PIX"
-                          : "View Collection"}
+                          : drip.collectionId === 313597 ||
+                              drip.collectionId === 894888
+                            ? "Claim UNIT"
+                            : "View Collection"}
                     </Typography>
                   </a>
                 </Box>

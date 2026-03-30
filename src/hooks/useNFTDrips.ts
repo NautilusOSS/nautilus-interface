@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
 
+/** NFT drip app contract (Voi) — Dork */
+export const nftDripDorkAppId = 49016540;
+/** NFT drip app contract (Voi) — Dork V2 */
+export const nftDripDorkV2AppId = 49016557;
+
 export interface NFTDrip {
   collectionId: number;
   collectionName: string;
@@ -13,6 +18,8 @@ export interface NFTDrip {
   period?: "weekly" | "biweekly";
   /** When false, excluded from main list and stats. */
   active?: boolean;
+  /** NFT drip application id — used for collection links on the NFT Drips page; ARC-72 `collectionId` stays for matching holdings. */
+  nftDripAppId?: number;
 }
 
 const DRIPS_DATA: NFTDrip[] = [
@@ -23,6 +30,7 @@ const DRIPS_DATA: NFTDrip[] = [
     paymentTokenId: 420069,
     dripAmount: 4, // standard units
     symbol: "UNIT",
+    nftDripAppId: nftDripDorkAppId,
   },
   {
     collectionId: 894888,
@@ -31,6 +39,7 @@ const DRIPS_DATA: NFTDrip[] = [
     paymentTokenId: 420069,
     dripAmount: 0.8, // standard units
     symbol: "UNIT",
+    nftDripAppId: nftDripDorkV2AppId,
   },
   {
     collectionId: 940678,
