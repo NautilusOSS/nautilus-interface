@@ -150,7 +150,7 @@ const App: React.FC = () => {
 
   let walletConnectProjectId;
   if (!walletConnectProjectId) {
-    walletConnectProjectId = "e7b04c22de006e0fc7cef5a00cb7fac9";
+    walletConnectProjectId = "cd7fe0125d88d239da79fa286e6de2a8";
   }
 
   const walletManager = new WalletManager({
