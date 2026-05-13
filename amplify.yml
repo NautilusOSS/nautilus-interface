@@ -3,10 +3,6 @@ frontend:
   phases:
     preBuild:
       commands:
-        # Default Amplify image uses Node 16; deps require >=18.20.3
-        - nvm install 20
-        - nvm use 20
-        - node -v
         - npm ci
     build:
       commands:
