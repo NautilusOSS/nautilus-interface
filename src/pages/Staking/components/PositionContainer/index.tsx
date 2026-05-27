@@ -322,7 +322,16 @@ const PositionContainer: React.FC = () => {
     queries: manualContractIds.map((contractId) => ({
       queryKey: ["stakingAccount", contractId, { includeRewards: true, includeWithdrawable: true }],
       queryFn: async () => {
-        const response = await axios.get(`${SCS_API}/app/${contractId}`);
+        const response = await axios.get(`${SCS_API}/app/${contractId}`).catch((error) => {
+          if (axios.isAxiosError(error) && error.response?.status === 404) {
+            return null;
+          }
+
+          throw error;
+        });
+
+        if (!response) return null;
+
         const appData = response.data;
         
         // Get creator from appInfo or try to find it from accounts endpoint
@@ -399,7 +408,7 @@ const PositionContainer: React.FC = () => {
   const manualContracts = useMemo(() => {
     return manualContractQueries
       .map((query) => query.data)
-      .filter((data): data is NonNullable<typeof data> => data !== undefined);
+      .filter((data): data is NonNullable<typeof data> => data != null);
   }, [manualContractQueries]);
 
   // Merge owned contracts with manually added contracts
@@ -622,10 +631,16 @@ const PositionContainer: React.FC = () => {
         stakingContracts={allStakingContracts?.slice(0, displayCount) || []}
         arc72Tokens={arc72TokenData?.slice(0, displayCount)}
         onRefresh={() => {
-          refetchStakingContract();
-          refetchArc72Token();
+          refetchStakingContract().catch((error) => {
+            console.warn("Failed to refresh owned staking contracts", error);
+          });
+          refetchArc72Token().catch((error) => {
+            console.warn("Failed to refresh staking position tokens", error);
+          });
           manualContractQueries.forEach((query) => {
-            query.refetch();
+            query.refetch().catch((error) => {
+              console.warn("Failed to refresh watched staking contract", error);
+            });
           });
         }}
       />

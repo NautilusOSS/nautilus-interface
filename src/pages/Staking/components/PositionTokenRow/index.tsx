@@ -458,7 +458,9 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
         .sendRawTransaction(stxns as Uint8Array[])
         .do();
       await algosdk.waitForConfirmation(algodClient, txId, 4);
-      await refetch();
+      await refetch().catch((error) => {
+        console.warn("Staking position refetch failed after withdraw", error);
+      });
       toast.success("Successfully withdrawn funds");
       setIsWithdrawModalOpen(false);
       setWithdrawAmount(0);
@@ -798,7 +800,9 @@ const PositionTokenRow: React.FC<PositionTokenRowProps> = ({
         .do();
 
       await algosdk.waitForConfirmation(algodClient, txId, 4);
-      await refetch();
+      await refetch().catch((error) => {
+        console.warn("Staking position refetch failed after burn", error);
+      });
       setSuccessTxId(txId);
       setIsBurnModalOpen(false);
       party.confetti(document.body, {
